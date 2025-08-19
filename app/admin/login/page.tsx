@@ -1,7 +1,5 @@
 'use client'
-import dynamic from 'next/dynamic'
-
-const AdminAuthForm = dynamic(() => import('@/components/AdminAuthForm'), { ssr: false })
+import AdminAuthForm from '@/components/AdminAuthForm'
 
 export default function AdminLoginPage() {
   return (

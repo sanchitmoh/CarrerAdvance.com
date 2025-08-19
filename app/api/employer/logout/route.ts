@@ -16,10 +16,10 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     
     // Clear the employer_id cookie
-    const response = NextResponse.json(data);
-    response.cookies.delete('employer_id');
+    const nextResponse = NextResponse.json(data);
+    nextResponse.cookies.delete('employer_id');
     
-    return response;
+    return nextResponse;
   } catch (error) {
     console.error('Error during employer logout:', error);
     return NextResponse.json({

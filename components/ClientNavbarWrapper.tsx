@@ -1,7 +1,5 @@
 "use client";
-import dynamic from "next/dynamic";
-
-const Navbar = dynamic(() => import("@/components/Navbar"), { ssr: false });
+import Navbar from "@/components/Navbar";
 
 export default function ClientNavbarWrapper() {
   return <Navbar />;

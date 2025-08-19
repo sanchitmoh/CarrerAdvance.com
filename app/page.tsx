@@ -1,13 +1,10 @@
 "use client";
-import dynamic from 'next/dynamic'
-
-// Dynamically import components that use framer-motion with ssr: false
-const Hero = dynamic(() => import('@/components/Hero'), { ssr: false })
-const Features = dynamic(() => import('@/components/Features'), { ssr: false })
-const JobCategories = dynamic(() => import('@/components/JobCategories'), { ssr: false })
-const Stats = dynamic(() => import('@/components/Stats'), { ssr: false })
-const Testimonials = dynamic(() => import('@/components/Testimonials'), { ssr: false })
-const CTA = dynamic(() => import('@/components/CTA'), { ssr: false })
+import Hero from '@/components/Hero'
+import Features from '@/components/Features'
+import JobCategories from '@/components/JobCategories'
+import Stats from '@/components/Stats'
+import Testimonials from '@/components/Testimonials'
+import CTA from '@/components/CTA'
 
 export default function HomePage() {
   return (
