@@ -5,6 +5,7 @@ import Footer from '@/components/Footer'
 import { Toaster } from '@/components/ui/toaster'
 import ClientNavbarWrapper from '@/components/ClientNavbarWrapper';
 import ConditionalLayout from '@/components/ConditionalLayout';
+import WithCredentialsProvider from '@/components/WithCredentialsProvider'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -30,6 +31,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       </head>
       <body className={`${inter.className} font-sans antialiased`}>
+        <WithCredentialsProvider />
         <ConditionalLayout>
           {children}
         </ConditionalLayout>
