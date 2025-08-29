@@ -1,18 +1,19 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FileText, Plus, Palette, Upload } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
 
-export default function ResumeBuilderPage() {
+export const dynamic = 'force-dynamic'
+
+function ResumeBuilderContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [importedData, setImportedData] = useState<any>(null)
 
   useEffect(() => {
-    // Check if we have imported resume data
     const isImport = searchParams.get('import')
     if (isImport === 'true') {
       const storedData = sessionStorage.getItem('parsedResumeData')
@@ -24,7 +25,6 @@ export default function ResumeBuilderPage() {
             title: "Resume imported successfully",
             description: "Your resume has been parsed and is ready for editing.",
           })
-          // Clear the stored data
           sessionStorage.removeItem('parsedResumeData')
         } catch (error) {
           console.error('Error parsing stored resume data:', error)
@@ -195,5 +195,13 @@ export default function ResumeBuilderPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function ResumeBuilderPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResumeBuilderContent />
+    </Suspense>
   )
 }
