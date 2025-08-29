@@ -8,5 +8,5 @@ export default function AdminLoginPage() {
       title="Admin Portal"
       subtitle="Secure access to system administration"
     />
-  )
+  ) 
 }

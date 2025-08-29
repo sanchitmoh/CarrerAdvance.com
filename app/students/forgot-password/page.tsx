@@ -1,4 +1,7 @@
-import AuthForm from '@/components/AuthForm'
+'use client '
+import dynamic from 'next/dynamic'
+
+const AuthForm = dynamic(() => import('@/components/AuthForm'))
 
 export default function StudentsForgotPasswordPage() {
   return (

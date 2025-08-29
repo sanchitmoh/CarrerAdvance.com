@@ -25,6 +25,7 @@ interface Application {
 export default function MyApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Load applications on component mount
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function MyApplicationsPage() {
         const jobseekerId = localStorage.getItem('jobseeker_id');
         
         if (!jobseekerId) {
-          console.error('No jobseeker ID found. Please login again.');
+          setError('No jobseeker ID found. Please login again.');
           setLoading(false);
           return;
         }
@@ -44,21 +45,22 @@ export default function MyApplicationsPage() {
         
         if (data.success && data.data) {
           const formattedApplications = data.data.map((app: any) => ({
-            id: app.id.toString(),
-            jobTitle: app.job_title,
-            company: app.company,
-            location: app.location,
-            appliedDate: app.applied_at,
-            status: app.status,
-            jobDescription: app.job_description,
-            salary: app.salary,
-            jobType: app.job_type,
+            id: app.id?.toString() || '',
+            jobTitle: app.job_title || 'Untitled Position',
+            company: app.company || 'Unknown Company',
+            location: app.location || 'Location not specified',
+            appliedDate: app.applied_at || new Date().toISOString(),
+            status: app.status || 'applied',
+            jobDescription: app.job_description || 'No description available',
+            salary: app.salary || 'Salary not specified',
+            jobType: app.job_type || 'full-time',
             remote: app.remote === 1
           }));
           setApplications(formattedApplications);
         }
       } catch (error) {
         console.error('Error loading applications:', error);
+        setError('Failed to load applications. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -88,18 +90,23 @@ export default function MyApplicationsPage() {
   }
 
   const filteredApplications = applications.filter(app => {
-    const matchesSearch = app.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.company.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (app.jobTitle?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                         (app.company?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter
     return matchesSearch && matchesStatus
   })
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    if (!dateString) return 'Date not available';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch (error) {
+      return 'Invalid date';
+    }
   }
 
   return (
@@ -150,9 +157,37 @@ export default function MyApplicationsPage() {
         </CardContent>
       </Card>
 
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="text-red-800 text-center">
+              <p className="font-medium">{error}</p>
+              <Button 
+                variant="outline" 
+                className="mt-2 border-red-300 text-red-700 hover:bg-red-100"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <Card className="border-emerald-200 bg-emerald-50">
+          <CardContent className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+            <p className="text-emerald-800 font-medium">Loading applications...</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Applications List */}
       <div className="space-y-4">
-        {filteredApplications.length > 0 ? (
+        {!loading && filteredApplications.length > 0 ? (
           filteredApplications.map((application) => (
             <Card key={application.id} className="border-gray-200 hover:border-emerald-300 transition-colors shadow-lg">
               <CardContent className="p-6">
@@ -196,12 +231,12 @@ export default function MyApplicationsPage() {
                     <div className="flex items-center space-x-3">
                       <Badge 
                         variant="outline" 
-                        className={statusColors[application.status]}
+                        className={statusColors[application.status] || 'bg-gray-100 text-gray-700 border-gray-200'}
                       >
-                        {statusLabels[application.status]}
+                        {statusLabels[application.status] || 'Unknown Status'}
                       </Badge>
                       <Badge variant="outline" className="border-gray-200 text-gray-700 capitalize">
-                        {application.jobType.replace('-', ' ')}
+                        {application.jobType ? application.jobType.replace('-', ' ') : 'Full-time'}
                       </Badge>
                     </div>
                   </div>
@@ -233,12 +268,12 @@ export default function MyApplicationsPage() {
                             <div className="flex items-center space-x-4">
                               <Badge 
                                 variant="outline" 
-                                className={statusColors[selectedApplication.status]}
+                                className={statusColors[selectedApplication.status] || 'bg-gray-100 text-gray-700 border-gray-200'}
                               >
-                                {statusLabels[selectedApplication.status]}
+                                {statusLabels[selectedApplication.status] || 'Unknown Status'}
                               </Badge>
                               <Badge variant="outline" className="border-gray-200 text-gray-700 capitalize">
-                                {selectedApplication.jobType.replace('-', ' ')}
+                                {selectedApplication.jobType ? selectedApplication.jobType.replace('-', ' ') : 'Full-time'}
                               </Badge>
                               {selectedApplication.remote && (
                                 <Badge variant="outline" className="border-blue-200 text-blue-700">
@@ -285,7 +320,7 @@ export default function MyApplicationsPage() {
               </CardContent>
             </Card>
           ))
-        ) : (
+        ) : !loading && (
           <Card className="border-2 border-dashed border-emerald-300 bg-emerald-50/50">
             <CardContent className="p-12 text-center">
               <Briefcase className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
@@ -309,19 +344,21 @@ export default function MyApplicationsPage() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {Object.entries(statusLabels).map(([status, label]) => {
-          const count = applications.filter(app => app.status === status).length
-          return (
-            <Card key={status} className="border-emerald-200">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
-                <div className="text-sm text-gray-600">{label}</div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
+      {!loading && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {Object.entries(statusLabels).map(([status, label]) => {
+            const count = applications.filter(app => app.status === status).length
+            return (
+              <Card key={status} className="border-emerald-200">
+                <CardContent className="p-4 text-center">
+                  <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
+                  <div className="text-sm text-gray-600">{label}</div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

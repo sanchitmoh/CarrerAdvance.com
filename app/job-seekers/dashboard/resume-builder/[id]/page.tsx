@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,8 +23,9 @@ import {
   Award,
   Lightbulb,
   Heart,
+  CheckCircle,
 } from "lucide-react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 
 interface ResumeData {
   personalInfo: {
@@ -74,6 +75,13 @@ interface ResumeData {
     link?: string
   }>
   activities: Array<{
+    id: string
+    title: string
+    organization: string
+    description: string
+    date: string
+  }>
+  extracurriculars?: Array<{
     id: string
     title: string
     organization: string
@@ -136,6 +144,7 @@ export default function ResumeBuilderPage() {
         date: "2023",
       },
     ],
+    extracurriculars: [],
   })
 
   const [atsScore, setAtsScore] = useState(78)
@@ -147,12 +156,161 @@ export default function ResumeBuilderPage() {
     jobTitle: "",
     jobDescription: "",
   })
+  const [isTailoring, setIsTailoring] = useState(false)
+  const [tailorError, setTailorError] = useState<string | null>(null)
+  const [jobData, setJobData] = useState<any>(null)
+  const [analysis, setAnalysis] = useState<any>(null)
+  const [suggestions, setSuggestions] = useState<any>(null)
   const [activeSection, setActiveSection] = useState("personal")
 
   const [skillInput, setSkillInput] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
 
   const [showEducationForm, setShowEducationForm] = useState(false)
+  const [dataImported, setDataImported] = useState(false)
+  
+  const searchParams = useSearchParams()
+
+  const [showResultsModal, setShowResultsModal] = useState(false)
+
+  // Backend base URL for CodeIgniter (set NEXT_PUBLIC_BACKEND_BASE_URL in env for prod)
+  const apiBase = (typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || '')
+    : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || ''))
+
+  const [lastStatus, setLastStatus] = useState<string>("")
+
+  useEffect(() => {
+    if (analysis || suggestions) {
+      setShowResultsModal(true)
+    }
+  }, [analysis, suggestions])
+
+  // Handle imported resume data
+  useEffect(() => {
+    const isImported = searchParams.get('imported')
+    if (isImported === 'true') {
+      const storedData = sessionStorage.getItem('resumeBuilderData')
+      if (storedData) {
+        try {
+          const importedData = JSON.parse(storedData)
+          console.log('Loading imported resume data:', importedData)
+          
+          // Map imported data to resume form structure
+          const mappedData: ResumeData = {
+            personalInfo: {
+              fullName: importedData.name || "John Doe",
+              email: importedData.email || "john.doe@example.com",
+              phone: importedData.phone || "+1 (555) 123-4567",
+              location: importedData.location || "New York, NY",
+              linkedin: importedData.linkedin || "linkedin.com/in/johndoe",
+              website: importedData.website || "johndoe.dev",
+            },
+            summary: importedData.summary || "Experienced professional with expertise in various domains.",
+            experience: importedData.experience ? [
+              {
+                id: "1",
+                title: "Extracted Experience",
+                company: "Various Companies",
+                location: "Multiple Locations",
+                startDate: "2020-01",
+                endDate: "",
+                current: true,
+                description: importedData.experience.substring(0, 500) + (importedData.experience.length > 500 ? "..." : ""),
+              }
+            ] : resumeData.experience,
+            education: importedData.education ? [
+              {
+                id: "1",
+                degree: "Extracted Education",
+                school: "Various Institutions",
+                location: "Multiple Locations",
+                graduationDate: "2020-05",
+                gpa: "N/A",
+                description: importedData.education.substring(0, 300) + (importedData.education.length > 300 ? "..." : ""),
+              }
+            ] : resumeData.education,
+            certifications: resumeData.certifications,
+            skills: importedData.skills ? importedData.skills.split(',').map((skill: string) => skill.trim()).filter(Boolean) : resumeData.skills,
+            projects: resumeData.projects,
+            activities: resumeData.activities,
+          }
+          
+          setResumeData(mappedData)
+          setDataImported(true)
+          console.log('Resume data auto-populated with imported data')
+          
+          // Clear the stored data
+          sessionStorage.removeItem('resumeBuilderData')
+        } catch (error) {
+          console.error('Error loading imported resume data:', error)
+        }
+      }
+    }
+  }, [searchParams])
+
+  // Handle imported resume data
+  useEffect(() => {
+    const isImported = searchParams.get('imported')
+    if (isImported === 'true') {
+      const storedData = sessionStorage.getItem('resumeBuilderData')
+      if (storedData) {
+        try {
+          const importedData = JSON.parse(storedData)
+          console.log('Loading imported resume data:', importedData)
+          
+          // Map imported data to resume form structure
+          const mappedData: ResumeData = {
+            personalInfo: {
+              fullName: importedData.name || "John Doe",
+              email: importedData.email || "john.doe@example.com",
+              phone: importedData.phone || "+1 (555) 123-4567",
+              location: importedData.location || "New York, NY",
+              linkedin: importedData.linkedin || "linkedin.com/in/johndoe",
+              website: importedData.website || "johndoe.dev",
+            },
+            summary: importedData.summary || "Experienced professional with expertise in various domains.",
+            experience: importedData.experience ? [
+              {
+                id: "1",
+                title: "Extracted Experience",
+                company: "Various Companies",
+                location: "Multiple Locations",
+                startDate: "2020-01",
+                endDate: "",
+                current: true,
+                description: importedData.experience.substring(0, 500) + (importedData.experience.length > 500 ? "..." : ""),
+              }
+            ] : resumeData.experience,
+            education: importedData.education ? [
+              {
+                id: "1",
+                degree: "Extracted Education",
+                school: "Various Institutions",
+                location: "Multiple Locations",
+                graduationDate: "2020-05",
+                gpa: "N/A",
+                description: importedData.education.substring(0, 300) + (importedData.education.length > 300 ? "..." : ""),
+              }
+            ] : resumeData.education,
+            certifications: resumeData.certifications,
+            skills: importedData.skills ? importedData.skills.split(',').map((skill: string) => skill.trim()).filter(Boolean) : resumeData.skills,
+            projects: resumeData.projects,
+            activities: resumeData.activities,
+          }
+          
+          setResumeData(mappedData)
+          setDataImported(true)
+          console.log('Resume data auto-populated with imported data')
+          
+          // Clear the stored data
+          sessionStorage.removeItem('resumeBuilderData')
+        } catch (error) {
+          console.error('Error loading imported resume data:', error)
+        }
+      }
+    }
+  }, [searchParams])
   const [educationFormData, setEducationFormData] = useState({
     institution: "",
     degree: "",
@@ -178,6 +336,74 @@ export default function ResumeBuilderPage() {
     expiryDate: "",
     credentialUrl: "",
   })
+
+  // Activities form state and handlers
+  const [showActivityForm, setShowActivityForm] = useState(false)
+  const [activityForm, setActivityForm] = useState({
+    title: "",
+    organization: "",
+    description: "",
+    date: "",
+  })
+
+  const saveActivity = () => {
+    if (activityForm.title && activityForm.organization) {
+      const newActivity = {
+        id: Date.now().toString(),
+        title: activityForm.title,
+        organization: activityForm.organization,
+        description: activityForm.description,
+        date: activityForm.date,
+      }
+      setResumeData((prev) => ({
+        ...prev,
+        activities: [...prev.activities, newActivity],
+      }))
+      setActivityForm({ title: "", organization: "", description: "", date: "" })
+      setShowActivityForm(false)
+    }
+  }
+
+  const removeActivity = (id: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      activities: prev.activities.filter((a) => a.id !== id),
+    }))
+  }
+
+  // Extra-curricular form state and handlers
+  const [showExtracurricularForm, setShowExtracurricularForm] = useState(false)
+  const [extracurricularForm, setExtracurricularForm] = useState({
+    title: "",
+    organization: "",
+    description: "",
+    date: "",
+  })
+
+  const saveExtracurricular = () => {
+    if (extracurricularForm.title && extracurricularForm.organization) {
+      const newExtra = {
+        id: Date.now().toString(),
+        title: extracurricularForm.title,
+        organization: extracurricularForm.organization,
+        description: extracurricularForm.description,
+        date: extracurricularForm.date,
+      }
+      setResumeData((prev) => ({
+        ...prev,
+        extracurriculars: [...(prev.extracurriculars || []), newExtra],
+      }))
+      setExtracurricularForm({ title: "", organization: "", description: "", date: "" })
+      setShowExtracurricularForm(false)
+    }
+  }
+
+  const removeExtracurricular = (id: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      extracurriculars: (prev.extracurriculars || []).filter((a) => a.id !== id),
+    }))
+  }
 
   const skillSuggestions = [
     // Programming Languages
@@ -366,6 +592,7 @@ export default function ResumeBuilderPage() {
     { id: "skills", label: "Skills", icon: Award },
     { id: "projects", label: "Projects", icon: Lightbulb },
     { id: "activities", label: "Activities", icon: Heart },
+    { id: "extracurriculars", label: "Extra-Curricular", icon: CheckCircle },
   ]
 
   const handleSave = () => {
@@ -378,12 +605,102 @@ export default function ResumeBuilderPage() {
     console.log("Downloading resume as:", format)
   }
 
-  const handleTailorResume = () => {
-    setShowTailorCard(false)
-    // Simulate analysis
-    setTimeout(() => {
-      setAtsScore(85)
-    }, 1000)
+  const buildResumeContent = () => {
+    const lines: string[] = []
+    lines.push(`${resumeData.personalInfo.fullName}`)
+    lines.push(`${resumeData.personalInfo.email} | ${resumeData.personalInfo.phone} | ${resumeData.personalInfo.location}`)
+    if (resumeData.summary) lines.push(`Summary: ${resumeData.summary}`)
+    if (resumeData.skills?.length) lines.push(`Skills: ${resumeData.skills.join(', ')}`)
+    if (resumeData.experience?.length) {
+      lines.push('Experience:')
+      resumeData.experience.forEach((e) => {
+        lines.push(`- ${e.title} at ${e.company} (${e.startDate} - ${e.current ? 'Present' : e.endDate}) - ${e.location}`)
+        if (e.description) lines.push(e.description)
+      })
+    }
+    if (resumeData.education?.length) {
+      lines.push('Education:')
+      resumeData.education.forEach((ed) => {
+        lines.push(`- ${ed.degree} - ${ed.school} (${ed.graduationDate})`)
+        if (ed.description) lines.push(ed.description)
+      })
+    }
+    if (resumeData.projects?.length) {
+      lines.push('Projects:')
+      resumeData.projects.forEach((p) => {
+        lines.push(`- ${p.name}${p.date ? ` (${p.date})` : ''}`)
+        if (p.description) lines.push(p.description)
+        if (p.technologies?.length) lines.push(`Tech: ${p.technologies.join(', ')}`)
+      })
+    }
+    if (resumeData.activities?.length) {
+      lines.push('Activities:')
+      resumeData.activities.forEach((a) => {
+        lines.push(`- ${a.title} at ${a.organization}${a.date ? ` (${a.date})` : ''}`)
+        if (a.description) lines.push(a.description)
+      })
+    }
+    if (resumeData.extracurriculars?.length) {
+      lines.push('Extra-Curricular:')
+      resumeData.extracurriculars.forEach((a) => {
+        lines.push(`- ${a.title} at ${a.organization}${a.date ? ` (${a.date})` : ''}`)
+        if (a.description) lines.push(a.description)
+      })
+    }
+    return lines.join('\n')
+  }
+
+  const fetchJson = async (url: string, payload: any) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    })
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      const text = await res.text()
+      throw new Error(text?.slice(0, 300) || 'Non-JSON response from server')
+    }
+    const json = await res.json()
+    return json
+  }
+
+  const callCompleteAnalysis = async (payload: any) => {
+    const res = await fetch('/api/resume/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      const text = await res.text()
+      throw new Error(text?.slice(0, 300) || 'Non-JSON response from proxy')
+    }
+    return res.json()
+  }
+
+  const handleTailorResume = async () => {
+    setTailorError(null)
+    setIsTailoring(true)
+    try {
+      const resume_content = buildResumeContent()
+      setLastStatus('complete_job_analysis')
+      const complete = await callCompleteAnalysis({ job_url: jobPostingUrl, resume_content })
+      if (!complete.success) throw new Error(complete.message || 'Analysis failed')
+      setJobData(complete.job_data)
+      setAnalysis(complete.analysis)
+      setSuggestions(complete.suggestions || null)
+
+      const score = complete.analysis?.overall_match_score ?? complete.analysis?.skills_match?.skills_match_percentage ?? 80
+      setAtsScore(Math.max(0, Math.min(100, Number(score))))
+      setShowTailorCard(false)
+      setShowResultsModal(true)
+    } catch (e: any) {
+      setTailorError(e?.message || 'Something went wrong')
+    } finally {
+      setIsTailoring(false)
+    }
   }
 
   const handleManualEntry = () => {
@@ -394,13 +711,33 @@ export default function ResumeBuilderPage() {
     setShowManualEntry(false)
   }
 
-  const handleAnalyzeAndTailor = () => {
-    setShowTailorCard(false)
-    setShowManualEntry(false)
-    // Simulate analysis
-    setTimeout(() => {
-      setAtsScore(85)
-    }, 1000)
+  const handleAnalyzeAndTailor = async () => {
+    setTailorError(null)
+    setIsTailoring(true)
+    try {
+      const resume_content = buildResumeContent()
+      const manual_data = {
+        job_title: manualEntryData.jobTitle,
+        company_name: manualEntryData.companyName,
+        job_description: manualEntryData.jobDescription,
+      }
+      setLastStatus('complete_job_analysis')
+      const complete = await callCompleteAnalysis({ resume_content, manual_data })
+      if (!complete.success) throw new Error(complete.message || 'Analysis failed')
+      setJobData(complete.job_data)
+      setAnalysis(complete.analysis)
+      setSuggestions(complete.suggestions || null)
+
+      const score = complete.analysis?.overall_match_score ?? complete.analysis?.skills_match?.skills_match_percentage ?? 80
+      setAtsScore(Math.max(0, Math.min(100, Number(score))))
+      setShowTailorCard(false)
+      setShowManualEntry(false)
+      setShowResultsModal(true)
+    } catch (e: any) {
+      setTailorError(e?.message || 'Something went wrong')
+    } finally {
+      setIsTailoring(false)
+    }
   }
 
   const addExperience = () => {
@@ -573,6 +910,19 @@ export default function ResumeBuilderPage() {
             </div>
             <Progress value={atsScore} className="h-2 mb-4" />
 
+            {/* Import Notification */}
+            {dataImported && (
+              <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-emerald-600" />
+                  <span className="text-emerald-800 font-medium">Resume data imported successfully!</span>
+                </div>
+                <p className="text-emerald-700 text-sm mt-1">
+                  Your resume has been parsed and the form has been auto-populated. You can now edit and customize the information.
+                </p>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="flex space-x-3">
               <Button
@@ -604,14 +954,19 @@ export default function ResumeBuilderPage() {
                 className="border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent"
               >
                 <Target className="h-4 w-4 mr-2" />
-                Tailor Resume
+                {isTailoring ? 'Analyzing…' : 'Tailor Resume'}
               </Button>
             </div>
 
             {/* Tailor Resume Card */}
-            {showTailorCard && (
+            {(showTailorCard || tailorError) && (
               <Card className="mt-4 border-blue-200 bg-blue-50/50">
                 <CardContent className="p-4">
+                  {tailorError && (
+                    <div className="mb-3 p-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded">
+                      {tailorError}
+                    </div>
+                  )}
                   {!showManualEntry ? (
                     <div className="space-y-4">
                       <div className="space-y-2">
@@ -628,8 +983,9 @@ export default function ResumeBuilderPage() {
                         <Button
                           onClick={handleTailorResume}
                           className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                          disabled={isTailoring || !jobPostingUrl}
                         >
-                          Analyze
+                          {isTailoring ? 'Analyzing…' : 'Analyze'}
                         </Button>
                         <Button
                           onClick={handleManualEntry}
@@ -681,8 +1037,9 @@ export default function ResumeBuilderPage() {
                         <Button
                           onClick={handleAnalyzeAndTailor}
                           className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                          disabled={isTailoring || !manualEntryData.companyName || !manualEntryData.jobTitle || !manualEntryData.jobDescription}
                         >
-                          Analyze and Tailor
+                          {isTailoring ? 'Analyzing…' : 'Analyze and Tailor'}
                         </Button>
                         <Button
                           onClick={handleBackToLink}
@@ -695,6 +1052,63 @@ export default function ResumeBuilderPage() {
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Results Tab - Shows when analysis is complete */}
+            {analysis && (
+              <Card className="mt-4 border-emerald-200 bg-emerald-50/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-emerald-800 flex items-center space-x-2">
+                    <Target className="h-5 w-5" />
+                    <span>Tailoring Results</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Job Information */}
+                  {jobData && (
+                    <div className="p-3 bg-white rounded border border-emerald-100">
+                      <div className="text-sm font-semibold text-emerald-800 mb-2">Job Details</div>
+                      <div className="text-gray-700">
+                        <div className="font-medium">{jobData.job_title || 'N/A'}</div>
+                        {jobData.company_name && <div className="text-sm text-gray-600">{jobData.company_name}</div>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Match Score */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 bg-emerald-100 rounded text-center">
+                      <div className="text-2xl font-bold text-emerald-800">{analysis.overall_match_score ?? '—'}</div>
+                      <div className="text-xs text-emerald-700">Overall Match</div>
+                    </div>
+                    <div className="p-3 bg-blue-100 rounded text-center">
+                      <div className="text-lg font-bold text-blue-800">{analysis.match_grade ?? '—'}</div>
+                      <div className="text-xs text-blue-700">Grade</div>
+                    </div>
+                    <div className="p-3 bg-amber-100 rounded text-center">
+                      <div className="text-lg font-bold text-amber-800">{analysis.skills_match?.skills_match_percentage ?? '—'}%</div>
+                      <div className="text-xs text-amber-700">Skills Match</div>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      {analysis.recommendations?.length > 0 && (
+                        <span>{analysis.recommendations.length} recommendations available</span>
+                      )}
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-100" 
+                      onClick={() => setShowResultsModal(true)}
+                    >
+                      View Full Analysis
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1069,6 +1483,194 @@ export default function ResumeBuilderPage() {
                         <p className="text-emerald-600 font-medium">{edu.school}</p>
                         <p className="text-sm text-gray-600">{edu.graduationDate}</p>
                         {edu.gpa && <p className="text-sm text-gray-600">GPA: {edu.gpa}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "activities" && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center space-x-2">
+                      <Heart className="h-5 w-5 text-emerald-600" />
+                      <span>Activities</span>
+                    </CardTitle>
+                    <Button
+                      onClick={() => setShowActivityForm(!showActivityForm)}
+                      size="sm"
+                      className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {showActivityForm ? "Cancel" : "Add Activity"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {showActivityForm && (
+                    <div className="space-y-4 mb-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="activityTitle">Title*</Label>
+                          <Input
+                            id="activityTitle"
+                            value={activityForm.title}
+                            onChange={(e) => setActivityForm((p) => ({ ...p, title: e.target.value }))}
+                            placeholder="e.g., Volunteer Developer"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="activityOrg">Organization*</Label>
+                          <Input
+                            id="activityOrg"
+                            value={activityForm.organization}
+                            onChange={(e) => setActivityForm((p) => ({ ...p, organization: e.target.value }))}
+                            placeholder="e.g., Local Non-Profit"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="activityDate">Date</Label>
+                          <Input
+                            id="activityDate"
+                            value={activityForm.date}
+                            onChange={(e) => setActivityForm((p) => ({ ...p, date: e.target.value }))}
+                            placeholder="e.g., 2023"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="activityDesc">Description</Label>
+                        <Textarea
+                          id="activityDesc"
+                          value={activityForm.description}
+                          onChange={(e) => setActivityForm((p) => ({ ...p, description: e.target.value }))}
+                          rows={3}
+                          placeholder="Describe your role and impact..."
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button onClick={saveActivity} className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white">
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Activity
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Display existing activities */}
+                  <div className="space-y-4">
+                    {resumeData.activities.map((act) => (
+                      <div key={act.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900">{act.title}</h4>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeActivity(act.id)}
+                            className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-emerald-600 font-medium">{act.organization}</p>
+                        <p className="text-sm text-gray-600">{act.date}</p>
+                        {act.description && <p className="text-gray-700 mt-2 text-sm">{act.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeSection === "extracurriculars" && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center space-x-2">
+                      <CheckCircle className="h-5 w-5 text-emerald-600" />
+                      <span>Extra-Curricular Activities</span>
+                    </CardTitle>
+                    <Button
+                      onClick={() => setShowExtracurricularForm(!showExtracurricularForm)}
+                      size="sm"
+                      className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {showExtracurricularForm ? "Cancel" : "Add Extra-Curricular"}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {showExtracurricularForm && (
+                    <div className="space-y-4 mb-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="extraTitle">Title*</Label>
+                          <Input
+                            id="extraTitle"
+                            value={extracurricularForm.title}
+                            onChange={(e) => setExtracurricularForm((p) => ({ ...p, title: e.target.value }))}
+                            placeholder="e.g., Debate Club Captain"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="extraOrg">Organization*</Label>
+                          <Input
+                            id="extraOrg"
+                            value={extracurricularForm.organization}
+                            onChange={(e) => setExtracurricularForm((p) => ({ ...p, organization: e.target.value }))}
+                            placeholder="e.g., University Debate Society"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="extraDate">Date</Label>
+                          <Input
+                            id="extraDate"
+                            value={extracurricularForm.date}
+                            onChange={(e) => setExtracurricularForm((p) => ({ ...p, date: e.target.value }))}
+                            placeholder="e.g., 2022 - 2023"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="extraDesc">Description</Label>
+                        <Textarea
+                          id="extraDesc"
+                          value={extracurricularForm.description}
+                          onChange={(e) => setExtracurricularForm((p) => ({ ...p, description: e.target.value }))}
+                          rows={3}
+                          placeholder="Describe activities, achievements, and impact..."
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button onClick={saveExtracurricular} className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white">
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Extra-Curricular
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Display existing extra-curricular activities */}
+                  <div className="space-y-4">
+                    {(resumeData.extracurriculars || []).map((act) => (
+                      <div key={act.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900">{act.title}</h4>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeExtracurricular(act.id)}
+                            className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-emerald-600 font-medium">{act.organization}</p>
+                        <p className="text-sm text-gray-600">{act.date}</p>
+                        {act.description && <p className="text-gray-700 mt-2 text-sm">{act.description}</p>}
                       </div>
                     ))}
                   </div>
@@ -1556,10 +2158,271 @@ export default function ResumeBuilderPage() {
                   </div>
                 </div>
               )}
+
+              {/* Activities */}
+              {resumeData.activities.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3 border-b border-gray-200 pb-1">Activities</h2>
+                  <div className="space-y-3">
+                    {resumeData.activities.map((act) => (
+                      <div key={act.id} className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{act.title}</h3>
+                          <p className="text-emerald-600">{act.organization}</p>
+            </div>
+                        <div className="text-right text-sm text-gray-600">
+                          <p>{act.date}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Extra-Curricular Activities */}
+              {resumeData.extracurriculars && (resumeData.extracurriculars?.length ?? 0) > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3 border-b border-gray-200 pb-1">Extra-Curricular Activities</h2>
+                  <div className="space-y-3">
+                    {(resumeData.extracurriculars || []).map((act) => (
+                      <div key={act.id} className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{act.title}</h3>
+                          <p className="text-emerald-600">{act.organization}</p>
+                        </div>
+                        <div className="text-right text-sm text-gray-600">
+                          <p>{act.date}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
-  )
-}
+
+      {/* Global Tailoring Results Modal */}
+      {showResultsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowResultsModal(false)} />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 p-6 max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">Tailored Resume Analysis</h3>
+              <Button variant="outline" size="sm" onClick={() => setShowResultsModal(false)} className="border-gray-200">Close</Button>
+            </div>
+            
+            <div className="space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto pr-2">
+              {/* Job Information */}
+              {jobData && (
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-3">Job Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Job Title:</span>
+                      <p className="text-gray-900">{jobData.job_title || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Company:</span>
+                      <p className="text-gray-900">{jobData.company_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Location:</span>
+                      <p className="text-gray-900">{jobData.location || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-600">Industry:</span>
+                      <p className="text-gray-900">{jobData.industry || 'N/A'}</p>
+                    </div>
+                  </div>
+                  {jobData.job_description && jobData.job_description !== 'Not specified' && (
+                    <div className="mt-3">
+                      <span className="text-sm font-medium text-gray-600">Description:</span>
+                      <p className="text-gray-700 mt-1 text-sm">{jobData.job_description}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Analysis Results */}
+              {analysis && (
+                <div className="space-y-6">
+                  {/* Match Scores */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200 text-center">
+                      <div className="text-3xl font-bold text-emerald-800">{analysis.overall_match_score ?? '—'}</div>
+                      <div className="text-sm text-emerald-700">Overall Match</div>
+                    </div>
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
+                      <div className="text-2xl font-bold text-blue-800">{analysis.match_grade ?? '—'}</div>
+                      <div className="text-sm text-blue-700">Grade</div>
+                    </div>
+                    <div className="p-4 bg-amber-50 rounded-lg border border-amber-200 text-center">
+                      <div className="text-2xl font-bold text-amber-800">{analysis.skills_match?.skills_match_percentage ?? '—'}%</div>
+                      <div className="text-sm text-amber-700">Skills Match</div>
+                    </div>
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 text-center">
+                      <div className="text-2xl font-bold text-purple-800">{analysis.experience_match?.experience_score ?? '—'}</div>
+                      <div className="text-sm text-purple-700">Experience</div>
+                    </div>
+                  </div>
+
+                  {/* Skills Analysis */}
+                  {analysis.skills_match && (
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-semibold text-gray-800">Skills Analysis</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {analysis.skills_match.preferred_skills_matched && analysis.skills_match.preferred_skills_matched.length > 0 && (
+                          <div className="p-3 bg-emerald-50 rounded border border-emerald-200">
+                            <h5 className="font-medium text-emerald-800 mb-2">Matched Skills</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {analysis.skills_match.preferred_skills_matched.map((skill: string, i: number) => (
+                                <span key={i} className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full">{skill}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {analysis.skills_match.required_skills_missing && analysis.skills_match.required_skills_missing.length > 0 && (
+                          <div className="p-3 bg-red-50 rounded border border-red-200">
+                            <h5 className="font-medium text-red-800 mb-2">Missing Required Skills</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {analysis.skills_match.required_skills_missing.map((skill: string, i: number) => (
+                                <span key={i} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">{skill}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Strengths & Weaknesses */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {analysis.strengths && analysis.strengths.length > 0 && (
+                      <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                        <h4 className="text-lg font-semibold text-emerald-800 mb-3">Strengths</h4>
+                        <ul className="space-y-2">
+                          {analysis.strengths.map((strength: string, i: number) => (
+                            <li key={i} className="flex items-start">
+                              <span className="text-emerald-600 mr-2">✓</span>
+                              <span className="text-gray-700 text-sm">{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {analysis.weaknesses && analysis.weaknesses.length > 0 && (
+                      <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                        <h4 className="text-lg font-semibold text-red-800 mb-3">Areas for Improvement</h4>
+                        <ul className="space-y-2">
+                          {analysis.weaknesses.map((weakness: string, i: number) => (
+                            <li key={i} className="flex items-start">
+                              <span className="text-red-600 mr-2">⚠</span>
+                              <span className="text-gray-700 text-sm">{weakness}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recommendations */}
+                  {analysis.recommendations && analysis.recommendations.length > 0 && (
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="text-lg font-semibold text-blue-800 mb-3">Recommendations</h4>
+                      <div className="space-y-3">
+                        {analysis.recommendations.map((rec: any, i: number) => (
+                          <div key={i} className="flex items-start p-3 bg-white rounded border border-blue-100">
+                            <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
+                            <div>
+                              <p className="text-gray-800 text-sm">{rec.message}</p>
+                              <div className="flex items-center mt-2 space-x-3 text-xs text-gray-600">
+                                <span className="capitalize">{rec.category}</span>
+                                <span className="capitalize">{rec.priority} priority</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tailoring Suggestions */}
+                  {analysis.tailoring_suggestions && analysis.tailoring_suggestions.length > 0 && (
+                    <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                      <h4 className="text-lg font-semibold text-amber-800 mb-3">Tailoring Suggestions</h4>
+                      <ul className="space-y-2">
+                        {analysis.tailoring_suggestions.map((suggestion: string, i: number) => (
+                          <li key={i} className="flex items-start">
+                            <span className="text-amber-600 mr-2">💡</span>
+                            <span className="text-gray-700 text-sm">{suggestion}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Interview Chance */}
+                  {analysis.estimated_interview_chance && (
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 text-center">
+                      <h4 className="text-lg font-semibold text-purple-800 mb-2">Interview Probability</h4>
+                      <div className="text-2xl font-bold text-purple-800 capitalize">{analysis.estimated_interview_chance}</div>
+                      <p className="text-purple-700 text-sm mt-1">Based on resume-job match analysis</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Suggestions */}
+              {suggestions && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold text-gray-800">Additional Suggestions</h4>
+                  
+                  {suggestions.summary_suggestions && suggestions.summary_suggestions.length > 0 && (
+                    <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                      <h5 className="font-medium text-indigo-800 mb-2">Summary Suggestions</h5>
+                      <ul className="space-y-2">
+                        {suggestions.summary_suggestions.map((s: string, i: number) => (
+                          <li key={i} className="flex items-start">
+                            <span className="text-indigo-600 mr-2">📝</span>
+                            <span className="text-gray-700 text-sm">{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {suggestions.skills_to_add && suggestions.skills_to_add.length > 0 && (
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <h5 className="font-medium text-green-800 mb-2">Skills to Add</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {suggestions.skills_to_add.map((sk: string, i: number) => (
+                          <span key={i} className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">+ {sk}</span>
+                        ))}
+                       </div>
+                     </div>
+                   )}
+
+                   {suggestions.priority_actions && suggestions.priority_actions.length > 0 && (
+                     <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                       <h5 className="font-medium text-orange-800 mb-2">Priority Actions</h5>
+                       <ul className="space-y-2">
+                         {suggestions.priority_actions.map((a: any, i: number) => (
+                           <li key={i} className="flex items-start">
+                             <span className="text-orange-600 mr-2">🎯</span>
+                             <span className="text-gray-700 text-sm">{a.action || a.description || ''}</span>
+                           </li>
+                         ))}
+                       </ul>
+                     </div>
+                   )}
+                 </div>
+               )}
+             </div>
+           </div>
+         </div>
+       )}
+     </div>
+   )
+ }

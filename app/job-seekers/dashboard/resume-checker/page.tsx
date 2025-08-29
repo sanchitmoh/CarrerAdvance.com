@@ -55,35 +55,83 @@ export default function ResumeCheckerPage() {
     }
 
     setIsAnalyzing(true)
-
-    // Simulate analysis
-    setTimeout(() => {
-      const mockAnalysis: ResumeAnalysis = {
-        score: 78,
-        strengths: [
-          'Strong technical skills section',
-          'Quantified achievements with metrics',
-          'Relevant work experience for target industry',
-          'Professional summary is well-written',
-          'Education section is complete'
-        ],
-        improvements: [
-          'Add more industry-specific keywords',
-          'Include soft skills in experience descriptions',
-          'Optimize formatting for ATS systems',
-          'Add relevant certifications section',
-          'Include volunteer work or projects'
-        ],
-        keywords: [
-          'JavaScript', 'React', 'Node.js', 'Agile', 'Scrum', 'API Development',
-          'Database Management', 'Cloud Computing', 'DevOps', 'Problem Solving'
-        ],
-        industryMatch: 85,
-        atsCompatibility: 72
+    try {
+      let res: Response
+      if (uploadedFile) {
+        const form = new FormData()
+        form.append('file', uploadedFile)
+        form.append('industry', selectedIndustry)
+        res = await fetch('/api/resume/ats', {
+          method: 'POST',
+          body: form
+        })
+      } else {
+        const textPayload = resumeText.trim()
+        res = await fetch('/api/resume/ats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resumeText: textPayload, industry: selectedIndustry })
+        })
       }
-      setAnalysis(mockAnalysis)
+
+      const json = await res.json()
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || 'Analysis failed')
+      }
+
+      const payload = json.data || json.raw || {}
+      const score = typeof payload.score === 'number' ? payload.score : 0
+      const industryMatch = typeof payload.industry_match_percentage === 'number' ? payload.industry_match_percentage : 0
+
+      // Derive ATS compatibility from keyword density vs optimal range when available
+      const density = typeof payload.metrics?.keyword_density === 'number'
+        ? payload.metrics.keyword_density
+        : (typeof payload.keyword_analysis?.overall_density === 'number' ? payload.keyword_analysis.overall_density : null)
+      const optimalMax = typeof payload.keyword_analysis?.optimal_range?.max === 'number' ? payload.keyword_analysis.optimal_range.max : null
+      const atsCompatibility = density && optimalMax
+        ? Math.max(0, Math.min(100, Math.round((density / optimalMax) * 100)))
+        : score
+
+      const recs: any[] = Array.isArray(payload.recommendations) ? payload.recommendations : []
+      const strengths: string[] = [
+        ...(Array.isArray(payload.experience?.action_verbs) ? [`Uses strong action verbs: ${payload.experience.action_verbs.slice(0, 4).join(', ')}`] : []),
+        ...(payload.sections?.work_experience ? ['Work experience section present'] : []),
+        ...(payload.sections?.skills ? ['Skills section present'] : []),
+        ...recs.filter((r: any) => r?.type === 'info' || r?.impact === 'Low').map((r: any) => r?.message).filter(Boolean)
+      ].slice(0, 5)
+
+      const techFound: string[] = payload?.keyword_analysis?.categories?.technical_skills?.found || []
+      const techMissing: string[] = payload?.keyword_analysis?.categories?.technical_skills?.missing || []
+      const softMissing: string[] = payload?.keyword_analysis?.categories?.soft_skills?.missing || []
+
+      const improvements: string[] = [
+        ...(Array.isArray(payload.industry_insights?.priority_improvements) ? payload.industry_insights.priority_improvements : []),
+        ...(techMissing.length ? [`Add technical skills: ${techMissing.slice(0, 5).join(', ')}`] : []),
+        ...(softMissing.length ? [`Add soft skills: ${softMissing.slice(0, 5).join(', ')}`] : []),
+        ...recs.filter((r: any) => r?.type === 'critical' || r?.impact === 'High' || r?.impact === 'Medium').map((r: any) => r?.message).filter(Boolean)
+      ].slice(0, 5)
+
+      const keywords: string[] = [
+        ...techFound,
+        ...techMissing.slice(0, Math.max(0, 20 - techFound.length))
+      ].slice(0, 20)
+
+      const normalized: ResumeAnalysis = {
+        score,
+        strengths: strengths.length ? strengths : ['Strong alignment with role responsibilities'],
+        improvements: improvements.length ? improvements : ['Add more role-specific keywords'],
+        keywords: keywords.slice(0, 20),
+        industryMatch,
+        atsCompatibility
+      }
+
+      setAnalysis(normalized)
+    } catch (e) {
+      console.error('ATS analysis error', e)
+      alert((e as any)?.message || 'Failed to analyze resume')
+    } finally {
       setIsAnalyzing(false)
-    }, 3000)
+    }
   }
 
   const handleDownloadReport = () => {

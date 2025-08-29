@@ -28,6 +28,7 @@ export function middleware(request: NextRequest) {
   // Get tokens from cookies
   const employerToken = request.cookies.get("employer_jwt")?.value
   const jobseekerToken = request.cookies.get("jobseeker_jwt")?.value
+  const studentToken = request.cookies.get("student_jwt")?.value
   const adminToken = request.cookies.get("admin_jwt")?.value
 
   // Employer routes protection
@@ -42,6 +43,14 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/job-seekers")) {
     if (!jobseekerToken) {
       return NextResponse.redirect(new URL("/job-seekers/login", request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // Student routes protection
+  if (pathname.startsWith("/students") && !pathname.startsWith("/students/login") && !pathname.startsWith("/students/register") && !pathname.startsWith("/students/forgot-password")) {
+    if (!studentToken) {
+      return NextResponse.redirect(new URL("/students/login", request.url))
     }
     return NextResponse.next()
   }

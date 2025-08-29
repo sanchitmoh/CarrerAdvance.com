@@ -112,6 +112,46 @@ export function useEmployerAuth() {
   return { isLoggedIn }
 }
 
+// --- Student Auth Utilities ---
+
+// Utility to get student JWT from localStorage
+export function getStudentToken() {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('student_jwt')
+  }
+  return null
+}
+
+// Utility to log out student
+export function logoutStudent() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('student_jwt')
+    localStorage.removeItem('student_id')
+    // Clear cookie
+    document.cookie = 'student_jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict'
+    document.cookie = 'student_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict'
+  }
+}
+
+// Hook to use logout and update auth state
+export function useStudentLogout() {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!getStudentToken())
+  const logout = () => {
+    logoutStudent()
+    setIsLoggedIn(false)
+  }
+  return { isLoggedIn, logout }
+}
+
+// Simple hook for auth state
+export function useStudentAuth() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  useEffect(() => {
+    setIsLoggedIn(!!getStudentToken())
+  }, [])
+  return { isLoggedIn }
+}
+
 export default function AuthForm({ role, type, title, subtitle }: AuthFormProps) {
   const [formData, setFormData] = useState({
     email: '',
@@ -295,6 +335,72 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
       return
     }
     // --- End Employer Auth Integration ---
+
+    // --- Student Auth Integration ---
+    if (role === 'Students') {
+      let endpoint = ''
+      let method = 'POST'
+      let successMsg = ''
+      let errorMsg = ''
+      let payload: any = {}
+
+      if (type === 'login') {
+        endpoint = getApiUrl('student/login?format=json')
+        payload = { email: formData.email, password: formData.password }
+        successMsg = 'Login successful!'
+        errorMsg = 'Invalid email or password.'
+      } else if (type === 'register') {
+        endpoint = getApiUrl('student/registration?format=json')
+        payload = {
+          firstname: formData.firstName,
+          lastname: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          confirmpassword: formData.confirmPassword,
+          phone: formData.phone,
+        }
+        successMsg = 'Registration successful! Please check your email to verify your account.'
+        errorMsg = 'Registration failed. Please check your details.'
+      } else if (type === 'forgot-password') {
+        endpoint = getApiUrl('student/forgotpass?format=json')
+        payload = { email: formData.email }
+        successMsg = 'Password reset link sent! Please check your email.'
+        errorMsg = 'Failed to send reset link. Please check your email.'
+      }
+
+      try {
+        const res = await fetch(endpoint, {
+          method,
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload),
+          credentials: 'include',
+        })
+        const data = await res.json()
+        if (data.success) {
+          toast({ title: 'Success!', description: data.message || successMsg })
+          if (type === 'login') {
+            const token = data.token || (data.data && data.data.token)
+            const user = data.user || (data.data && data.data.user)
+            if (token) {
+              localStorage.setItem('student_jwt', token)
+              document.cookie = `student_jwt=${token}; path=/; max-age=86400; SameSite=Strict`
+            }
+            if (user && user.id) {
+              localStorage.setItem('student_id', user.id.toString())
+              document.cookie = `student_id=${user.id}; path=/; max-age=86400; SameSite=Lax`
+            }
+            router.push('/students/dashboard')
+          }
+        } else {
+          toast({ title: 'Error', description: data.message || errorMsg, variant: 'destructive' })
+        }
+      } catch (err) {
+        toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+      }
+      setIsLoading(false)
+      return
+    }
+    // --- End Student Auth Integration ---
 
     // Simulate API call for other roles
     setTimeout(() => {

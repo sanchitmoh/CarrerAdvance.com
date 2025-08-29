@@ -482,9 +482,9 @@ export default function JobsPage() {
         description: "Job deleted successfully",
       })
       
-      // Refresh jobs list
-      const updatedJobs = await jobsApiService.getJobs()
-      setJobs(updatedJobs.data.jobs || [])
+      // Refresh jobs list using the employer API to get updated list
+      const updatedJobsResponse = await employerApiService.getEmployerJobs()
+      setJobs(updatedJobsResponse.jobs || [])
     } catch (err) {
       console.error("Error deleting job:", err)
       toast({
@@ -817,7 +817,26 @@ export default function JobsPage() {
                       <Calendar className="h-4 w-4 mr-2" />
                       Set up interview
                     </Button>
-                    <Button variant="outline">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        try {
+                          const phoneRaw = selectedCandidate?.phone || ''
+                          if (!phoneRaw) {
+                            toast({ title: 'No phone number', description: 'This candidate has no phone number on file.', variant: 'destructive' })
+                            return
+                          }
+                          const phone = phoneRaw.replace(/[^\d+]/g, '')
+                          const jobTitle = selectedJob?.title ? ` for "${selectedJob.title}"` : ''
+                          const message = `Hi ${selectedCandidate?.name || ''}, you have been shortlisted for an interview${jobTitle}. You will receive an email with details shortly. Please reply to confirm.`
+                          const waUrl = `https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(message)}`
+                          window.open(waUrl, '_blank')
+                        } catch (e: any) {
+                          console.error(e)
+                          toast({ title: 'Error', description: e?.message || 'Failed to open WhatsApp', variant: 'destructive' })
+                        }
+                      }}
+                    >
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Message
                     </Button>

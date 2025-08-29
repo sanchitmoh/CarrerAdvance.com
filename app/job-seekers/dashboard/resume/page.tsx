@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Plus, Edit, Trash2, Star, Download, Eye, Upload, Palette } from "lucide-react"
+import { FileText, Plus, Edit, Trash2, Star, Download, Eye, Upload, Palette, X, FileUp } from "lucide-react"
 import Link from "next/link"
+import { toast } from "@/hooks/use-toast"
 
 interface Resume {
   id: string
@@ -36,8 +37,16 @@ export default function ResumeBuilderPage() {
       isPrimary: false,
       status: "draft",
       score: 72,
-    },
-  ])
+          },
+    ])
+
+  const [showUploadPopup, setShowUploadPopup] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Debug logging
+  console.log('Component state:', { showUploadPopup, uploading, selectedFile: selectedFile?.name })
 
   const handleSetPrimary = (id: string) => {
     setResumes(
@@ -50,6 +59,136 @@ export default function ResumeBuilderPage() {
 
   const handleDelete = (id: string) => {
     setResumes(resumes.filter((resume) => resume.id !== id))
+  }
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File input changed:', event.target.files)
+    const file = event.target.files?.[0]
+    if (file) {
+      console.log('File selected:', file.name, file.type, file.size)
+      
+      // Check file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/rtf']
+      if (!allowedTypes.includes(file.type)) {
+        console.log('Invalid file type:', file.type)
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a PDF, DOC, DOCX, TXT, or RTF file.",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      // Check file size (2MB limit)
+      if (file.size > 2 * 1024 * 1024) {
+        console.log('File too large:', file.size)
+        toast({
+          title: "File too large",
+          description: "Please upload a file smaller than 2MB.",
+          variant: "destructive"
+        })
+        return
+      }
+      
+      console.log('File is valid, setting selected file')
+      setSelectedFile(file)
+    } else {
+      console.log('No file selected')
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select a file to upload.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setUploading(true)
+    
+    try {
+      // Step 1: Upload the file
+      const formData = new FormData()
+      formData.append('resume', selectedFile)
+      
+      const uploadResponse = await fetch('/api/resume/upload', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Upload failed')
+      }
+      
+      const uploadResult = await uploadResponse.json()
+      
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.message || 'Upload failed')
+      }
+      
+      // Step 2: Parse the uploaded file
+      const parseResponse = await fetch('/api/resume/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          filename: uploadResult.filename
+        })
+      })
+      
+      if (!parseResponse.ok) {
+        throw new Error('Parsing failed')
+      }
+      
+      const parseResult = await parseResponse.json()
+      
+      if (!parseResult.success) {
+        throw new Error(parseResult.message || 'Parsing failed')
+      }
+      
+      // Success - redirect to resume builder with parsed data
+      toast({
+        title: "Resume uploaded successfully",
+        description: "Your resume has been parsed and is ready for editing.",
+      })
+      
+      // Store parsed data in sessionStorage and redirect to resume builder
+      sessionStorage.setItem('parsedResumeData', JSON.stringify(parseResult.data))
+      
+             // Also send the parsed data to the backend to store in PHP session
+       try {
+         await fetch('/api/resume/store-parsed-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            parsedData: parseResult.data
+          })
+        })
+      } catch (error) {
+        console.error('Failed to store parsed data in backend session:', error)
+      }
+      
+             // Redirect to template selection first, then to resume builder
+       window.location.href = '/job-seekers/dashboard/resume-builder?import=true'
+      
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "An error occurred during upload.",
+        variant: "destructive"
+      })
+    } finally {
+      setUploading(false)
+      setShowUploadPopup(false)
+      setSelectedFile(null)
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -79,12 +218,13 @@ export default function ResumeBuilderPage() {
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            <Link href="/job-seekers/dashboard/resume-builder">
-              <Button className="bg-white/10 text-white border border-white/20 hover:bg-white/20">
-                <Upload className="h-4 w-4 mr-2" />
-                Import Resume
-              </Button>
-            </Link>
+            <Button 
+              className="bg-white/10 text-white border border-white/20 hover:bg-white/20"
+              onClick={() => setShowUploadPopup(true)}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import Resume
+            </Button>
             <Link href="/job-seekers/dashboard/resume-builder">
               <Button className="bg-white text-emerald-600 hover:bg-emerald-50">
                 <Plus className="h-4 w-4 mr-2" />
@@ -94,6 +234,90 @@ export default function ResumeBuilderPage() {
           </div>
         </div>
       </div>
+
+      {/* Upload Resume Popup */}
+      {showUploadPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Import Resume</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowUploadPopup(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <FileUp className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600 mb-2">
+                  Upload your existing resume to import and edit
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                  Supported formats: PDF, DOC, DOCX, TXT, RTF (Max 2MB)
+                </p>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt,.rtf"
+                  onChange={(e) => {
+                    console.log('File input onChange triggered:', e.target.files)
+                    handleFileSelect(e)
+                  }}
+                  className="hidden"
+                  id="resume-upload"
+                  onClick={(e) => console.log('File input clicked')}
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="resume-upload" className="cursor-pointer">
+                  <Button 
+                    variant="outline" 
+                    className="cursor-pointer"
+                    onClick={() => {
+                      console.log('Button clicked, triggering file input')
+                      fileInputRef.current?.click()
+                    }}
+                  >
+                    Choose File
+                  </Button>
+                </label>
+                
+                
+                
+                {selectedFile && (
+                  <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded">
+                    <p className="text-sm text-green-700">
+                      Selected: {selectedFile.name}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowUploadPopup(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpload}
+                  disabled={!selectedFile || uploading}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {uploading ? "Uploading..." : "Import Resume"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resume List */}
       <div className="space-y-4">

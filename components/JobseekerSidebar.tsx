@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { User, FileText, PenTool, CheckCircle, Briefcase, Target, Heart, Lock, LogOut, Menu, X } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
-import { getApiUrl } from '@/lib/api-config'
+import { getApiUrl , PUBLIC_URL } from '@/lib/api-config'
 
 
 interface SidebarProps {
@@ -44,7 +44,7 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
 
     const fetchProfile = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/index.php/api/seeker/profile/get_profile?jobseeker_id=${jobseekerId}`, {
+        const res = await fetch(getApiUrl(`seeker/profile/get_profile?jobseeker_id=${jobseekerId}`), {
           credentials: 'include',
         })
         const data = await res.json()
@@ -56,7 +56,7 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
           const email = p.email || ''
           const avatarPath = p.profile_picture || p.profile_pic || p.avatar || ''
           const avatar = avatarPath
-            ? (/^https?:\/\//i.test(avatarPath) ? avatarPath : `http://localhost:8080/${avatarPath}`)
+            ? (/^https?:\/\//i.test(avatarPath) ? avatarPath : `${PUBLIC_URL}/${avatarPath}`)
             : ''
           setUser({ name, email, avatar })
         }
@@ -76,7 +76,7 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
 
   return (
     <aside 
-      className={`fixed left-0 top-16 h-[calc(100vh-4rem-80px)] bg-gradient-to-b from-gray-950 via-emerald-950 to-gray-950 text-white transition-all duration-300 z-50 ${
+      className={`fixed left-0 top-16 min-h-screen bg-gradient-to-b from-gray-950 via-emerald-950 to-gray-950 text-white transition-all duration-300 z-50 ${
         isMobile
           ? collapsed 
             ? '-translate-x-full' 

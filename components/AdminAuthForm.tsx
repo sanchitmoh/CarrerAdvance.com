@@ -1,55 +1,76 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useToast } from '@/hooks/use-toast'
-import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, CheckCircle, Shield, Zap, Settings, BarChart3, Users, Database, Key, Fingerprint, Smartphone, AlertTriangle } from 'lucide-react'
+import type React from "react"
+
+import { useState } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast"
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  ArrowRight,
+  Shield,
+  Zap,
+  Settings,
+  BarChart3,
+  Users,
+  Database,
+  Key,
+  Fingerprint,
+  Smartphone,
+  AlertTriangle,
+} from "lucide-react"
 
 interface AdminAuthFormProps {
-  type: 'login' | 'register' | 'forgot-password'
+  type: "login" | "register" | "forgot-password"
   title: string
   subtitle: string
 }
 
 const securityFeatures = [
-  { icon: Shield, text: 'Multi-factor Authentication' },
-  { icon: Fingerprint, text: 'Biometric Security' },
-  { icon: Database, text: 'Encrypted Data Access' },
-  { icon: Key, text: 'Advanced Permissions' }
+  { icon: Shield, text: "Multi-factor Authentication" },
+  { icon: Fingerprint, text: "Biometric Security" },
+  { icon: Database, text: "Encrypted Data Access" },
+  { icon: Key, text: "Advanced Permissions" },
 ]
 
 const adminStats = [
-  { icon: Users, value: '50K+', label: 'Users Managed' },
-  { icon: BarChart3, value: '99.9%', label: 'Uptime' },
-  { icon: Settings, value: '24/7', label: 'Monitoring' },
-  { icon: Zap, value: '< 1s', label: 'Response Time' }
+  { icon: Users, value: "50K+", label: "Users Managed" },
+  { icon: BarChart3, value: "99.9%", label: "Uptime" },
+  { icon: Settings, value: "24/7", label: "Monitoring" },
+  { icon: Zap, value: "< 1s", label: "Response Time" },
 ]
 
 export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormProps) {
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    adminCode: '',
-    twoFactorCode: ''
+    email: "",
+    password: "",
+    confirmPassword: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    adminCode: "",
+    twoFactorCode: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showTwoFactor, setShowTwoFactor] = useState(false)
+  const [pendingAdminId, setPendingAdminId] = useState<number | null>(null)
   const { toast } = useToast()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     })
   }
 
@@ -57,103 +78,200 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate admin verification
-    if (type === 'login' && !showTwoFactor) {
-      setTimeout(() => {
-        setShowTwoFactor(true)
-        setIsLoading(false)
-        toast({
-          title: 'Security Check',
-          description: 'Please enter your 2FA code to continue',
+        try {
+      if (type === "register") {
+        // Validate authorization code
+        if (formData.adminCode !== "0512") {
+          toast({
+            title: "Access Denied",
+            description: "Invalid authorization code. Contact system administrator.",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
+
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+          toast({
+            title: "Error",
+            description: "Passwords do not match",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
+        }
+
+        // Call registration API
+        const response = await fetch('/api/admin/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: formData.email,
+            email: formData.email,
+            password: formData.password,
+            firstname: formData.firstName,
+            lastname: formData.lastName,
+            mobile_no: formData.phone,
+            auth_code: formData.adminCode,
+          }),
         })
-      }, 1500)
-      return
-    }
 
-    // Basic validation
-    if (!formData.email) {
-      toast({
-        title: 'Error',
-        description: 'Email is required',
-        variant: 'destructive'
-      })
-      setIsLoading(false)
-      return
-    }
+        if (response.ok) {
+          toast({
+            title: "Success!",
+            description: "Admin account created successfully. You can now login.",
+          })
+          // Redirect to login
+          window.location.href = "/admin/login"
+        } else {
+          const error = await response.json()
+          toast({
+            title: "Registration Failed",
+            description: error.message || "Failed to create admin account",
+            variant: "destructive",
+          })
+        }
+      } else if (type === "login") {
+        if (!showTwoFactor) {
+          // First step: validate credentials and send OTP
+          const response = await fetch('/api/admin/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              username: formData.email,
+              password: formData.password,
+            }),
+          })
 
-    if (type === 'register' && formData.password !== formData.confirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'Passwords do not match',
-        variant: 'destructive'
-      })
-      setIsLoading(false)
-      return
-    }
+          if (response.ok) {
+            const data = await response.json()
+            if (data.requires_otp) {
+              setPendingAdminId(data.admin_id)
+              setShowTwoFactor(true)
+              toast({
+                title: "Security Check",
+                description: "OTP sent to your email. Please check and enter the code.",
+              })
+            } else {
+              // Direct login success
+              window.location.href = "/admin/dashboard"
+            }
+          } else {
+            const error = await response.json()
+            toast({
+              title: "Login Failed",
+              description: error.message || "Invalid credentials",
+              variant: "destructive",
+            })
+          }
+        } else {
+          // Second step: verify OTP
+          const response = await fetch('/api/admin/auth/verify_otp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              admin_id: pendingAdminId,
+              otp: formData.twoFactorCode,
+            }),
+          })
 
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: 'Success!',
-        description: `Admin ${type === 'login' ? 'login' : type === 'register' ? 'registration' : 'password reset'} successful!`,
-      })
-      setIsLoading(false)
-      if (type === 'login') {
-        // Redirect to admin dashboard
-        console.log('Redirecting to admin dashboard...')
+          if (response.ok) {
+            toast({
+              title: "Success!",
+              description: "2FA verification successful. Logging you in...",
+            })
+            // Redirect to admin dashboard
+            window.location.href = "/admin/dashboard"
+          } else {
+            const error = await response.json()
+            toast({
+              title: "Verification Failed",
+              description: error.message || "Invalid OTP",
+              variant: "destructive",
+          })
+          }
+        }
+      } else if (type === "forgot-password") {
+        // Handle forgot password
+        const response = await fetch('/api/admin/auth/forgot_password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+          }),
+        })
+
+        if (response.ok) {
+          toast({
+            title: "Reset Link Sent",
+            description: "Password reset instructions sent to your email.",
+          })
+        } else {
+          const error = await response.json()
+          toast({
+            title: "Failed",
+            description: error.message || "Failed to send reset link",
+            variant: "destructive",
+          })
+        }
       }
-    }, 2000)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 pt-20 relative overflow-hidden"> {/* Changed background gradient */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 pt-20 relative overflow-hidden">
+      {" "}
+      {/* Changed background gradient */}
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
-        <div 
+        <div
           className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-full blur-3xl animate-float" // Changed to emerald/green
         />
-        <div 
+        <div
           className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 rounded-full blur-3xl animate-float delay-200" // Changed to teal/cyan
         />
-        <div 
+        <div
           className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-lime-500/10 to-yellow-500/10 rounded-full blur-3xl animate-float delay-400" // Changed to lime/yellow
         />
       </div>
-
       {/* Grid Pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]"></div>
-
-      <div 
-        className="w-full max-w-6xl flex"
-      >
+      <div className="w-full max-w-6xl flex">
         {/* Left Side - Info Panel */}
-        <div 
-          className="hidden lg:flex lg:w-1/2 flex-col justify-center p-12 text-white animate-fade-in-up"
-        >
-          <div 
-            className="mb-8 transition-transform duration-500 ease-out hover:scale-105"
-          >
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-3xl mb-6 shadow-2xl"> {/* Changed to emerald/green */}
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-center p-12 text-white animate-fade-in-up">
+          <div className="mb-8 transition-transform duration-500 ease-out hover:scale-105">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-3xl mb-6 shadow-2xl">
+              {" "}
+              {/* Changed to emerald/green */}
               <Shield className="h-10 w-10" />
             </div>
           </div>
 
-          <h1 
-            className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent animate-fade-in-up delay-200"
-          >
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent animate-fade-in-up delay-200">
             {title}
           </h1>
-          
-          <p 
-            className="text-xl text-gray-300 mb-8 animate-fade-in-up delay-300"
-          >
-            {subtitle}
-          </p>
+
+          <p className="text-xl text-gray-300 mb-8 animate-fade-in-up delay-300">{subtitle}</p>
 
           {/* Security Features */}
-          <div 
-            className="space-y-4 mb-8 animate-fade-in-up delay-400"
-          >
+          <div className="space-y-4 mb-8 animate-fade-in-up delay-400">
             <h3 className="text-lg font-semibold text-white mb-4">Security Features</h3>
             {securityFeatures.map((feature, index) => (
               <div
@@ -161,7 +279,9 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                 className="flex items-center space-x-3 opacity-0 translate-y-5 animate-fade-in-up"
                 style={{ animationDelay: `${0.6 + index * 0.1}s` }}
               >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-emerald-500/20 to-green-500/20 flex items-center justify-center"> {/* Changed to emerald/green */}
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-emerald-500/20 to-green-500/20 flex items-center justify-center">
+                  {" "}
+                  {/* Changed to emerald/green */}
                   <feature.icon className="h-4 w-4 text-emerald-400" /> {/* Changed to emerald */}
                 </div>
                 <span className="text-gray-300">{feature.text}</span>
@@ -170,9 +290,7 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
           </div>
 
           {/* Admin Stats */}
-          <div 
-            className="grid grid-cols-2 gap-4 animate-fade-in-up delay-500"
-          >
+          <div className="grid grid-cols-2 gap-4 animate-fade-in-up delay-500">
             {adminStats.map((stat, index) => (
               <div
                 key={index}
@@ -187,53 +305,51 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
         </div>
 
         {/* Right Side - Auth Form */}
-        <div 
-          className="w-full lg:w-1/2 flex items-center justify-center p-8 animate-fade-in-up delay-600"
-        >
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 animate-fade-in-up delay-600">
           <Card className="w-full max-w-md shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
-            <div 
+            <div
               className="h-2 bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-600 animate-slide-in-x" // Changed to emerald/green
             />
-            
+
             <CardHeader className="text-center pb-4">
-              <div
-                className="mx-auto mb-4 transition-transform duration-500 ease-out hover:scale-110"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 flex items-center justify-center text-white shadow-lg"> {/* Changed to emerald/green */}
+              <div className="mx-auto mb-4 transition-transform duration-500 ease-out hover:scale-110">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 flex items-center justify-center text-white shadow-lg">
+                  {" "}
+                  {/* Changed to emerald/green */}
                   <Shield className="h-8 w-8" />
                 </div>
               </div>
-              
+
               <CardTitle className="text-2xl font-bold text-gray-900">
-                {showTwoFactor ? 'Two-Factor Authentication' : 
-                 type === 'login' ? 'Admin Login' : 
-                 type === 'register' ? 'Create Admin Account' : 
-                 'Reset Admin Password'}
+                {showTwoFactor
+                  ? "Two-Factor Authentication"
+                  : type === "login"
+                    ? "Admin Login"
+                    : type === "register"
+                      ? "Create Admin Account"
+                      : "Reset Admin Password"}
               </CardTitle>
-              
+
               <CardDescription className="text-gray-600">
-                {showTwoFactor ? 'Enter the 6-digit code from your authenticator app' :
-                 type === 'login' ? 'Sign in to access the admin dashboard' : 
-                 type === 'register' ? 'Register as a system administrator' : 
-                 'We\'ll send you a secure reset link'}
+                {showTwoFactor
+                  ? "Enter the 6-digit code sent to your email"
+                  : type === "login"
+                    ? "Sign in to access the admin dashboard"
+                    : type === "register"
+                      ? "Register as a system administrator"
+                      : "We'll send you a secure reset link"}
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="pt-0">
               {showTwoFactor ? (
-                <div
-                  className="animate-fade-in"
-                >
+                <div className="animate-fade-in">
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="text-center">
-                      <div
-                        className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white mb-4 animate-pulse-slow"
-                      >
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white mb-4 animate-pulse-slow">
                         <Smartphone className="h-8 w-8" />
                       </div>
-                      <p className="text-sm text-gray-600 mb-6">
-                        Check your authenticator app for the 6-digit code
-                      </p>
+                      <p className="text-sm text-gray-600 mb-6">Check your email for the 6-digit OTP code</p>
                     </div>
 
                     <div className="space-y-2">
@@ -260,9 +376,7 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                     >
                       {isLoading ? (
                         <div className="flex items-center">
-                          <div 
-                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2 animate-spin"
-                          />
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2 animate-spin" />
                           Verifying...
                         </div>
                       ) : (
@@ -286,16 +400,12 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                   </form>
                 </div>
               ) : (
-                <div
-                  className="animate-fade-in"
-                >
+                <div className="animate-fade-in">
                   <form onSubmit={handleSubmit} className="space-y-5">
-                    {type === 'register' && (
+                    {type === "register" && (
                       <>
                         <div className="grid grid-cols-2 gap-4">
-                          <div 
-                            className="space-y-2 animate-fade-in-up"
-                          >
+                          <div className="space-y-2 animate-fade-in-up">
                             <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
                               First Name
                             </Label>
@@ -313,9 +423,7 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                               />
                             </div>
                           </div>
-                          <div 
-                            className="space-y-2 animate-fade-in-up delay-100"
-                          >
+                          <div className="space-y-2 animate-fade-in-up delay-100">
                             <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
                               Last Name
                             </Label>
@@ -334,10 +442,8 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                             </div>
                           </div>
                         </div>
-                        
-                        <div 
-                          className="space-y-2 animate-fade-in-up delay-200"
-                        >
+
+                        <div className="space-y-2 animate-fade-in-up delay-200">
                           <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
                             Phone Number
                           </Label>
@@ -356,9 +462,7 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                           </div>
                         </div>
 
-                        <div 
-                          className="space-y-2 animate-fade-in-up delay-300"
-                        >
+                        <div className="space-y-2 animate-fade-in-up delay-300">
                           <Label htmlFor="adminCode" className="text-sm font-medium text-gray-700 flex items-center">
                             <AlertTriangle className="h-4 w-4 text-orange-500 mr-1" />
                             Admin Authorization Code
@@ -376,16 +480,12 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                               placeholder="Enter admin code"
                             />
                           </div>
-                          <p className="text-xs text-orange-600">
-                            Contact system administrator for authorization code
-                          </p>
+                          <p className="text-xs text-orange-600">Contact system administrator for authorization code</p>
                         </div>
                       </>
                     )}
 
-                    <div 
-                      className="space-y-2 animate-fade-in-up delay-400"
-                    >
+                    <div className="space-y-2 animate-fade-in-up delay-400">
                       <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                         Admin Email Address
                       </Label>
@@ -404,10 +504,8 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                       </div>
                     </div>
 
-                    {type !== 'forgot-password' && (
-                      <div 
-                        className="space-y-2 animate-fade-in-up delay-500"
-                      >
+                    {type !== "forgot-password" && (
+                      <div className="space-y-2 animate-fade-in-up delay-500">
                         <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                           Password
                         </Label>
@@ -416,7 +514,7 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                           <Input
                             id="password"
                             name="password"
-                            type={showPassword ? 'text' : 'password'}
+                            type={showPassword ? "text" : "password"}
                             required
                             value={formData.password}
                             onChange={handleInputChange}
@@ -440,10 +538,8 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                       </div>
                     )}
 
-                    {type === 'register' && (
-                      <div 
-                        className="space-y-2 animate-fade-in-up delay-600"
-                      >
+                    {type === "register" && (
+                      <div className="space-y-2 animate-fade-in-up delay-600">
                         <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
                           Confirm Password
                         </Label>
@@ -452,7 +548,7 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                           <Input
                             id="confirmPassword"
                             name="confirmPassword"
-                            type={showConfirmPassword ? 'text' : 'password'}
+                            type={showConfirmPassword ? "text" : "password"}
                             required
                             value={formData.confirmPassword}
                             onChange={handleInputChange}
@@ -484,16 +580,16 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                       >
                         {isLoading ? (
                           <div className="flex items-center">
-                            <div 
-                              className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2 animate-spin"
-                            />
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2 animate-spin" />
                             Processing...
                           </div>
                         ) : (
                           <div className="flex items-center">
-                            {type === 'login' ? 'Secure Login' : 
-                             type === 'register' ? 'Create Admin Account' : 
-                             'Send Reset Link'}
+                            {type === "login"
+                              ? "Secure Login"
+                              : type === "register"
+                                ? "Create Admin Account"
+                                : "Send Reset Link"}
                             <ArrowRight className="ml-2 h-5 w-5" />
                           </div>
                         )}
@@ -505,36 +601,54 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
 
               {/* Links */}
               {!showTwoFactor && (
-                <div 
-                  className="mt-8 text-center space-y-4 animate-fade-in-up delay-800"
-                >
-                  {type === 'login' && (
+                <div className="mt-8 text-center space-y-4 animate-fade-in-up delay-800">
+                  {type === "login" && (
                     <>
                       <p className="text-gray-600">
-                        Need admin access?{' '}
-                        <Link href="/admin/register" className="font-semibold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent hover:underline"> {/* Changed to emerald/green */}
+                        Need admin access?{" "}
+                        <Link
+                          href="/admin/register"
+                          className="font-semibold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent hover:underline"
+                        >
+                          {" "}
+                          {/* Changed to emerald/green */}
                           Request Account
                         </Link>
                       </p>
                       <p>
-                        <Link href="/admin/forgot-password" className="text-gray-500 hover:text-emerald-600 transition-colors"> {/* Changed to emerald */}
+                        <Link
+                          href="/admin/forgot-password"
+                          className="text-gray-500 hover:text-emerald-600 transition-colors"
+                        >
+                          {" "}
+                          {/* Changed to emerald */}
                           Forgot your password?
                         </Link>
                       </p>
                     </>
                   )}
-                  {type === 'register' && (
+                  {type === "register" && (
                     <p className="text-gray-600">
-                      Already have admin access?{' '}
-                      <Link href="/admin/login" className="font-semibold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent hover:underline"> {/* Changed to emerald/green */}
+                      Already have admin access?{" "}
+                      <Link
+                        href="/admin/login"
+                        className="font-semibold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent hover:underline"
+                      >
+                        {" "}
+                        {/* Changed to emerald/green */}
                         Sign in here
                       </Link>
                     </p>
                   )}
-                  {type === 'forgot-password' && (
+                  {type === "forgot-password" && (
                     <p className="text-gray-600">
-                      Remember your password?{' '}
-                      <Link href="/admin/login" className="font-semibold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent hover:underline"> {/* Changed to emerald/green */}
+                      Remember your password?{" "}
+                      <Link
+                        href="/admin/login"
+                        className="font-semibold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent hover:underline"
+                      >
+                        {" "}
+                        {/* Changed to emerald/green */}
                         Sign in here
                       </Link>
                     </p>
@@ -543,16 +657,15 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
               )}
 
               {/* Security Notice */}
-              {type === 'register' && !showTwoFactor && (
-                <div 
-                  className="mt-8 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200 animate-fade-in-up delay-900"
-                >
+              {type === "register" && !showTwoFactor && (
+                <div className="mt-8 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200 animate-fade-in-up delay-900">
                   <div className="flex items-start space-x-3">
                     <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
                     <div>
                       <h4 className="font-semibold text-orange-800 text-sm">Security Notice</h4>
                       <p className="text-xs text-orange-700 mt-1">
-                        Admin accounts require authorization. Contact your system administrator for approval and setup of two-factor authentication.
+                        Admin accounts require authorization. Contact your system administrator for approval and setup
+                        of two-factor authentication.
                       </p>
                     </div>
                   </div>

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     // Proxy the request to the PHP backend
     const response = await fetch(
-      getApiUrl(`seeker/profile/get_matching_jobs?jobseeker_id=${jobseekerId}`),
+      getApiUrl(`seeker/profile/get_matching_jobs?${searchParams.toString()}`),
       {
         method: 'GET',
         headers: {

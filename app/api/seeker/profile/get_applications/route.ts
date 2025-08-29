@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function GET(request: Request) {
   try {
@@ -9,7 +10,7 @@ export async function GET(request: Request) {
     }
 
     const backend = await fetch(
-      `http://localhost:8080/index.php/api/seeker/profile/get_applications?jobseeker_id=${encodeURIComponent(jobseekerId)}`,
+      getApiUrl(`seeker/profile/get_applications?jobseeker_id=${encodeURIComponent(jobseekerId)}`),
       { method: 'GET', headers: { 'Content-Type': 'application/json', Accept: 'application/json' } }
     )
 

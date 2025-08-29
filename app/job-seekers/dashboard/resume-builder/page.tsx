@@ -1,11 +1,37 @@
 "use client"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Plus, Palette } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { FileText, Plus, Palette, Upload } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "@/hooks/use-toast"
 
 export default function ResumeBuilderPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const [importedData, setImportedData] = useState<any>(null)
+
+  useEffect(() => {
+    // Check if we have imported resume data
+    const isImport = searchParams.get('import')
+    if (isImport === 'true') {
+      const storedData = sessionStorage.getItem('parsedResumeData')
+      if (storedData) {
+        try {
+          const parsedData = JSON.parse(storedData)
+          setImportedData(parsedData)
+          toast({
+            title: "Resume imported successfully",
+            description: "Your resume has been parsed and is ready for editing.",
+          })
+          // Clear the stored data
+          sessionStorage.removeItem('parsedResumeData')
+        } catch (error) {
+          console.error('Error parsing stored resume data:', error)
+        }
+      }
+    }
+  }, [searchParams])
 
   const templates = [
     {
@@ -49,7 +75,13 @@ export default function ResumeBuilderPage() {
   const handleCreateResume = (templateId: string) => {
     // Generate a new resume ID and navigate to the builder
     const newResumeId = Date.now().toString()
-    router.push(`/job-seekers/dashboard/resume-builder/${newResumeId}?template=${templateId}`)
+    
+    // If we have imported data, pass it to the builder
+    if (importedData) {
+      sessionStorage.setItem('resumeBuilderData', JSON.stringify(importedData))
+    }
+    
+    router.push(`/job-seekers/dashboard/resume-builder/${newResumeId}?template=${templateId}${importedData ? '&imported=true' : ''}`)
   }
 
   return (
@@ -64,6 +96,53 @@ export default function ResumeBuilderPage() {
           </div>
         </div>
       </div>
+
+      {/* Imported Resume Data Display */}
+      {importedData && (
+        <Card className="border-emerald-200 bg-emerald-50/50">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <Upload className="h-6 w-6 text-emerald-600" />
+              <h3 className="text-lg font-semibold text-emerald-800">Imported Resume Data</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              {importedData.name && (
+                <div>
+                  <span className="font-medium text-gray-700">Name:</span> {importedData.name}
+                </div>
+              )}
+              {importedData.email && (
+                <div>
+                  <span className="font-medium text-gray-700">Email:</span> {importedData.email}
+                </div>
+              )}
+              {importedData.phone && (
+                <div>
+                  <span className="font-medium text-gray-700">Phone:</span> {importedData.phone}
+                </div>
+              )}
+              {importedData.experience && (
+                <div>
+                  <span className="font-medium text-gray-700">Experience:</span> {importedData.experience.substring(0, 100)}...
+                </div>
+              )}
+              {importedData.education && (
+                <div>
+                  <span className="font-medium text-gray-700">Education:</span> {importedData.education.substring(0, 100)}...
+                </div>
+              )}
+              {importedData.skills && (
+                <div>
+                  <span className="font-medium text-gray-700">Skills:</span> {importedData.skills.substring(0, 100)}...
+                </div>
+              )}
+            </div>
+            <p className="text-emerald-700 text-sm mt-3">
+              Select a template below to start building your resume with this imported data.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Template Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

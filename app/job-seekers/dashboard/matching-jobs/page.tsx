@@ -24,56 +24,24 @@ interface Job {
   matchScore: number
   industry: string
   experienceLevel: string
+  matchBreakdown?: {
+    skills: { score: number; matched_skills: string[]; missing_skills: string[] }
+    experience: { score: number; match_type: string }
+    location: { score: number; match_type: string }
+    salary: { score: number; match_type: string }
+    job_type: { score: number; match_type: string }
+    industry: { score: number; match_type: string }
+  }
+  matchedSkills?: string[]
+  missingSkills?: string[]
 }
 
 export default function MatchingJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load matching jobs on component mount
-  useEffect(() => {
-    const loadMatchingJobs = async () => {
-      try {
-        // Get jobseeker ID from localStorage (set after login)
-        const jobseekerId = localStorage.getItem('jobseeker_id');
-        
-        if (!jobseekerId) {
-          console.error('No jobseeker ID found. Please login again.');
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch(`/api/seeker/profile/get_matching_jobs?jobseeker_id=${jobseekerId}`);
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-          const formattedJobs = data.data.map((job: any) => ({
-            id: job.id.toString(),
-            title: job.title,
-            company: job.company,
-            location: job.location,
-            salary: job.salary,
-            jobType: job.job_type,
-            remote: job.remote === 1,
-            postedDate: job.created_at,
-            description: job.description,
-            requirements: job.requirements ? JSON.parse(job.requirements) : [],
-            matchScore: job.match_score || 75,
-            industry: job.industry || 'Technology',
-            experienceLevel: job.experience_level || 'Mid-Level'
-          }));
-          setJobs(formattedJobs);
-        }
-      } catch (error) {
-        console.error('Error loading matching jobs:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMatchingJobs();
-  }, []);
-
+  // Filters state must be declared before effects that use them
   const [searchTerm, setSearchTerm] = useState('')
   const [locationFilter, setLocationFilter] = useState('all')
   const [industryFilter, setIndustryFilter] = useState('all')
@@ -81,13 +49,72 @@ export default function MatchingJobsPage() {
   const [remoteOnly, setRemoteOnly] = useState(false)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
 
+  // Load matching jobs on mount and when filters change
+  useEffect(() => {
+    const loadMatchingJobs = async () => {
+      try {
+        // Get jobseeker ID from localStorage (set after login)
+        const jobseekerId = localStorage.getItem('jobseeker_id');
+        
+        if (!jobseekerId) {
+          setError('No jobseeker ID found. Please login again.');
+          setLoading(false);
+          return;
+        }
+
+        const params = new URLSearchParams();
+        params.set('jobseeker_id', jobseekerId);
+        if (locationFilter && locationFilter !== 'all') params.set('location', locationFilter);
+        // Always send industry so backend can handle 'all' explicitly
+        if (industryFilter) {
+          params.set('industry', industryFilter);
+        }
+        if (experienceFilter && experienceFilter !== 'all') params.set('experience', experienceFilter);
+        if (remoteOnly) params.set('remote', 'true');
+
+        const response = await fetch(`/api/seeker/jobs/get_matching_jobs?${params.toString()}`);
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          const formattedJobs = data.data.map((job: any) => ({
+            id: job.id?.toString() || '',
+            title: job.title || 'Untitled Position',
+            company: job.company || 'Unknown Company',
+            location: job.location || 'Location not specified',
+            salary: job.salary || 'Salary not specified',
+            jobType: job.job_type || 'full-time',
+            remote: job.remote === 1,
+            postedDate: job.created_at || new Date().toISOString(),
+            description: job.description || 'No description available',
+            requirements: Array.isArray(job.requirements) ? job.requirements : [],
+            matchScore: job.match_score || 75,
+            industry: job.industry || 'Technology',
+            experienceLevel: job.experience_level || 'Mid-Level',
+            matchBreakdown: job.match_breakdown || null,
+            matchedSkills: job.matched_skills || [],
+            missingSkills: job.missing_skills || []
+          }));
+          setJobs(formattedJobs);
+        }
+      } catch (error) {
+        console.error('Error loading matching jobs:', error);
+        setError('Failed to load matching jobs. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMatchingJobs();
+  }, [locationFilter, industryFilter, experienceFilter, remoteOnly]);
+
+
   const locations = ['all', 'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Austin, TX', 'Seattle, WA']
   const industries = ['all', 'Technology', 'Design', 'Finance', 'Healthcare', 'Marketing']
   const experienceLevels = ['all', 'Entry-Level', 'Mid-Level', 'Senior', 'Executive']
 
   const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.company.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (job.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                         (job.company?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesLocation = locationFilter === 'all' || job.location === locationFilter
     const matchesIndustry = industryFilter === 'all' || job.industry === industryFilter
     const matchesExperience = experienceFilter === 'all' || job.experienceLevel === experienceFilter
@@ -97,11 +124,16 @@ export default function MatchingJobsPage() {
   }).sort((a, b) => b.matchScore - a.matchScore)
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    if (!dateString) return 'Date not available';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch (error) {
+      return 'Invalid date';
+    }
   }
 
   const getMatchScoreColor = (score: number) => {
@@ -229,9 +261,37 @@ export default function MatchingJobsPage() {
         </CardContent>
       </Card>
 
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="text-red-800 text-center">
+              <p className="font-medium">{error}</p>
+              <Button 
+                variant="outline" 
+                className="mt-2 border-red-300 text-red-700 hover:bg-red-100"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <Card className="border-emerald-200 bg-emerald-50">
+          <CardContent className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+            <p className="text-emerald-800 font-medium">Loading matching jobs...</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Jobs List */}
       <div className="space-y-4">
-        {filteredJobs.length > 0 ? (
+        {!loading && filteredJobs.length > 0 ? (
           filteredJobs.map((job) => (
             <Card key={job.id} className="border-gray-200 hover:border-emerald-300 transition-colors shadow-lg">
               <CardContent className="p-6">
@@ -250,6 +310,24 @@ export default function MatchingJobsPage() {
                         {job.matchScore}% Match
                       </Badge>
                     </div>
+                    
+                    {/* Quick Match Indicators */}
+                    {job.matchBreakdown && (
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                          <span className="text-xs text-gray-600">Skills: {job.matchBreakdown.skills.score}%</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                          <span className="text-xs text-gray-600">Exp: {job.matchBreakdown.experience.score}%</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                          <span className="text-xs text-gray-600">Location: {job.matchBreakdown.location.score}%</span>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                       <div className="flex items-center space-x-1">
@@ -279,7 +357,7 @@ export default function MatchingJobsPage() {
 
                     <div className="flex items-center space-x-3 mb-3">
                       <Badge variant="outline" className="border-gray-200 text-gray-700 capitalize">
-                        {job.jobType.replace('-', ' ')}
+                        {job.jobType ? job.jobType.replace('-', ' ') : 'Full-time'}
                       </Badge>
                       <Badge variant="outline" className="border-gray-200 text-gray-700">
                         {job.industry}
@@ -289,18 +367,20 @@ export default function MatchingJobsPage() {
                       </Badge>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {job.requirements.slice(0, 4).map((req, index) => (
-                        <Badge key={index} variant="secondary" className="bg-emerald-100 text-emerald-700 text-xs">
-                          {req}
-                        </Badge>
-                      ))}
-                      {job.requirements.length > 4 && (
-                        <Badge variant="secondary" className="bg-gray-100 text-gray-700 text-xs">
-                          +{job.requirements.length - 4} more
-                        </Badge>
-                      )}
-                    </div>
+                    {job.requirements && job.requirements.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {job.requirements.slice(0, 4).map((req, index) => (
+                          <Badge key={index} variant="secondary" className="bg-emerald-100 text-emerald-700 text-xs">
+                            {req}
+                          </Badge>
+                        ))}
+                        {job.requirements.length > 4 && (
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-700 text-xs">
+                            +{job.requirements.length - 4} more
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col space-y-2 ml-4">
@@ -350,7 +430,7 @@ export default function MatchingJobsPage() {
                                   {selectedJob.matchScore}% Match
                                 </Badge>
                                 <Badge variant="outline" className="border-gray-200 text-gray-700 capitalize">
-                                  {selectedJob.jobType.replace('-', ' ')}
+                                  {selectedJob.jobType ? selectedJob.jobType.replace('-', ' ') : 'Full-time'}
                                 </Badge>
                                 {selectedJob.remote && (
                                   <Badge variant="outline" className="border-blue-200 text-blue-700">
@@ -358,6 +438,90 @@ export default function MatchingJobsPage() {
                                   </Badge>
                                 )}
                               </div>
+
+                              {/* Match Breakdown */}
+                              {selectedJob.matchBreakdown && (
+                                <div className="p-4 bg-gray-50 rounded-lg">
+                                  <h4 className="font-medium text-gray-900 mb-3">Match Breakdown</h4>
+                                  <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-600">Skills Match</span>
+                                      <div className="flex items-center space-x-2">
+                                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                                          <div 
+                                            className="bg-emerald-500 h-2 rounded-full" 
+                                            style={{ width: `${selectedJob.matchBreakdown.skills.score}%` }}
+                                          ></div>
+                                        </div>
+                                        <span className="text-sm font-medium">{selectedJob.matchBreakdown.skills.score}%</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-600">Experience Level</span>
+                                      <div className="flex items-center space-x-2">
+                                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                                          <div 
+                                            className="bg-blue-500 h-2 rounded-full" 
+                                            style={{ width: `${selectedJob.matchBreakdown.experience.score}%` }}
+                                          ></div>
+                                        </div>
+                                        <span className="text-sm font-medium">{selectedJob.matchBreakdown.experience.score}%</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-600">Location</span>
+                                      <div className="flex items-center space-x-2">
+                                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                                          <div 
+                                            className="bg-purple-500 h-2 rounded-full" 
+                                            style={{ width: `${selectedJob.matchBreakdown.location.score}%` }}
+                                          ></div>
+                                        </div>
+                                        <span className="text-sm font-medium">{selectedJob.matchBreakdown.location.score}%</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-600">Salary Range</span>
+                                      <div className="flex items-center space-x-2">
+                                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                                          <div 
+                                            className="bg-orange-500 h-2 rounded-full" 
+                                            style={{ width: `${selectedJob.matchBreakdown.salary.score}%` }}
+                                          ></div>
+                                        </div>
+                                        <span className="text-sm font-medium">{selectedJob.matchBreakdown.salary.score}%</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Skills Analysis */}
+                                  {selectedJob.matchedSkills && selectedJob.matchedSkills.length > 0 && (
+                                    <div className="mt-4">
+                                      <h5 className="text-sm font-medium text-gray-900 mb-2">Your Matching Skills</h5>
+                                      <div className="flex flex-wrap gap-1">
+                                        {selectedJob.matchedSkills.map((skill, index) => (
+                                          <Badge key={index} variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                            {skill}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {selectedJob.missingSkills && selectedJob.missingSkills.length > 0 && (
+                                    <div className="mt-3">
+                                      <h5 className="text-sm font-medium text-gray-900 mb-2">Skills to Develop</h5>
+                                      <div className="flex flex-wrap gap-1">
+                                        {selectedJob.missingSkills.map((skill, index) => (
+                                          <Badge key={index} variant="outline" className="border-orange-200 text-orange-700 text-xs">
+                                            {skill}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
@@ -385,16 +549,18 @@ export default function MatchingJobsPage() {
                                 </p>
                               </div>
 
-                              <div>
-                                <h4 className="font-medium text-gray-900 mb-2">Requirements</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {selectedJob.requirements.map((req, index) => (
-                                    <Badge key={index} variant="outline" className="border-emerald-200 text-emerald-700">
-                                      {req}
-                                    </Badge>
-                                  ))}
+                              {selectedJob.requirements && selectedJob.requirements.length > 0 && (
+                                <div>
+                                  <h4 className="font-medium text-gray-900 mb-2">Requirements</h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {selectedJob.requirements.map((req, index) => (
+                                      <Badge key={index} variant="outline" className="border-emerald-200 text-emerald-700">
+                                        {req}
+                                      </Badge>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
 
                               <div className="flex justify-between">
                                 <Button
@@ -430,7 +596,7 @@ export default function MatchingJobsPage() {
               </CardContent>
             </Card>
           ))
-        ) : (
+        ) : !loading && (
           <Card className="border-2 border-dashed border-emerald-300 bg-emerald-50/50">
             <CardContent className="p-12 text-center">
               <Target className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
@@ -447,7 +613,8 @@ export default function MatchingJobsPage() {
       </div>
 
       {/* Match Statistics */}
-      <Card className="border-emerald-200 shadow-lg">
+      {!loading && (
+        <Card className="border-emerald-200 shadow-lg">
         <CardHeader>
           <CardTitle className="text-emerald-800">Match Statistics</CardTitle>
           <CardDescription className="text-emerald-600">
@@ -483,6 +650,7 @@ export default function MatchingJobsPage() {
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }

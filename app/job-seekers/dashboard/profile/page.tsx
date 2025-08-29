@@ -54,7 +54,7 @@ export default function ProfilePage() {
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold mb-2">Welcome back, John!</h1>
+            <h1 className="text-2xl font-bold mb-2">Welcome back</h1>
             <p className="text-emerald-100">Complete your profile to get better job matches</p>
           </div>
           <div className="text-right">
@@ -126,7 +126,10 @@ export default function ProfilePage() {
               </TabsTrigger>
               <TabsTrigger value="experience" className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600">
                 <Briefcase className="h-4 w-4" />
-                <span className="hidden sm:inline">Experience</span>
+                <span className="hidden sm:inline">Experience</span> 
+
+
+
               </TabsTrigger>
               <TabsTrigger value="education" className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600">
                 <GraduationCap className="h-4 w-4" />
