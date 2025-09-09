@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,36 +24,18 @@ import {
   UserSearch,
 } from "lucide-react"
 
-const stats = [
-  {
-    title: "Total Users",
-    value: "4",
-    icon: Users,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-  },
-  {
-    title: "Active Students",
-    value: "1",
-    icon: GraduationCap,
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-  },
-  {
-    title: "Active Teachers",
-    value: "0",
-    icon: UserCheck,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-  },
-  {
-    title: "Suspended Users",
-    value: "0",
-    icon: UserX,
-    color: "text-red-600",
-    bgColor: "bg-red-50",
-  },
-]
+type UIUser = {
+  id: number
+  name: string
+  email: string
+  role: string
+  status: string
+  joinDate?: string
+  lastActive?: string
+  stats?: string
+  avatar?: string
+  type?: string
+}
 
 const users = [
   {
@@ -135,10 +117,58 @@ const getRoleColor = (role: string) => {
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
-  const [selectedUser, setSelectedUser] = useState<(typeof users)[0] | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UIUser | null>(null)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
-  const [usersData, setUsersData] = useState(users)
+  const [usersData, setUsersData] = useState<UIUser[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch('/api/admin/users/list', { headers: { 'Accept': 'application/json' } })
+        const json = await res.json()
+        const list = Array.isArray(json?.data) ? json.data : []
+        const mapped: UIUser[] = list.map((u: any, idx: number) => {
+          const name = String(u?.name || '').trim() || 'User'
+          const email = String(u?.email || '').trim()
+          const role = String(u?.role || '').trim() || 'User'
+          const status = String(u?.status || '').trim() || 'Active'
+          const avatar = name.charAt(0).toUpperCase() || 'U'
+          return {
+            id: idx + 1,
+            name,
+            email,
+            role,
+            status,
+            avatar,
+            type: u?.type,
+          }
+        })
+        if (!cancelled) setUsersData(mapped)
+      } catch (e) {
+        // fallback to existing static users when API fails
+        if (!cancelled) setUsersData(users as unknown as UIUser[])
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const statsComputed = useMemo(() => {
+    const total = usersData.length
+    const activeStudents = usersData.filter(u => /student/i.test(u.role) && /active/i.test(u.status)).length
+    const activeEmployers = usersData.filter(u => /employer/i.test(u.role) && /active/i.test(u.status)).length
+    const suspended = usersData.filter(u => /suspend|deactive/i.test(u.status)).length
+    return [
+      { title: 'Total Users', value: String(total), icon: Users, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+      { title: 'Active Students', value: String(activeStudents), icon: GraduationCap, color: 'text-green-600', bgColor: 'bg-green-50' },
+      { title: 'Active Employers', value: String(activeEmployers), icon: Briefcase, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+      { title: 'Suspended Users', value: String(suspended), icon: UserX, color: 'text-red-600', bgColor: 'bg-red-50' },
+    ]
+  }, [usersData])
 
   const filteredUsers = usersData.filter((user) => {
     const matchesSearch =
@@ -160,7 +190,7 @@ export default function UsersPage() {
     { id: "job-seekers", label: "Job-Seekers", icon: UserSearch },
   ]
 
-  const handleViewProfile = (user: (typeof users)[0]) => {
+  const handleViewProfile = (user: UIUser) => {
     setSelectedUser(user)
     setIsProfileDialogOpen(true)
   }
@@ -169,7 +199,7 @@ export default function UsersPage() {
     setUsersData((prev) => prev.filter((user) => user.id !== userId))
   }
 
-  const handleUserLogin = (user: (typeof users)[0]) => {
+  const handleUserLogin = (user: UIUser) => {
     setSelectedUser(user)
     setIsLoginDialogOpen(true)
   }
@@ -195,7 +225,7 @@ export default function UsersPage() {
       <div className="p-6 space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
+          {statsComputed.map((stat, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">

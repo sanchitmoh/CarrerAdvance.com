@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { API_BASE_URL } from "@/lib/api-config"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +30,7 @@ import {
   Printer,
   Mail,
   ArrowLeft,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link" // Added Link import for navigation
 
@@ -38,6 +40,43 @@ export default function PayrollManagementPage() {
   const [showPayslipDialog, setShowPayslipDialog] = useState(false)
   const [selectedPayslip, setSelectedPayslip] = useState<any>(null)
   const [overtimeSettings, setOvertimeSettings] = useState("global") // "global" or "individual"
+  const [showCycleDialog, setShowCycleDialog] = useState(false)
+  const [cycleForm, setCycleForm] = useState({ startDate: "", endDate: "" })
+  const [isSavingCycle, setIsSavingCycle] = useState(false)
+  const [baseTaxForm, setBaseTaxForm] = useState({
+    federal_rate: "",
+    state_rate: "",
+    social_security_rate: "",
+    medicare_rate: "",
+    effective_from: "",
+  })
+  const [isSavingBaseTax, setIsSavingBaseTax] = useState(false)
+  const [baseTaxes, setBaseTaxes] = useState<any[]>([])
+  const [loadingBaseTaxes, setLoadingBaseTaxes] = useState(false)
+  const [editBaseTax, setEditBaseTax] = useState<any | null>(null)
+  const [isUpdatingBaseTax, setIsUpdatingBaseTax] = useState(false)
+  const [showCustomTaxDialog, setShowCustomTaxDialog] = useState(false)
+  const [customTaxForm, setCustomTaxForm] = useState({ tax_name: "", tax_rate: "", effective_from: "" })
+  const [isSavingCustomTax, setIsSavingCustomTax] = useState(false)
+  const [customTaxes, setCustomTaxes] = useState<any[]>([])
+  const [loadingTaxes, setLoadingTaxes] = useState(false)
+  const [editCustomTax, setEditCustomTax] = useState<any | null>(null)
+  const [isUpdatingCustomTax, setIsUpdatingCustomTax] = useState(false)
+  const [cycles, setCycles] = useState<any[]>([])
+  const [loadingCycles, setLoadingCycles] = useState(false)
+
+  const derivedCycleStatus = useMemo(() => {
+    if (!cycleForm.startDate || !cycleForm.endDate) return "pending"
+    const start = new Date(cycleForm.startDate)
+    const end = new Date(cycleForm.endDate)
+    const today = new Date()
+    // Normalize to remove time
+    start.setHours(0, 0, 0, 0)
+    end.setHours(0, 0, 0, 0)
+    today.setHours(0, 0, 0, 0)
+    if (today > end) return "processed"
+    return "pending"
+  }, [cycleForm.startDate, cycleForm.endDate])
 
   // Sample employee salary data
   const employees = [
@@ -191,6 +230,248 @@ export default function PayrollManagementPage() {
     alert(`Bank transfer initiated for ${employee.name} - $${employee.netSalary}`)
   }
 
+  const handleSavePayrollCycle = async () => {
+    if (!cycleForm.startDate || !cycleForm.endDate) {
+      alert("Please select start and end dates.")
+      return
+    }
+    setIsSavingCycle(true)
+    try {
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/payroll-cycles/create${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          start_date: cycleForm.startDate,
+          end_date: cycleForm.endDate,
+          status: derivedCycleStatus,
+        }),
+      })
+      alert("Payroll cycle saved.")
+      setCycleForm({ startDate: "", endDate: "" })
+      await fetchPayrollCycles()
+    } catch (error) {
+      alert("Failed to save payroll cycle.")
+    } finally {
+      setIsSavingCycle(false)
+    }
+  }
+
+  const handleSaveBaseTax = async () => {
+    if (
+      !baseTaxForm.federal_rate ||
+      !baseTaxForm.state_rate ||
+      !baseTaxForm.social_security_rate ||
+      !baseTaxForm.medicare_rate
+    ) {
+      alert("Please fill in all tax rates.")
+      return
+    }
+    setIsSavingBaseTax(true)
+    try {
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/tax-settings/save-base${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          federal_rate: parseFloat(baseTaxForm.federal_rate),
+          state_rate: parseFloat(baseTaxForm.state_rate),
+          social_security_rate: parseFloat(baseTaxForm.social_security_rate),
+          medicare_rate: parseFloat(baseTaxForm.medicare_rate),
+          effective_from: baseTaxForm.effective_from || new Date().toISOString().split("T")[0],
+        }),
+      })
+      alert("Base tax settings saved.")
+      await fetchBaseTaxes()
+    } catch (e) {
+      alert("Failed to save base tax settings.")
+    } finally {
+      setIsSavingBaseTax(false)
+    }
+  }
+
+  const handleAddCustomTax = async () => {
+    if (!customTaxForm.tax_name || !customTaxForm.tax_rate) {
+      alert("Please provide tax name and rate.")
+      return
+    }
+    setIsSavingCustomTax(true)
+    try {
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/tax-settings/add-custom${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          tax_name: customTaxForm.tax_name,
+          tax_rate: parseFloat(customTaxForm.tax_rate),
+          effective_from: customTaxForm.effective_from || new Date().toISOString().split("T")[0],
+        }),
+      })
+      alert("Custom tax added.")
+      setShowCustomTaxDialog(false)
+      setCustomTaxForm({ tax_name: "", tax_rate: "", effective_from: "" })
+      await fetchCurrentTaxes()
+    } catch (e) {
+      alert("Failed to add custom tax.")
+    } finally {
+      setIsSavingCustomTax(false)
+    }
+  }
+
+  function getEmployerId() {
+    if (typeof document === "undefined") return ""
+    const match = document.cookie.match(/(?:^|;\s*)employer_id=([^;]+)/)
+    return match ? decodeURIComponent(match[1]) : ""
+  }
+
+  async function fetchCurrentTaxes() {
+    try {
+      setLoadingTaxes(true)
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/tax-settings/current${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const res = await fetch(url, { credentials: "include" })
+      const json = await res.json()
+      if (json && json.success && json.data) {
+        setCustomTaxes(Array.isArray(json.data.custom) ? json.data.custom : [])
+        // Optional: prefill baseTaxForm from json.data.base
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setLoadingTaxes(false)
+    }
+  }
+
+  async function fetchBaseTaxes() {
+    try {
+      setLoadingBaseTaxes(true)
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/tax-settings/base-list${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const res = await fetch(url, { credentials: "include" })
+      const json = await res.json()
+      if (json && json.success) {
+        setBaseTaxes(Array.isArray(json.data) ? json.data : [])
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setLoadingBaseTaxes(false)
+    }
+  }
+
+  async function fetchPayrollCycles() {
+    try {
+      setLoadingCycles(true)
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/payroll-cycles${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const res = await fetch(url, { credentials: "include" })
+      const json = await res.json()
+      if (json && json.success) {
+        setCycles(Array.isArray(json.data) ? json.data : [])
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setLoadingCycles(false)
+    }
+  }
+
+  async function handleUpdateCustomTax() {
+    if (!editCustomTax) return
+    if (!editCustomTax.tax_name || editCustomTax.tax_rate === "") {
+      alert("Please provide tax name and rate.")
+      return
+    }
+    setIsUpdatingCustomTax(true)
+    try {
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/tax-settings/custom/${encodeURIComponent(editCustomTax.id)}/update${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          tax_name: editCustomTax.tax_name,
+          tax_rate: parseFloat(editCustomTax.tax_rate),
+          effective_from: editCustomTax.effective_from,
+        }),
+      })
+      alert("Custom tax updated.")
+      setEditCustomTax(null)
+      await fetchCurrentTaxes()
+    } catch (e) {
+      alert("Failed to update custom tax.")
+    } finally {
+      setIsUpdatingCustomTax(false)
+    }
+  }
+
+  async function handleDeleteCustomTax(tax: any) {
+    if (!confirm(`Delete custom tax "${tax.tax_name}"?`)) return
+    try {
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/tax-settings/custom/${encodeURIComponent(tax.id)}/delete${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      await fetch(url, { method: "POST", credentials: "include" })
+      await fetchCurrentTaxes()
+    } catch (e) {
+      alert("Failed to delete custom tax.")
+    }
+  }
+
+  // Load existing custom taxes on mount
+  useEffect(() => {
+    fetchCurrentTaxes()
+    fetchBaseTaxes()
+    fetchPayrollCycles()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleUpdateBaseTax() {
+    if (!editBaseTax) return
+    setIsUpdatingBaseTax(true)
+    try {
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/tax-settings/base/${encodeURIComponent(editBaseTax.id)}/update${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          federal_rate: parseFloat(editBaseTax.federal_rate),
+          state_rate: parseFloat(editBaseTax.state_rate),
+          social_security_rate: parseFloat(editBaseTax.social_security_rate),
+          medicare_rate: parseFloat(editBaseTax.medicare_rate),
+          effective_from: editBaseTax.effective_from,
+        }),
+      })
+      alert("Base tax updated.")
+      setEditBaseTax(null)
+      await fetchBaseTaxes()
+    } catch (e) {
+      alert("Failed to update base tax.")
+    } finally {
+      setIsUpdatingBaseTax(false)
+    }
+  }
+
+  async function handleDeleteBaseTax(tax: any) {
+    if (!confirm("Delete this base tax setting?")) return
+    try {
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/tax-settings/base/${encodeURIComponent(tax.id)}/delete${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      await fetch(url, { method: "POST", credentials: "include" })
+      await fetchBaseTaxes()
+    } catch (e) {
+      alert("Failed to delete base tax.")
+    }
+  }
+
   const totalGrossPay = employees.reduce((sum, emp) => sum + calculateGrossSalary(emp), 0)
   const totalDeductions = employees.reduce((sum, emp) => sum + emp.deductions, 0)
   const totalTax = employees.reduce((sum, emp) => sum + emp.tax, 0)
@@ -220,9 +501,13 @@ export default function PayrollManagementPage() {
             </div>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
-            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-              <Send className="h-4 w-4 mr-2" />
-              Process Payroll
+            <Button
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+              onClick={() => setShowCycleDialog(true)}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Payroll Cycle Settings
             </Button>
             <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
               <Download className="h-4 w-4 mr-2" />
@@ -506,23 +791,156 @@ export default function PayrollManagementPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="federal-tax">Federal Tax Rate (%)</Label>
-                  <Input id="federal-tax" type="number" placeholder="15" />
+                {baseTaxes.length === 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="federal-tax">Federal Tax Rate (%)</Label>
+                        <Input
+                          id="federal-tax"
+                          type="number"
+                          step="0.01"
+                          placeholder="15"
+                          value={baseTaxForm.federal_rate}
+                          onChange={(e) => setBaseTaxForm((p) => ({ ...p, federal_rate: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state-tax">State Tax Rate (%)</Label>
+                        <Input
+                          id="state-tax"
+                          type="number"
+                          step="0.01"
+                          placeholder="5"
+                          value={baseTaxForm.state_rate}
+                          onChange={(e) => setBaseTaxForm((p) => ({ ...p, state_rate: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="social-security">Social Security (%)</Label>
+                        <Input
+                          id="social-security"
+                          type="number"
+                          step="0.01"
+                          placeholder="6.2"
+                          value={baseTaxForm.social_security_rate}
+                          onChange={(e) => setBaseTaxForm((p) => ({ ...p, social_security_rate: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="medicare">Medicare (%)</Label>
+                        <Input
+                          id="medicare"
+                          type="number"
+                          step="0.01"
+                          placeholder="1.45"
+                          value={baseTaxForm.medicare_rate}
+                          onChange={(e) => setBaseTaxForm((p) => ({ ...p, medicare_rate: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="effective-from">Effective From</Label>
+                        <Input
+                          id="effective-from"
+                          type="date"
+                          value={baseTaxForm.effective_from}
+                          onChange={(e) => setBaseTaxForm((p) => ({ ...p, effective_from: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Button className="w-full" onClick={handleSaveBaseTax} disabled={isSavingBaseTax}>
+                        {isSavingBaseTax ? "Saving..." : "Save Base Tax Settings"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full bg-transparent"
+                        onClick={() => setShowCustomTaxDialog(true)}
+                      >
+                        Add Custom Tax
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-600">Federal</span>
+                          <div className="font-medium">{Number(baseTaxes[0].federal_rate).toFixed(2)}%</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">State</span>
+                          <div className="font-medium">{Number(baseTaxes[0].state_rate).toFixed(2)}%</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Social Sec.</span>
+                          <div className="font-medium">{Number(baseTaxes[0].social_security_rate).toFixed(2)}%</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Medicare</span>
+                          <div className="font-medium">{Number(baseTaxes[0].medicare_rate).toFixed(2)}%</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Effective</span>
+                          <div className="font-medium">{baseTaxes[0].effective_from}</div>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <Button size="sm" variant="outline" className="bg-transparent" onClick={() => setEditBaseTax(baseTaxes[0])}>
+                          <Edit className="h-4 w-4 mr-1" /> Edit Base Tax
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <span />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full bg-transparent"
+                        onClick={() => setShowCustomTaxDialog(true)}
+                      >
+                        Add Custom Tax
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {/* Custom Taxes List */}
+                <div className="pt-2 border-t">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-gray-900">Custom Taxes</h4>
+                    <Button variant="outline" size="sm" className="bg-transparent" onClick={fetchCurrentTaxes}>
+                      Refresh
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {loadingTaxes ? (
+                      <p className="text-sm text-gray-600">Loading...</p>
+                    ) : customTaxes.length === 0 ? (
+                      <p className="text-sm text-gray-600">No custom taxes added yet.</p>
+                    ) : (
+                      customTaxes.map((t) => (
+                        <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-gray-900">{t.tax_name} <span className="text-gray-600">({Number(t.tax_rate).toFixed(2)}%)</span></p>
+                            <p className="text-xs text-gray-500">Effective from {t.effective_from}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button size="sm" variant="outline" className="bg-transparent" onClick={() => setEditCustomTax(t)}>
+                              <Edit className="h-4 w-4 mr-1" /> Edit
+                            </Button>
+                            <Button size="sm" variant="outline" className="bg-transparent text-red-600 hover:text-red-700" onClick={() => handleDeleteCustomTax(t)}>
+                              <Trash2 className="h-4 w-4 mr-1" /> Delete
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="state-tax">State Tax Rate (%)</Label>
-                  <Input id="state-tax" type="number" placeholder="5" />
-                </div>
-                <div>
-                  <Label htmlFor="social-security">Social Security (%)</Label>
-                  <Input id="social-security" type="number" placeholder="6.2" />
-                </div>
-                <div>
-                  <Label htmlFor="medicare">Medicare (%)</Label>
-                  <Input id="medicare" type="number" placeholder="1.45" />
-                </div>
-                <Button className="w-full">Update Tax Settings</Button>
+                
               </CardContent>
             </Card>
 
@@ -675,6 +1093,303 @@ export default function PayrollManagementPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Add Custom Tax Dialog */}
+      <Dialog open={showCustomTaxDialog} onOpenChange={setShowCustomTaxDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Calculator className="h-5 w-5 text-emerald-600" />
+              <span>Add Custom Tax</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="custom-tax-name">Tax Name</Label>
+              <Input
+                id="custom-tax-name"
+                placeholder="e.g., City Tax"
+                value={customTaxForm.tax_name}
+                onChange={(e) => setCustomTaxForm((p) => ({ ...p, tax_name: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="custom-tax-rate">Tax Rate (%)</Label>
+                <Input
+                  id="custom-tax-rate"
+                  type="number"
+                  step="0.01"
+                  placeholder="1.00"
+                  value={customTaxForm.tax_rate}
+                  onChange={(e) => setCustomTaxForm((p) => ({ ...p, tax_rate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="custom-effective-from">Effective From</Label>
+                <Input
+                  id="custom-effective-from"
+                  type="date"
+                  value={customTaxForm.effective_from}
+                  onChange={(e) => setCustomTaxForm((p) => ({ ...p, effective_from: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="flex space-x-3 pt-2">
+              <Button className="flex-1" onClick={handleAddCustomTax} disabled={isSavingCustomTax}>
+                {isSavingCustomTax ? "Saving..." : "Save Custom Tax"}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 bg-transparent"
+                onClick={() => setShowCustomTaxDialog(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Base Tax Dialog */}
+      <Dialog open={!!editBaseTax} onOpenChange={(open) => !open && setEditBaseTax(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Calculator className="h-5 w-5 text-emerald-600" />
+              <span>Edit Base Tax</span>
+            </DialogTitle>
+          </DialogHeader>
+          {editBaseTax && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-base-federal">Federal Tax Rate (%)</Label>
+                  <Input
+                    id="edit-base-federal"
+                    type="number"
+                    step="0.01"
+                    value={editBaseTax.federal_rate}
+                    onChange={(e) => setEditBaseTax((p: any) => ({ ...p, federal_rate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-base-state">State Tax Rate (%)</Label>
+                  <Input
+                    id="edit-base-state"
+                    type="number"
+                    step="0.01"
+                    value={editBaseTax.state_rate}
+                    onChange={(e) => setEditBaseTax((p: any) => ({ ...p, state_rate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-base-ss">Social Security (%)</Label>
+                  <Input
+                    id="edit-base-ss"
+                    type="number"
+                    step="0.01"
+                    value={editBaseTax.social_security_rate}
+                    onChange={(e) => setEditBaseTax((p: any) => ({ ...p, social_security_rate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-base-medicare">Medicare (%)</Label>
+                  <Input
+                    id="edit-base-medicare"
+                    type="number"
+                    step="0.01"
+                    value={editBaseTax.medicare_rate}
+                    onChange={(e) => setEditBaseTax((p: any) => ({ ...p, medicare_rate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-base-effective">Effective From</Label>
+                  <Input
+                    id="edit-base-effective"
+                    type="date"
+                    value={editBaseTax.effective_from || ""}
+                    onChange={(e) => setEditBaseTax((p: any) => ({ ...p, effective_from: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-3 pt-2">
+                <Button className="flex-1" onClick={handleUpdateBaseTax} disabled={isUpdatingBaseTax}>
+                  {isUpdatingBaseTax ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setEditBaseTax(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Custom Tax Dialog */}
+      <Dialog open={!!editCustomTax} onOpenChange={(open) => !open && setEditCustomTax(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Calculator className="h-5 w-5 text-emerald-600" />
+              <span>Edit Custom Tax</span>
+            </DialogTitle>
+          </DialogHeader>
+          {editCustomTax && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-tax-name">Tax Name</Label>
+                <Input
+                  id="edit-tax-name"
+                  value={editCustomTax.tax_name}
+                  onChange={(e) => setEditCustomTax((p: any) => ({ ...p, tax_name: e.target.value }))}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-tax-rate">Tax Rate (%)</Label>
+                  <Input
+                    id="edit-tax-rate"
+                    type="number"
+                    step="0.01"
+                    value={editCustomTax.tax_rate}
+                    onChange={(e) => setEditCustomTax((p: any) => ({ ...p, tax_rate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-effective-from">Effective From</Label>
+                  <Input
+                    id="edit-effective-from"
+                    type="date"
+                    value={editCustomTax.effective_from || ""}
+                    onChange={(e) => setEditCustomTax((p: any) => ({ ...p, effective_from: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-3 pt-2">
+                <Button className="flex-1" onClick={handleUpdateCustomTax} disabled={isUpdatingCustomTax}>
+                  {isUpdatingCustomTax ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setEditCustomTax(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payroll Cycle Settings Dialog */}
+      <Dialog open={showCycleDialog} onOpenChange={setShowCycleDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-emerald-600" />
+              <span>Payroll Cycle Settings</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="cycle-start-date">Start Date</Label>
+                <Input
+                  id="cycle-start-date"
+                  type="date"
+                  value={cycleForm.startDate}
+                  onChange={(e) => setCycleForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="cycle-end-date">End Date</Label>
+                <Input
+                  id="cycle-end-date"
+                  type="date"
+                  value={cycleForm.endDate}
+                  onChange={(e) => setCycleForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div>
+                <Label className="text-base">Status</Label>
+                <p className="text-sm text-gray-600">Derived from the selected dates</p>
+              </div>
+              <Badge
+                variant="outline"
+                className={
+                  derivedCycleStatus === "processed"
+                    ? "bg-green-50 text-green-700"
+                    : "bg-yellow-50 text-yellow-700"
+                }
+              >
+                {derivedCycleStatus}
+              </Badge>
+            </div>
+
+            {/* Preview existing cycles */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-gray-900">Recent Cycles</h4>
+                <Button variant="outline" size="sm" className="bg-transparent" onClick={fetchPayrollCycles}>
+                  Refresh
+                </Button>
+              </div>
+              {loadingCycles ? (
+                <p className="text-sm text-gray-600">Loading...</p>
+              ) : cycles.length === 0 ? (
+                <p className="text-sm text-gray-600">No cycles found.</p>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {cycles.slice(0, 10).map((c) => (
+                    <div key={c.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900">
+                          {new Date(c.start_date).toLocaleDateString()} - {new Date(c.end_date).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-gray-600">Status: {c.status}</p>
+                        {c.processed_on && (
+                          <p className="text-xs text-gray-500">Processed on {new Date(c.processed_on).toLocaleString()}</p>
+                        )}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          c.status === "paid"
+                            ? "bg-green-50 text-green-700"
+                            : c.status === "processed" || c.status === "approved"
+                            ? "bg-blue-50 text-blue-700"
+                            : "bg-yellow-50 text-yellow-700"
+                        }
+                      >
+                        {c.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex space-x-3 pt-2">
+              <Button
+                className="flex-1"
+                onClick={handleSavePayrollCycle}
+                disabled={isSavingCycle || !cycleForm.startDate || !cycleForm.endDate}
+              >
+                {isSavingCycle ? "Saving..." : "Save Cycle"}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 bg-transparent"
+                onClick={() => setShowCycleDialog(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Payslip Generation Dialog */}
       <Dialog open={showPayslipDialog} onOpenChange={setShowPayslipDialog}>

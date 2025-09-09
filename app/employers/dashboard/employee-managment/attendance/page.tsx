@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,138 +25,130 @@ import {
   CalendarDays,
   ArrowLeft,
 } from "lucide-react"
-import Link from "next/link" // Added Link import for navigation
+import Link from "next/link"
+import { 
+  fetchAttendance, 
+  fetchAttendanceAll, 
+  fetchCompanyEmployees, 
+  markAttendance, 
+  type AttendanceRecord, 
+  type AttendanceStatus, 
+  type CompanyEmployee, 
+  type EmployeeAttendanceRow 
+} from "@/lib/hrms-api"
+import { getLeaveRequests, type LeaveRequest } from "@/lib/leave-api"
+import LeaveApprovalModal from "@/components/leave-approval-modal"
 
 export default function AttendanceManagementPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [selectedEmployee, setSelectedEmployee] = useState("")
-  const [attendanceStatus, setAttendanceStatus] = useState("")
+  const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus | "">("")
   const [notes, setNotes] = useState("")
   const [viewMode, setViewMode] = useState("daily")
+  const [loading, setLoading] = useState(false)
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
 
-  // Sample employee data
-  const employees = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah@company.com",
-      department: "Engineering",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      email: "michael@company.com",
-      department: "Marketing",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 3,
-      name: "Emily Davis",
-      email: "emily@company.com",
-      department: "Design",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 4,
-      name: "David Wilson",
-      email: "david@company.com",
-      department: "Sales",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 5,
-      name: "Lisa Anderson",
-      email: "lisa@company.com",
-      department: "HR",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-  ]
+  // Employees from backend (ew_companyemp)
+  const [employees, setEmployees] = useState<CompanyEmployee[]>([])
+  
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const list = await fetchCompanyEmployees()
+        setEmployees(list)
+        // Default to All Employees view
+        if (!selectedEmployee) setSelectedEmployee("all")
+      } catch (error) {
+        console.error("Failed to fetch employees:", error)
+        setEmployees([])
+      }
+    }
+    run()
+  }, [selectedEmployee])
 
-  // Sample attendance data
-  const [attendanceRecords, setAttendanceRecords] = useState([
-    {
-      id: 1,
-      employeeId: 1,
-      employeeName: "Sarah Johnson",
-      date: "2024-01-22",
-      status: "present",
-      checkIn: "09:00",
-      checkOut: "17:30",
-      notes: "",
-    },
-    {
-      id: 2,
-      employeeId: 2,
-      employeeName: "Michael Chen",
-      date: "2024-01-22",
-      status: "late",
-      checkIn: "09:15",
-      checkOut: "17:30",
-      notes: "Traffic delay",
-    },
-    {
-      id: 3,
-      employeeId: 3,
-      employeeName: "Emily Davis",
-      date: "2024-01-22",
-      status: "absent",
-      checkIn: "",
-      checkOut: "",
-      notes: "Sick leave",
-    },
-    {
-      id: 4,
-      employeeId: 4,
-      employeeName: "David Wilson",
-      date: "2024-01-22",
-      status: "present",
-      checkIn: "08:45",
-      checkOut: "17:15",
-      notes: "",
-    },
-    {
-      id: 5,
-      employeeId: 5,
-      employeeName: "Lisa Anderson",
-      date: "2024-01-22",
-      status: "leave",
-      checkIn: "",
-      checkOut: "",
-      notes: "Annual leave",
-    },
-  ])
+  // Attendance data from backend
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
 
-  // Sample leave requests
-  const [leaveRequests] = useState([
-    {
-      id: 1,
-      employeeName: "Sarah Johnson",
-      type: "Annual Leave",
-      startDate: "2024-01-25",
-      endDate: "2024-01-26",
-      status: "pending",
-      reason: "Family vacation",
-    },
-    {
-      id: 2,
-      employeeName: "Michael Chen",
-      type: "Sick Leave",
-      startDate: "2024-01-23",
-      endDate: "2024-01-23",
-      status: "approved",
-      reason: "Medical appointment",
-    },
-    {
-      id: 3,
-      employeeName: "Emily Davis",
-      type: "Personal Leave",
-      startDate: "2024-01-28",
-      endDate: "2024-01-29",
-      status: "pending",
-      reason: "Personal matters",
-    },
-  ])
+  // Fetch attendance when employee or date changes (daily view fetch)
+  useEffect(() => {
+    const run = async () => {
+      if (!selectedEmployee) return
+      setLoading(true)
+      try {
+        // Determine date range: use custom if both set, else fallback to selectedDate
+        const rangeFrom = fromDate || selectedDate
+        const rangeTo = toDate || (fromDate ? fromDate : selectedDate)
+
+        if (selectedEmployee === "all") {
+          const rows: EmployeeAttendanceRow[] = await fetchAttendanceAll(rangeFrom, rangeTo)
+          const nameById = new Map<number, string>()
+          employees.filter(Boolean).forEach((e) => {
+            if (e && typeof e.id === 'number') {
+              nameById.set(e.id, e.name || `Emp #${e.id}`)
+            }
+          })
+          const mapped: AttendanceRecord[] = rows.map((r) => ({
+            id: r.id,
+            employeeId: r.companyemp_id,
+            employeeName: nameById.get(r.companyemp_id) || `Emp #${r.companyemp_id}`,
+            date: r.date,
+            status: r.status,
+            checkIn: r.check_in_time,
+            checkOut: r.check_out_time,
+            breakIn: r.break_in_time,
+            breakOut: r.break_out_time,
+            totalHours: r.total_hours ?? r.hours,
+            notes: r.note,
+            employeeNotes: r.emp_note,
+            employmentType: r.employmentType,
+            available: r.available === 1,
+          }))
+          setAttendanceRecords(mapped)
+        } else {
+          const emp = employees.find((e) => String(e.id) === String(selectedEmployee))
+          let records = await fetchAttendance(Number(selectedEmployee), rangeFrom, rangeTo, emp?.name || "")
+          if (!records.length && !fromDate && !toDate) {
+            // Fallback: fetch all records for employee if specific date is empty
+            records = await fetchAttendance(Number(selectedEmployee), undefined, undefined, emp?.name || "")
+          }
+          setAttendanceRecords(records)
+        }
+      } catch (error) {
+        console.error("Failed to fetch attendance:", error)
+        setAttendanceRecords([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    run()
+  }, [selectedEmployee, selectedDate, employees, fromDate, toDate])
+
+  // Leave requests from backend
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
+  const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<LeaveRequest | null>(null)
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false)
+
+  // UI: Leave requests show more/less
+  const [leaveShowAll, setLeaveShowAll] = useState(false)
+
+  // UI: Attendance records pagination
+  const [attendancePage, setAttendancePage] = useState(1)
+  const [attendancePerPage] = useState(10)
+
+  // Fetch leave requests
+  useEffect(() => {
+    const loadLeaveRequests = async () => {
+      try {
+        const requests = await getLeaveRequests()
+        setLeaveRequests(requests)
+      } catch (error) {
+        console.error("Failed to fetch leave requests:", error)
+        setLeaveRequests([])
+      }
+    }
+    loadLeaveRequests()
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -188,34 +180,83 @@ export default function AttendanceManagementPage() {
     }
   }
 
-  const handleMarkAttendance = () => {
-    if (!selectedEmployee || !attendanceStatus) return
+  const handleMarkAttendance = async () => {
+    if (!selectedEmployee || !attendanceStatus || selectedEmployee === "all") return
 
     const employee = employees.find((emp) => emp.id.toString() === selectedEmployee)
     if (!employee) return
 
-    const newRecord = {
-      id: attendanceRecords.length + 1,
-      employeeId: employee.id,
-      employeeName: employee.name,
-      date: selectedDate,
-      status: attendanceStatus,
-      checkIn: attendanceStatus === "present" || attendanceStatus === "late" ? "09:00" : "",
-      checkOut: attendanceStatus === "present" || attendanceStatus === "late" ? "17:30" : "",
-      notes: notes,
+    setLoading(true)
+    try {
+      const res = await markAttendance({
+        employee_id: employee.id,
+        date: selectedDate,
+        status: attendanceStatus as AttendanceStatus,
+        checkIn: attendanceStatus === "present" || attendanceStatus === "late" ? "09:00:00" : undefined,
+        checkOut: attendanceStatus === "present" || attendanceStatus === "late" ? "17:30:00" : undefined,
+        note: notes || undefined,
+      })
+      if (res?.success) {
+        const records = await fetchAttendance(employee.id, selectedDate, selectedDate, employee.name || "")
+        setAttendanceRecords(records)
+        setSelectedEmployee("")
+        setAttendanceStatus("")
+        setNotes("")
+      }
+    } catch (error) {
+      console.error("Failed to mark attendance:", error)
+    } finally {
+      setLoading(false)
     }
-
-    setAttendanceRecords([...attendanceRecords, newRecord])
-    setSelectedEmployee("")
-    setAttendanceStatus("")
-    setNotes("")
   }
 
-  const todayStats = {
+  const handleApproveLeave = (approvedRequest: LeaveRequest) => {
+    setLeaveRequests(prev => 
+      prev.map(req => req.id === approvedRequest.id ? approvedRequest : req)
+    )
+  }
+
+  const handleRejectLeave = (rejectedRequest: LeaveRequest) => {
+    setLeaveRequests(prev => 
+      prev.map(req => req.id === rejectedRequest.id ? rejectedRequest : req)
+    )
+  }
+
+  const openApprovalModal = (request: LeaveRequest) => {
+    setSelectedLeaveRequest(request)
+    setIsApprovalModalOpen(true)
+  }
+
+  const todayStats = useMemo(() => ({
     present: attendanceRecords.filter((r) => r.status === "present").length,
     absent: attendanceRecords.filter((r) => r.status === "absent").length,
     late: attendanceRecords.filter((r) => r.status === "late").length,
     onLeave: attendanceRecords.filter((r) => r.status === "leave").length,
+  }), [attendanceRecords])
+
+  // Derived: Leave requests displayed (5 by default)
+  const displayedLeaveRequests = leaveShowAll ? leaveRequests : leaveRequests.slice(0, 5)
+
+  // Derived: Attendance pagination
+  const totalAttendancePages = Math.ceil(attendanceRecords.length / attendancePerPage) || 1
+  const paginatedAttendance = attendanceRecords.slice(
+    (attendancePage - 1) * attendancePerPage,
+    attendancePage * attendancePerPage
+  )
+
+  // Reset attendance pagination when filters change
+  useEffect(() => {
+    setAttendancePage(1)
+  }, [selectedEmployee, selectedDate, fromDate, toDate])
+
+  const handleDateRangeApply = () => {
+    // This function triggers the useEffect by changing the dependency values
+    // The actual filtering is handled in the useEffect
+  }
+
+  const handleDateRangeClear = () => {
+    setFromDate("")
+    setToDate("")
   }
 
   return (
@@ -224,8 +265,6 @@ export default function AttendanceManagementPage() {
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="flex items-center space-x-4">
-            {" "}
-            {/* Added flex container for back button */}
             <Link href="/employers/dashboard/employee-managment">
               <Button
                 variant="secondary"
@@ -330,9 +369,10 @@ export default function AttendanceManagementPage() {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id.toString()}>
-                      {employee.name}
+                  <SelectItem key="all" value="all">All Employees</SelectItem>
+                  {employees.filter(Boolean).map((employee) => (
+                    <SelectItem key={employee.id ?? Math.random()} value={(employee.id ?? '').toString()}>
+                      {employee.name} ({employee.emp_code})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -340,7 +380,7 @@ export default function AttendanceManagementPage() {
             </div>
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={attendanceStatus} onValueChange={setAttendanceStatus}>
+              <Select value={attendanceStatus} onValueChange={(v) => setAttendanceStatus(v as AttendanceStatus)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -362,8 +402,12 @@ export default function AttendanceManagementPage() {
                 rows={3}
               />
             </div>
-            <Button onClick={handleMarkAttendance} className="w-full">
-              Mark Attendance
+            <Button 
+              onClick={handleMarkAttendance} 
+              className="w-full" 
+              disabled={loading || selectedEmployee === "all" || !selectedEmployee || !attendanceStatus}
+            >
+              {loading ? "Marking..." : "Mark Attendance"}
             </Button>
           </CardContent>
         </Card>
@@ -380,49 +424,80 @@ export default function AttendanceManagementPage() {
             </Badge>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {leaveRequests.map((request) => (
-                <div key={request.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <div>
-                        <p className="font-medium text-gray-900">{request.employeeName}</p>
-                        <p className="text-sm text-gray-600">{request.type}</p>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-sm text-gray-600">
-                      <p>
-                        {request.startDate} to {request.endDate}
-                      </p>
-                      <p className="text-xs mt-1">{request.reason}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge
-                      variant="outline"
-                      className={
-                        request.status === "approved"
-                          ? "bg-green-50 text-green-700"
-                          : request.status === "rejected"
-                            ? "bg-red-50 text-red-700"
-                            : "bg-yellow-50 text-yellow-700"
-                      }
-                    >
-                      {request.status}
-                    </Badge>
-                    {request.status === "pending" && (
-                      <div className="flex space-x-1">
-                        <Button size="sm" variant="outline" className="text-green-600 hover:bg-green-50 bg-transparent">
-                          Approve
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 bg-transparent">
-                          Reject
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+            <div className={`space-y-4 ${leaveShowAll ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+              {leaveRequests.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No leave requests found</p>
                 </div>
-              ))}
+              ) : (
+                displayedLeaveRequests.filter(Boolean).map((request) => (
+                  <div key={request.id ?? Math.random()} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <p className="font-medium text-gray-900">{request.employeeName}</p>
+                          <p className="text-sm text-gray-600">{request.leaveType}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-sm text-gray-600">
+                        <p>
+                          {new Date(request.applyStartDate).toLocaleDateString()} to {new Date(request.applyEndDate).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs mt-1">{request.reason}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge
+                        variant="outline"
+                        className={
+                          request.status === "approved"
+                            ? "bg-green-50 text-green-700"
+                            : request.status === "rejected"
+                              ? "bg-red-50 text-red-700"
+                              : "bg-yellow-50 text-yellow-700"
+                        }
+                      >
+                        {request.status}
+                      </Badge>
+                      {request.status === "pending" && (
+                        <div className="flex space-x-1">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-green-600 hover:bg-green-50 bg-transparent"
+                            onClick={() => openApprovalModal(request)}
+                          >
+                            Approve
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-red-600 hover:bg-red-50 bg-transparent"
+                            onClick={() => {
+                              setSelectedLeaveRequest(request)
+                              setIsApprovalModalOpen(true)
+                            }}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+              {leaveRequests.length > 5 && (
+                <div className="text-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => setLeaveShowAll(!leaveShowAll)}
+                    className="text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                  >
+                    {leaveShowAll ? 'Show Less' : `Show More (${leaveRequests.length - 5} more)`}
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -446,62 +521,138 @@ export default function AttendanceManagementPage() {
                 <SelectItem value="monthly">Monthly</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-40" />
+              <span className="text-gray-500">to</span>
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-40" />
+              <Button variant="outline" size="sm" onClick={handleDateRangeApply}>
+                <Filter className="h-4 w-4 mr-2" />
+                Apply
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleDateRangeClear}>
+                Clear
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Check In</TableHead>
-                  <TableHead>Check Out</TableHead>
-                  <TableHead>Notes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attendanceRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src="/placeholder.svg" alt={record.employeeName} />
-                          <AvatarFallback className="bg-blue-100 text-blue-600">
-                            {record.employeeName
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{record.employeeName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`${getStatusColor(record.status)} flex items-center space-x-1 w-fit`}
-                      >
-                        {getStatusIcon(record.status)}
-                        <span className="capitalize">{record.status}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{record.checkIn || "-"}</TableCell>
-                    <TableCell>{record.checkOut || "-"}</TableCell>
-                    <TableCell className="max-w-xs truncate">{record.notes || "-"}</TableCell>
+          {loading ? (
+            <div className="text-center py-8">
+              <p>Loading attendance records...</p>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Check In</TableHead>
+                    <TableHead>Check Out</TableHead>
+                    <TableHead>Notes</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {paginatedAttendance.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        No attendance records found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedAttendance.filter(Boolean).map((record, idx) => (
+                      <TableRow key={record.id ?? `${record.employeeId}-${record.date}-${idx}`}>
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src="/placeholder.svg" alt={record.employeeName} />
+                              <AvatarFallback className="bg-blue-100 text-blue-600">
+                                {record.employeeName
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{record.employeeName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={`${getStatusColor(record.status)} flex items-center space-x-1 w-fit`}
+                          >
+                            {getStatusIcon(record.status)}
+                            <span className="capitalize">{record.status}</span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{record.checkIn || "-"}</TableCell>
+                        <TableCell>{record.checkOut || "-"}</TableCell>
+                        <TableCell className="max-w-xs truncate">{record.notes || "-"}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          {attendanceRecords.length > attendancePerPage && (
+            <div className="flex items-center justify-between px-2 py-3 border-t">
+              <div className="text-sm text-gray-700">
+                Showing {((attendancePage - 1) * attendancePerPage) + 1} to {Math.min(attendancePage * attendancePerPage, attendanceRecords.length)} of {attendanceRecords.length}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAttendancePage(Math.max(1, attendancePage - 1))}
+                  disabled={attendancePage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalAttendancePages) }, (_, i) => {
+                    const pageNum = Math.max(1, Math.min(totalAttendancePages - 4, attendancePage - 2)) + i
+                    if (pageNum > totalAttendancePages) return null
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={attendancePage === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setAttendancePage(pageNum)}
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAttendancePage(Math.min(totalAttendancePages, attendancePage + 1))}
+                  disabled={attendancePage === totalAttendancePages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Leave Approval Modal */}
+      <LeaveApprovalModal
+        isOpen={isApprovalModalOpen}
+        onClose={() => {
+          setIsApprovalModalOpen(false)
+          setSelectedLeaveRequest(null)
+        }}
+        leaveRequest={selectedLeaveRequest}
+        onApprove={handleApproveLeave}
+        onReject={handleRejectLeave}
+      />
     </div>
   )
 }

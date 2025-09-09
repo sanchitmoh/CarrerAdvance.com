@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -26,123 +27,135 @@ import {
   ArrowLeft,
 } from "lucide-react"
 import Link from "next/link" // Added Link import for navigation
+import { 
+  getActiveSessions, 
+  getTimeRecords, 
+  performClockAction, 
+  getTodaySummary,
+  transformTimeRecordToSession,
+  getCurrentTimeStatus,
+  type TimeTrackingSession,
+  type TimeRecord,
+  type ClockAction,
+  type TimeTrackingStatus
+} from "@/lib/time-tracking-api"
+import { fetchCompanyEmployees, type CompanyEmployee } from "@/lib/hrms-api"
+import EmployeeDetailsModal from "@/components/employee-details-modal"
 
 export default function TimeTrackerPage() {
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [selectedEmployee, setSelectedEmployee] = useState("")
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [loading, setLoading] = useState(false)
 
-  // Update current time every second
+  // Helper function to format dates consistently
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch {
+      return dateString
+    }
+  }
+
+  // Helper function to safely format numbers with decimal places
+  const formatNumber = (value: any, decimals: number = 1): string => {
+    if (value === null || value === undefined || value === '') {
+      return '0'
+    }
+    const num = typeof value === 'string' ? parseFloat(value) : value
+    if (isNaN(num)) {
+      return '0'
+    }
+    return num.toFixed(decimals)
+  }
+
+  // Real data from APIs
+  const [employees, setEmployees] = useState<CompanyEmployee[]>([])
+  const [activeSessions, setActiveSessions] = useState<TimeTrackingSession[]>([])
+  const [timeRecords, setTimeRecords] = useState<TimeRecord[]>([])
+  const [todaySummary, setTodaySummary] = useState({
+    clocked_in_count: 0,
+    on_break_count: 0,
+    clocked_out_count: 0,
+    total_hours_today: 0,
+    total_overtime_today: 0
+  })
+
+  // Employee details modal state
+  const [selectedEmployeeForDetails, setSelectedEmployeeForDetails] = useState<CompanyEmployee | null>(null)
+  const [isEmployeeDetailsOpen, setIsEmployeeDetailsOpen] = useState(false)
+
+  // Pagination state
+  const [showAllEmployees, setShowAllEmployees] = useState(false)
+  const [timeRecordsPage, setTimeRecordsPage] = useState(1)
+  const [timeRecordsPerPage] = useState(10)
+
+  // Update current time every second (client-side only to avoid hydration mismatch)
   useEffect(() => {
+    // Set initial time only on client side
+    setCurrentTime(new Date())
+    
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
     return () => clearInterval(timer)
   }, [])
 
-  // Sample employee data
-  const employees = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      department: "Engineering",
-      status: "clocked-in",
-      clockInTime: "09:00",
-      totalHours: "7.5",
-      breakTime: "0.5",
-      location: "San Francisco, CA",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      department: "Marketing",
-      status: "on-break",
-      clockInTime: "08:45",
-      totalHours: "6.2",
-      breakTime: "1.0",
-      location: "Seattle, WA",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 3,
-      name: "Emily Davis",
-      department: "Design",
-      status: "clocked-out",
-      clockInTime: "09:15",
-      totalHours: "8.0",
-      breakTime: "0.5",
-      location: "Austin, TX",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    {
-      id: 4,
-      name: "David Wilson",
-      department: "Sales",
-      status: "clocked-in",
-      clockInTime: "08:30",
-      totalHours: "8.5",
-      breakTime: "0.5",
-      location: "New York, NY",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-  ]
+  // Fetch employees on component mount
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const employeeList = await fetchCompanyEmployees()
+        setEmployees(employeeList)
+      } catch (error) {
+        console.error("Failed to fetch employees:", error)
+      }
+    }
+    loadEmployees()
+  }, [])
 
-  // Sample time records
-  const [timeRecords] = useState([
-    {
-      id: 1,
-      employeeName: "Sarah Johnson",
-      date: "2024-01-22",
-      clockIn: "09:00",
-      clockOut: "17:30",
-      breakStart: "12:00",
-      breakEnd: "12:30",
-      totalHours: 8.0,
-      overtime: 0,
-      location: "San Francisco, CA",
-      status: "completed",
-    },
-    {
-      id: 2,
-      employeeName: "Michael Chen",
-      date: "2024-01-22",
-      clockIn: "08:45",
-      clockOut: "17:15",
-      breakStart: "12:15",
-      breakEnd: "13:15",
-      totalHours: 7.5,
-      overtime: 0,
-      location: "Seattle, WA",
-      status: "completed",
-    },
-    {
-      id: 3,
-      employeeName: "Emily Davis",
-      date: "2024-01-22",
-      clockIn: "09:15",
-      clockOut: "18:00",
-      breakStart: "12:30",
-      breakEnd: "13:00",
-      totalHours: 8.25,
-      overtime: 0.25,
-      location: "Austin, TX",
-      status: "completed",
-    },
-    {
-      id: 4,
-      employeeName: "David Wilson",
-      date: "2024-01-22",
-      clockIn: "08:30",
-      clockOut: "18:30",
-      breakStart: "12:00",
-      breakEnd: "12:30",
-      totalHours: 9.5,
-      overtime: 1.5,
-      location: "New York, NY",
-      status: "completed",
-    },
-  ])
+  // Fetch active sessions and today's summary
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        const [sessions, summary] = await Promise.all([
+          getActiveSessions(),
+          getTodaySummary()
+        ])
+        setActiveSessions(sessions)
+        setTodaySummary(summary)
+      } catch (error) {
+        console.error("Failed to fetch time tracking data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
+
+  // Fetch time records when date changes
+  useEffect(() => {
+    const loadTimeRecords = async () => {
+      try {
+        setLoading(true)
+        const records = await getTimeRecords(selectedDate, selectedDate)
+        setTimeRecords(records)
+        // Reset pagination when date changes
+        setTimeRecordsPage(1)
+      } catch (error) {
+        console.error("Failed to fetch time records:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadTimeRecords()
+  }, [selectedDate])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -170,13 +183,96 @@ export default function TimeTrackerPage() {
     }
   }
 
-  const totalEmployees = employees.length
-  const clockedIn = employees.filter((emp) => emp.status === "clocked-in").length
-  const onBreak = employees.filter((emp) => emp.status === "on-break").length
-  const clockedOut = employees.filter((emp) => emp.status === "clocked-out").length
+  // Clock action handler
+  const handleClockAction = async (action: ClockAction) => {
+    if (!selectedEmployee) {
+      alert("Please select an employee first")
+      return
+    }
 
-  const totalHoursToday = timeRecords.reduce((sum, record) => sum + record.totalHours, 0)
-  const totalOvertimeToday = timeRecords.reduce((sum, record) => sum + record.overtime, 0)
+    try {
+      setLoading(true)
+      const result = await performClockAction({
+        employee_id: parseInt(selectedEmployee),
+        action,
+        location: "Office", // You can get this from geolocation API
+        device_info: navigator.userAgent,
+        ip_address: "" // Will be set by backend
+      })
+
+      if (result.success) {
+        // Refresh data after successful action
+        const [sessions, summary] = await Promise.all([
+          getActiveSessions(),
+          getTodaySummary()
+        ])
+        setActiveSessions(sessions)
+        setTodaySummary(summary)
+        
+        // Also refresh time records if viewing today
+        if (selectedDate === new Date().toISOString().split("T")[0]) {
+          const records = await getTimeRecords(selectedDate, selectedDate)
+          setTimeRecords(records)
+        }
+      } else {
+        alert(result.message)
+      }
+    } catch (error) {
+      console.error("Clock action failed:", error)
+      alert("Failed to perform clock action")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle opening employee details modal
+  const handleOpenEmployeeDetails = (employee: CompanyEmployee) => {
+    setSelectedEmployeeForDetails(employee)
+    setIsEmployeeDetailsOpen(true)
+  }
+
+  // Get employee status from active sessions
+  const getEmployeeStatus = (employeeId: number): TimeTrackingStatus => {
+    const session = activeSessions.find(s => s.employeeId === employeeId)
+    if (!session) return 'clocked-out'
+    return getCurrentTimeStatus({
+      id: session.id,
+      employee_id: session.employeeId,
+      company_id: 0,
+      date: session.date,
+      clock_in_time: session.clockInTime,
+      clock_out_time: session.clockOutTime,
+      break_start_time: session.breakStartTime,
+      break_end_time: session.breakEndTime,
+      total_work_hours: session.totalWorkHours,
+      total_break_hours: session.totalBreakHours,
+      overtime_hours: session.overtimeHours,
+      is_active: session.isActive ? 1 : 0,
+      created_at: '',
+      updated_at: ''
+    })
+  }
+
+  // Statistics from real data
+  const totalEmployees = employees.length
+  const clockedIn = todaySummary.clocked_in_count
+  const onBreak = todaySummary.on_break_count
+  const clockedOut = todaySummary.clocked_out_count
+
+  const totalHoursToday = typeof todaySummary.total_hours_today === 'number' 
+    ? todaySummary.total_hours_today 
+    : parseFloat(todaySummary.total_hours_today) || 0
+  const totalOvertimeToday = typeof todaySummary.total_overtime_today === 'number' 
+    ? todaySummary.total_overtime_today 
+    : parseFloat(todaySummary.total_overtime_today) || 0
+
+  // Pagination calculations
+  const displayedEmployees = showAllEmployees ? employees : employees.slice(0, 5)
+  const totalTimeRecordsPages = Math.ceil(timeRecords.length / timeRecordsPerPage)
+  const paginatedTimeRecords = timeRecords.slice(
+    (timeRecordsPage - 1) * timeRecordsPerPage,
+    timeRecordsPage * timeRecordsPerPage
+  )
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -206,7 +302,9 @@ export default function TimeTrackerPage() {
           <div className="mt-4 md:mt-0 flex items-center space-x-4">
             <div className="text-right">
               <p className="text-sm text-green-100">Current Time</p>
-              <p className="text-xl font-mono font-bold">{currentTime.toLocaleTimeString()}</p>
+              <p className="text-xl font-mono font-bold">
+                {currentTime ? currentTime.toLocaleTimeString() : '--:--:--'}
+              </p>
             </div>
             <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
               <Download className="h-4 w-4 mr-2" />
@@ -253,7 +351,7 @@ export default function TimeTrackerPage() {
                 <Timer className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{totalHoursToday.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(totalHoursToday)}</p>
                 <p className="text-sm text-gray-600">Total Hours Today</p>
               </div>
             </div>
@@ -267,7 +365,7 @@ export default function TimeTrackerPage() {
                 <TrendingUp className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{totalOvertimeToday.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(totalOvertimeToday)}</p>
                 <p className="text-sm text-gray-600">Overtime Hours</p>
               </div>
             </div>
@@ -302,22 +400,41 @@ export default function TimeTrackerPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <Button className="bg-green-600 hover:bg-green-700">
+              <Button 
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() => handleClockAction('clock-in')}
+                disabled={loading || !selectedEmployee}
+              >
                 <Play className="h-4 w-4 mr-2" />
                 Clock In
               </Button>
-              <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent">
+              <Button 
+                variant="outline" 
+                className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
+                onClick={() => handleClockAction('clock-out')}
+                disabled={loading || !selectedEmployee}
+              >
                 <Square className="h-4 w-4 mr-2" />
                 Clock Out
               </Button>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 bg-transparent">
+              <Button 
+                variant="outline" 
+                className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 bg-transparent"
+                onClick={() => handleClockAction('break-start')}
+                disabled={loading || !selectedEmployee}
+              >
                 <Pause className="h-4 w-4 mr-2" />
                 Start Break
               </Button>
-              <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent">
+              <Button 
+                variant="outline" 
+                className="border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent"
+                onClick={() => handleClockAction('break-end')}
+                disabled={loading || !selectedEmployee}
+              >
                 <Play className="h-4 w-4 mr-2" />
                 End Break
               </Button>
@@ -341,12 +458,31 @@ export default function TimeTrackerPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {employees.map((employee) => (
+            <div className={`space-y-4 ${showAllEmployees ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300 animate-spin" />
+                  <p>Loading employee status...</p>
+                </div>
+              ) : employees.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No employees found</p>
+                </div>
+              ) : (
+                <>
+                  {displayedEmployees.map((employee) => {
+                  const status = getEmployeeStatus(employee.id)
+                  const session = activeSessions.find(s => s.employeeId === employee.id)
+                  
+                  return (
                 <div key={employee.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-4">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={employee.name} />
+                          <AvatarImage 
+                            src={employee.image || "/placeholder.svg"} 
+                            alt={employee.name} 
+                          />
                       <AvatarFallback className="bg-green-100 text-green-600">
                         {employee.name
                           .split(" ")
@@ -355,29 +491,60 @@ export default function TimeTrackerPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-gray-900">{employee.name}</p>
-                      <p className="text-sm text-gray-600">{employee.department}</p>
+                          <button
+                            onClick={() => handleOpenEmployeeDetails(employee)}
+                            className="font-medium text-gray-900 hover:text-blue-600 hover:underline cursor-pointer text-left"
+                          >
+                            {employee.name}
+                          </button>
+                          <p className="text-sm text-gray-600">{employee.emp_type}</p>
                       <div className="flex items-center space-x-2 mt-1">
                         <MapPin className="h-3 w-3 text-gray-400" />
-                        <span className="text-xs text-gray-500">{employee.location}</span>
+                            <span className="text-xs text-gray-500">{session?.location || "Office"}</span>
                       </div>
                     </div>
                   </div>
                   <div className="text-right space-y-2">
                     <Badge
                       variant="outline"
-                      className={`${getStatusColor(employee.status)} flex items-center space-x-1`}
+                          className={`${getStatusColor(status)} flex items-center space-x-1`}
                     >
-                      {getStatusIcon(employee.status)}
-                      <span className="capitalize">{employee.status.replace("-", " ")}</span>
+                          {getStatusIcon(status)}
+                          <span className="capitalize">{status.replace("-", " ")}</span>
                     </Badge>
                     <div className="text-sm text-gray-600">
-                      <p>In: {employee.clockInTime}</p>
-                      <p>Hours: {employee.totalHours}</p>
+                          {session?.clockInTime && <p>In: {session.clockInTime}</p>}
+                          {session?.totalWorkHours && <p>Hours: {formatNumber(session.totalWorkHours)}</p>}
                     </div>
                   </div>
                 </div>
-              ))}
+                  )
+                })}
+                
+                {/* Show More/Less Button */}
+                {employees.length > 5 && (
+                  <div className="text-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAllEmployees(!showAllEmployees)}
+                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    >
+                      {showAllEmployees ? (
+                        <>
+                          <ArrowLeft className="h-4 w-4 mr-2" />
+                          Show Less
+                        </>
+                      ) : (
+                        <>
+                          Show More ({employees.length - 5} more)
+                          <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -420,21 +587,43 @@ export default function TimeTrackerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {timeRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium">{record.employeeName}</TableCell>
-                    <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{record.clockIn}</TableCell>
-                    <TableCell>{record.clockOut}</TableCell>
-                    <TableCell>
-                      {record.breakStart} - {record.breakEnd}
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                      <Clock className="h-8 w-8 mx-auto mb-2 text-gray-300 animate-spin" />
+                      Loading time records...
                     </TableCell>
-                    <TableCell className="font-medium">{record.totalHours.toFixed(1)}h</TableCell>
+                  </TableRow>
+                ) : timeRecords.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                      <Clock className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                      No time records found for this date
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedTimeRecords.map((record) => (
+                  <TableRow key={record.id}>
+                      <TableCell className="font-medium">{record.emp_name || `Employee ${record.employee_id}`}</TableCell>
+                      <TableCell>{formatDate(record.date)}</TableCell>
+                      <TableCell>{record.clock_in_time || "-"}</TableCell>
+                      <TableCell>{record.clock_out_time || "-"}</TableCell>
                     <TableCell>
-                      {record.overtime > 0 ? (
+                        {record.break_start_time && record.break_end_time 
+                          ? `${record.break_start_time} - ${record.break_end_time}`
+                          : record.break_start_time 
+                            ? `${record.break_start_time} - (ongoing)`
+                            : "-"
+                        }
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {record.total_work_hours ? `${formatNumber(record.total_work_hours)}h` : "-"}
+                    </TableCell>
+                    <TableCell>
+                        {record.overtime_hours && record.overtime_hours > 0 ? (
                         <div className="flex items-center space-x-1">
                           <AlertTriangle className="h-4 w-4 text-orange-500" />
-                          <span className="text-orange-600 font-medium">{record.overtime.toFixed(1)}h</span>
+                            <span className="text-orange-600 font-medium">{formatNumber(record.overtime_hours)}h</span>
                         </div>
                       ) : (
                         <div className="flex items-center space-x-1">
@@ -443,24 +632,86 @@ export default function TimeTrackerPage() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">{record.location}</TableCell>
+                      <TableCell className="text-sm text-gray-600">{record.location || "Office"}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
                         className={
-                          record.status === "completed" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"
+                            record.is_active === 0 ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"
                         }
                       >
-                        {record.status}
+                          {record.is_active === 0 ? "completed" : "active"}
                       </Badge>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
+          
+          {/* Pagination Controls */}
+          {timeRecords.length > timeRecordsPerPage && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-gray-700">
+                Showing {((timeRecordsPage - 1) * timeRecordsPerPage) + 1} to {Math.min(timeRecordsPage * timeRecordsPerPage, timeRecords.length)} of {timeRecords.length} records
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTimeRecordsPage(Math.max(1, timeRecordsPage - 1))}
+                  disabled={timeRecordsPage === 1}
+                >
+                  Previous
+                </Button>
+                
+                {/* Page Numbers */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalTimeRecordsPages) }, (_, i) => {
+                    const pageNum = Math.max(1, Math.min(totalTimeRecordsPages - 4, timeRecordsPage - 2)) + i
+                    if (pageNum > totalTimeRecordsPages) return null
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={timeRecordsPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setTimeRecordsPage(pageNum)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTimeRecordsPage(Math.min(totalTimeRecordsPages, timeRecordsPage + 1))}
+                  disabled={timeRecordsPage === totalTimeRecordsPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Employee Details Modal */}
+      <EmployeeDetailsModal
+        isOpen={isEmployeeDetailsOpen}
+        onClose={() => {
+          setIsEmployeeDetailsOpen(false)
+          setSelectedEmployeeForDetails(null)
+        }}
+        employee={selectedEmployeeForDetails}
+        activeSession={selectedEmployeeForDetails ? activeSessions.find(s => s.employeeId === selectedEmployeeForDetails.id) : undefined}
+        timeRecords={timeRecords}
+        onClockAction={(employeeId, action) => handleClockAction(action as ClockAction)}
+      />
     </div>
   )
 }

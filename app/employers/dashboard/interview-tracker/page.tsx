@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { fetchInterviews, updateInterviewStatus, saveInterviewReview, type Interview } from "@/lib/interviews-api"
 
 export default function InterviewTrackerPage() {
   const [activeTab, setActiveTab] = useState("scheduled")
@@ -31,8 +32,8 @@ export default function InterviewTrackerPage() {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
   const [selectedInterview, setSelectedInterview] = useState<any>(null)
 
-  // Sample interview data with enhanced fields
-  const [interviews, setInterviews] = useState([
+  // Interviews loaded from backend
+  const [interviews, setInterviews] = useState<Interview[]>([
     {
       id: 1,
       candidateName: "Sarah Johnson",
@@ -196,46 +197,56 @@ export default function InterviewTrackerPage() {
     })
   }
 
-  const handleSubmitReview = () => {
-    setInterviews((prev) =>
-      prev.map((interview) => {
-        if (interview.id !== selectedInterview?.id) return interview
-        // Only include meetingLink, phone, or location if relevant to the type
-        const updated: any = {
-          ...interview,
-          review: reviewData,
-        }
-        if (interview.type === "video") {
-          updated.meetingLink = interview.meetingLink ?? ""
-          delete updated.phone
-          delete updated.location
-        } else if (interview.type === "phone") {
-          updated.phone = interview.phone ?? ""
-          delete updated.meetingLink
-          delete updated.location
-        } else if (interview.type === "in-person") {
-          updated.location = interview.location ?? ""
-          delete updated.meetingLink
-          delete updated.phone
-        } else {
-          delete updated.meetingLink
-          delete updated.phone
-          delete updated.location
-        }
-        return updated
-      }),
-    )
-    setIsReviewDialogOpen(false)
-    setReviewData({
-      rating: 3,
-      feedback: "",
-      technicalSkills: 3,
-      communication: 3,
-      problemSolving: 3,
-      overallImpression: "",
-      recommendation: "proceed",
-      nextSteps: "",
-    })
+  const handleSubmitReview = async () => {
+    if (!selectedInterview) return
+    try {
+      await saveInterviewReview(selectedInterview.id, reviewData as any)
+      setInterviews((prev) => prev.map((iv) => iv.id === selectedInterview.id ? { ...iv, review: reviewData } : iv))
+      setIsReviewDialogOpen(false)
+      setReviewData({
+        rating: 3,
+        feedback: "",
+        technicalSkills: 3,
+        communication: 3,
+        problemSolving: 3,
+        overallImpression: "",
+        recommendation: "proceed",
+        nextSteps: "",
+      })
+    } catch (e) {
+      console.error('Failed to save review', e)
+    }
+  }
+
+  // Load interviews on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await fetchInterviews()
+        setInterviews(data)
+      } catch (e) {
+        console.error('Failed to load interviews', e)
+      }
+    })()
+  }, [])
+
+  const setStatus = async (id: number, status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled') => {
+    try {
+      await updateInterviewStatus(id, status)
+      setInterviews(prev => prev.map(iv => iv.id === id ? { ...iv, status } : iv))
+    } catch (e) {
+      console.error('Failed to update interview status', e)
+    }
+  }
+
+  // Stable, locale-independent date formatting to avoid hydration mismatches
+  const formatDate = (dateString: string) => {
+    if (!dateString) return ''
+    const dt = new Date(dateString)
+    const y = dt.getUTCFullYear()
+    const m = String(dt.getUTCMonth() + 1).padStart(2, '0')
+    const d = String(dt.getUTCDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   const getStatusColor = (status: string) => {
@@ -314,7 +325,7 @@ export default function InterviewTrackerPage() {
             <div className="flex items-center space-x-4 text-xs text-gray-500 mb-2">
               <span className="flex items-center">
                 <Calendar className="h-3 w-3 mr-1" />
-                {new Date(interview.date).toLocaleDateString()}
+                {typeof interview.date === 'string' ? (interview.date.split(' ')[0] || interview.date) : ''}
               </span>
               <span className="flex items-center">
                 <Clock className="h-3 w-3 mr-1" />
@@ -380,6 +391,10 @@ export default function InterviewTrackerPage() {
                 size="sm"
                 variant="outline"
                 className="text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
+                onClick={async () => {
+                  await setStatus(interview.id, 'confirmed')
+                  setActiveTab('confirmed')
+                }}
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Confirm
@@ -402,7 +417,29 @@ export default function InterviewTrackerPage() {
                 {interview.review ? "Edit Review" : "Add Review"}
               </Button>
             )}
-            <Button size="sm" variant="outline" className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent">
+            {interview.status === "confirmed" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-gray-700 border-gray-300 hover:bg-gray-50 bg-transparent"
+                onClick={async () => {
+                  await setStatus(interview.id, 'completed')
+                  setActiveTab('completed')
+                }}
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Mark Completed
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+              onClick={async () => {
+                await setStatus(interview.id, 'cancelled')
+                setActiveTab('cancelled')
+              }}
+            >
               <XCircle className="h-3 w-3 mr-1" />
               Cancel
             </Button>
@@ -420,199 +457,7 @@ export default function InterviewTrackerPage() {
           <h1 className="text-2xl font-bold text-gray-900">Interview Tracker</h1>
           <p className="text-gray-600">Schedule and manage candidate interviews with rounds and reviews</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Schedule Interview
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Schedule New Interview</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="candidateName">Candidate Name *</Label>
-                  <Input
-                    id="candidateName"
-                    value={newInterview.candidateName}
-                    onChange={(e) => handleInputChange("candidateName", e.target.value)}
-                    placeholder="Enter candidate name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="candidateEmail">Candidate Email *</Label>
-                  <Input
-                    id="candidateEmail"
-                    type="email"
-                    value={newInterview.candidateEmail}
-                    onChange={(e) => handleInputChange("candidateEmail", e.target.value)}
-                    placeholder="candidate@email.com"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="position">Position *</Label>
-                  <Input
-                    id="position"
-                    value={newInterview.position}
-                    onChange={(e) => handleInputChange("position", e.target.value)}
-                    placeholder="Enter position"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="interviewer">Interviewer *</Label>
-                  <Input
-                    id="interviewer"
-                    value={newInterview.interviewer}
-                    onChange={(e) => handleInputChange("interviewer", e.target.value)}
-                    placeholder="Enter interviewer name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date">Date *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={newInterview.date}
-                    onChange={(e) => handleInputChange("date", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="time">Time *</Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    value={newInterview.time}
-                    onChange={(e) => handleInputChange("time", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="duration">Duration</Label>
-                  <Select value={newInterview.duration} onValueChange={(value) => handleInputChange("duration", value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="30 minutes">30 minutes</SelectItem>
-                      <SelectItem value="45 minutes">45 minutes</SelectItem>
-                      <SelectItem value="60 minutes">60 minutes</SelectItem>
-                      <SelectItem value="90 minutes">90 minutes</SelectItem>
-                      <SelectItem value="120 minutes">120 minutes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="type">Interview Type *</Label>
-                  <Select value={newInterview.type} onValueChange={(value) => handleInputChange("type", value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="video">Video Call</SelectItem>
-                      <SelectItem value="phone">Phone Call</SelectItem>
-                      <SelectItem value="in-person">In-Person</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="round">Interview Round *</Label>
-                  <Select value={newInterview.round} onValueChange={(value) => handleInputChange("round", value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="screening">Screening</SelectItem>
-                      <SelectItem value="technical">Technical</SelectItem>
-                      <SelectItem value="behavioral">Behavioral</SelectItem>
-                      <SelectItem value="system-design">System Design</SelectItem>
-                      <SelectItem value="portfolio">Portfolio Review</SelectItem>
-                      <SelectItem value="final">Final Round</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="roundNumber">Round Number *</Label>
-                  <Select
-                    value={newInterview.roundNumber.toString()}
-                    onValueChange={(value) => handleInputChange("roundNumber", Number.parseInt(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Round 1</SelectItem>
-                      <SelectItem value="2">Round 2</SelectItem>
-                      <SelectItem value="3">Round 3</SelectItem>
-                      <SelectItem value="4">Round 4</SelectItem>
-                      <SelectItem value="5">Round 5</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {newInterview.type === "video" && (
-                <div>
-                  <Label htmlFor="meetingLink">Meeting Link *</Label>
-                  <Input
-                    id="meetingLink"
-                    value={newInterview.meetingLink}
-                    onChange={(e) => handleInputChange("meetingLink", e.target.value)}
-                    placeholder="https://meet.google.com/... or https://zoom.us/j/..."
-                  />
-                </div>
-              )}
-
-              {newInterview.type === "phone" && (
-                <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    value={newInterview.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    placeholder="+1 (555) 123-4567"
-                  />
-                </div>
-              )}
-
-              {newInterview.type === "in-person" && (
-                <div>
-                  <Label htmlFor="location">Location *</Label>
-                  <Input
-                    id="location"
-                    value={newInterview.location}
-                    onChange={(e) => handleInputChange("location", e.target.value)}
-                    placeholder="Office address or room"
-                  />
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="notes">Interview Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={newInterview.notes}
-                  onChange={(e) => handleInputChange("notes", e.target.value)}
-                  placeholder="Interview focus areas, special instructions, or preparation notes"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleScheduleInterview}
-                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
-                >
-                  Schedule Interview
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        
       </div>
 
       {/* Statistics Cards */}

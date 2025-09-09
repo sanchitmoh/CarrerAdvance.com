@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Calendar, Clock, Users, Mail, Video, Loader2 } from "lucide-react"
 import { getMeetUrl } from "@/lib/api-config"
 import { useSearchParams } from "next/navigation"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function InterviewScheduler() {
   const [isLoading, setIsLoading] = useState(false)
@@ -29,6 +30,11 @@ export default function InterviewScheduler() {
     end: "",
     attendees: "",
     employerEmail: "",
+    round: "screening",
+    roundNumber: "1",
+    interviewType: "online",
+    officeLocation: "",
+    durationMinutes: "60",
   })
 
   // Prefill form from query params
@@ -54,6 +60,14 @@ export default function InterviewScheduler() {
       data.append("attendees", formData.attendees)
       data.append("job_id", jobId)
       data.append("employer_email", formData.employerEmail)
+      // New scheduling metadata
+      data.append("round", formData.round)
+      data.append("round_number", formData.roundNumber)
+      data.append("interview_type", formData.interviewType)
+      data.append("duration_minutes", formData.durationMinutes)
+      if (formData.interviewType === "offline" && formData.officeLocation) {
+        data.append("location", formData.officeLocation)
+      }
       if (authKey) data.append("auth_key", authKey)
       // Optional fields for richer emails
       if (candidateName) data.append("candidate_name", candidateName)
@@ -62,7 +76,8 @@ export default function InterviewScheduler() {
         data.append("proposed_date", dt.toLocaleDateString())
         data.append("proposed_time", dt.toLocaleTimeString())
       }
-      data.append("mode", "Google Meet")
+      // Mode reflects interview type
+      data.append("mode", formData.interviewType === "online" ? "Google Meet" : "In-Person")
 
       const meetUrl = getMeetUrl("/create_event");
       console.log('Sending request to:', meetUrl);
@@ -173,6 +188,68 @@ export default function InterviewScheduler() {
                 />
               </div>
 
+              {/* Round Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="round">Round Name *</Label>
+                  <Input
+                    type="text"
+                    name="round"
+                    id="round"
+                    value={formData.round}
+                    onChange={handleInputChange}
+                    className="h-11 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
+                    placeholder="e.g., screening, technical, final"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="roundNumber">Round Number *</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    name="roundNumber"
+                    id="roundNumber"
+                    value={formData.roundNumber}
+                    onChange={handleInputChange}
+                    className="h-11 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
+                    placeholder="e.g., 1"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Interview Type & Duration */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="interviewType">Interview Type *</Label>
+                  <Select value={formData.interviewType} onValueChange={(value) => setFormData(prev => ({ ...prev, interviewType: value }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="offline">Offline (Office Location)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="durationMinutes">Duration (minutes) *</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    step={5}
+                    name="durationMinutes"
+                    id="durationMinutes"
+                    value={formData.durationMinutes}
+                    onChange={handleInputChange}
+                    className="h-11 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
+                    placeholder="e.g., 60"
+                    required
+                  />
+                </div>
+              </div>
+
               {/* Time Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -247,6 +324,21 @@ export default function InterviewScheduler() {
                 />
                 <p className="text-xs text-gray-500">This email will receive a notification about the interview</p>
               </div>
+
+              {/* Office Location (Offline) */}
+              {formData.interviewType === "offline" && (
+                <div>
+                  <Label htmlFor="officeLocation">Office Location *</Label>
+                  <Input
+                    id="officeLocation"
+                    name="officeLocation"
+                    value={formData.officeLocation}
+                    onChange={handleInputChange}
+                    placeholder="Office address or room"
+                    required
+                  />
+                </div>
+              )}
 
               {/* Submit Button */}
               <Button

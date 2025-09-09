@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Zap, Sparkles, User, Settings, LogOut, Home, Briefcase, Menu } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
+import { getApiUrl } from '@/lib/api-config'
 
 interface JobSeekerNavbarProps {
   onMenuToggle?: () => void
@@ -43,7 +44,7 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
     if (!jobseekerId) return
     ;(async () => {
       try {
-        const res = await fetch(`http://localhost:8080/index.php/api/seeker/profile/get_profile?jobseeker_id=${jobseekerId}`, {
+        const res = await fetch( getApiUrl(`seeker/profile/get_profile?jobseeker_id=${jobseekerId}`), {
           credentials: 'include',
         })
         const data = await res.json()

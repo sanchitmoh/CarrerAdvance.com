@@ -1,3 +1,5 @@
+"use client"
+
 import InterviewScheduler from "@/components/interview-form"
 import { Suspense } from "react"
 

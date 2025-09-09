@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,70 +18,38 @@ import {
 } from "@/components/ui/dialog"
 import { ArrowLeft, Plus, Search, Users, Mail, Calendar, DollarSign, Edit, Trash2, Eye } from "lucide-react"
 import Link from "next/link"
+import { getBaseUrl } from "@/lib/api-config"
+import { fetchDepartments, fetchDesignations, type Department, type Designation } from "@/lib/hrms-api"
 
-// Mock employee data
-const mockEmployees = [
-  {
-    id: 1,
-    name: "Alice Johnson",
-    email: "alice.johnson@company.com",
-    empType: "fulltime",
-    salary: 8000,
-    income: 96000,
-    joiningDate: "2023-01-15",
-    empId: "EMP001",
-    image: "/placeholder.svg?height=40&width=40",
-    emergencyContactName: "John Johnson",
-    emergencyContactNumber: "+1-555-0123",
-    department: "Engineering",
-    position: "Senior Developer",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Bob Smith",
-    email: "bob.smith@company.com",
-    empType: "parttime",
-    salary: 35,
-    income: 42000,
-    joiningDate: "2023-03-20",
-    empId: "EMP002",
-    image: "/placeholder.svg?height=40&width=40",
-    emergencyContactName: "Sarah Smith",
-    emergencyContactNumber: "+1-555-0456",
-    department: "Marketing",
-    position: "Marketing Specialist",
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Carol Davis",
-    email: "carol.davis@company.com",
-    empType: "internship",
-    salary: 1500,
-    income: 18000,
-    joiningDate: "2024-01-10",
-    empId: "EMP003",
-    image: "/placeholder.svg?height=40&width=40",
-    emergencyContactName: "Mike Davis",
-    emergencyContactNumber: "+1-555-0789",
-    department: "Sales",
-    position: "Sales Intern",
-    status: "active",
-  },
-]
+type EmployeeRow = {
+  id: number
+  name: string
+  email: string
+  empType: string
+  salary: number | string
+  income: number | string
+  joiningDate: string
+  empId: string
+  image?: string
+  emergencyContactName?: string
+  emergencyContactNumber?: string
+  department?: string
+  position?: string
+  status: string
+}
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState(mockEmployees)
+  const [employees, setEmployees] = useState<EmployeeRow[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDepartment, setSelectedDepartment] = useState("all")
   const [selectedType, setSelectedType] = useState("all")
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [selectedEmployee, setSelectedEmployee] = useState<any>(null)
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-
-  // Form state for adding new employee
-  const [formData, setFormData] = useState({
+  const [page, setPage] = useState(1)
+  const [perPage] = useState(10)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [designations, setDesignations] = useState<Designation[]>([])
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editEmployee, setEditEmployee] = useState<EmployeeRow | null>(null)
+  const [editForm, setEditForm] = useState({
     name: "",
     email: "",
     empType: "",
@@ -91,7 +59,27 @@ export default function EmployeesPage() {
     empId: "",
     image: "",
     emergencyContactName: "",
+    emergencyContactNumber: ""
+  })
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+
+  // Form state for adding new employee
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    empType: "",
+    workingHours: "",
+    salary: "",
+    income: "",
+    joiningDate: "",
+    empId: "",
+    image: "",
+    emergencyContactName: "",
     emergencyContactNumber: "",
+    emergencyContact: "",
     department: "",
     position: "",
   })
@@ -106,38 +94,204 @@ export default function EmployeesPage() {
     return matchesSearch && matchesDepartment && matchesType
   })
 
+  // Reset to first page when filters/search change
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm, selectedDepartment, selectedType])
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / perPage))
+  const paginatedEmployees = filteredEmployees.slice(
+    (page - 1) * perPage,
+    page * perPage
+  )
+
+  const openEdit = (employee: EmployeeRow) => {
+    setEditEmployee(employee)
+    setEditForm({
+      name: employee.name || "",
+      email: employee.email || "",
+      empType: employee.empType || "",
+      salary: String(employee.salary ?? ""),
+      income: String(employee.income ?? ""),
+      joiningDate: employee.joiningDate || "",
+      empId: employee.empId || "",
+      image: employee.image || "",
+      emergencyContactName: employee.emergencyContactName || "",
+      emergencyContactNumber: employee.emergencyContactNumber || ""
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleEditChange = (field: string, value: string) => {
+    setEditForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  const saveEdit = async () => {
+    if (!editEmployee) return
+    const url = getBaseUrl(`/api/company-employees/${editEmployee.id}`)
+    const payload: any = {
+      emp_name: editForm.name,
+      email: editForm.email,
+      emp_type: editForm.empType,
+      salary: editForm.salary,
+      income: editForm.income,
+      joining_date: editForm.joiningDate,
+      emp_id: editForm.empId,
+      image: editForm.image,
+      emergency_contact_name: editForm.emergencyContactName,
+      emergency_contact_phone: editForm.emergencyContactNumber
+    }
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    })
+    const json = await res.json().catch(() => ({}))
+    if (res.ok && json?.success) {
+      // Update local list
+      setEmployees(prev => prev.map(e => e.id === editEmployee.id ? {
+        ...e,
+        name: editForm.name,
+        email: editForm.email,
+        empType: editForm.empType,
+        salary: isNaN(Number(editForm.salary)) ? editForm.salary : Number(editForm.salary),
+        income: isNaN(Number(editForm.income)) ? editForm.income : Number(editForm.income),
+        joiningDate: editForm.joiningDate,
+        empId: editForm.empId,
+        image: editForm.image,
+        emergencyContactName: editForm.emergencyContactName,
+        emergencyContactNumber: editForm.emergencyContactNumber
+      } : e))
+      setIsEditDialogOpen(false)
+      setEditEmployee(null)
+    } else {
+      alert(json?.message || 'Failed to update')
+    }
+  }
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const url = getBaseUrl('/api/company-employees')
+        const res = await fetch(url, { credentials: 'include' })
+        const json = await res.json().catch(() => ({}))
+        if (res.ok && json?.success) {
+          setEmployees(json.data as EmployeeRow[])
+        } else {
+          setEmployees([])
+        }
+      } catch (e) {
+        setEmployees([])
+      }
+    }
+    load()
+  }, [])
+
+  // Load departments and designations for dropdowns
+  useEffect(() => {
+    const loadDeps = async () => {
+      try {
+        const [deps, dess] = await Promise.all([fetchDepartments(), fetchDesignations()])
+        setDepartments(deps)
+        setDesignations(dess)
+      } catch (e) {
+        setDepartments([])
+        setDesignations([])
+      }
+    }
+    loadDeps()
+  }, [])
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleAddEmployee = () => {
-    const newEmployee = {
-      id: employees.length + 1,
-      ...formData,
-      salary: Number(formData.salary),
-      income: Number(formData.income),
-      status: "active",
+  const handleAddEmployee = async () => {
+    // Map selected department/designation names to IDs
+    const dept = departments.find((d) => d.name === formData.department)
+    const desig = designations.find((x) => x.name === formData.position && (!dept || x.department_id === dept.id))
+
+    const payload: any = {
+      emp_name: formData.name,
+      email: formData.email,
+      mobile: formData.mobile,
+      emp_type: formData.empType,
+      working_hours: formData.workingHours,
+      salary: formData.salary,
+      income: formData.income,
+      joining_date: formData.joiningDate,
+      emp_id: formData.empId,
+      image: formData.image,
+      emergency_contact_name: formData.emergencyContactName,
+      emergency_contact_phone: formData.emergencyContactNumber,
+      emergency_contact: formData.emergencyContact,
+      department_id: dept ? dept.id : null,
+      designation_id: desig ? desig.id : null,
     }
-    setEmployees((prev) => [...prev, newEmployee])
-    setFormData({
-      name: "",
-      email: "",
-      empType: "",
-      salary: "",
-      income: "",
-      joiningDate: "",
-      empId: "",
-      image: "",
-      emergencyContactName: "",
-      emergencyContactNumber: "",
-      department: "",
-      position: "",
-    })
-    setIsAddDialogOpen(false)
+
+    try {
+      const url = getBaseUrl('/api/company-employees')
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.success) {
+        // Either use returned row or refetch list
+        const created = json.data
+        if (created) {
+          setEmployees((prev) => [created as any, ...prev])
+        } else {
+          // fallback: refetch list
+          const listRes = await fetch(getBaseUrl('/api/company-employees'), { credentials: 'include' })
+          const listJson = await listRes.json().catch(() => ({}))
+          if (listRes.ok && listJson?.success) setEmployees(listJson.data as EmployeeRow[])
+        }
+        setFormData({
+          name: "",
+          email: "",
+          mobile: "",
+          empType: "",
+          salary: "",
+          income: "",
+          workingHours: "",
+          joiningDate: "",
+          empId: "",
+          image: "",
+          emergencyContactName: "",
+          emergencyContactNumber: "",
+          emergencyContact: "",
+          department: "",
+          position: "",
+        })
+        setIsAddDialogOpen(false)
+      } else {
+        alert(json?.error || json?.message || 'Failed to add employee')
+      }
+    } catch (e) {
+      alert('Failed to add employee')
+    }
   }
 
-  const handleDeleteEmployee = (id: number) => {
-    setEmployees((prev) => prev.filter((emp) => emp.id !== id))
+  const handleDeleteEmployee = async (id: number) => {
+    const ok = confirm('Are you sure you want to delete this employee?')
+    if (!ok) return
+    try {
+      const url = getBaseUrl(`/api/company-employees/${id}`)
+      const res = await fetch(url, { method: 'DELETE', credentials: 'include' })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.success) {
+        setEmployees((prev) => prev.filter((emp) => emp.id !== id))
+      } else {
+        alert(json?.message || 'Failed to delete employee')
+      }
+    } catch (e) {
+      alert('Failed to delete employee')
+    }
   }
 
   const getTypeColor = (type: string) => {
@@ -217,6 +371,17 @@ export default function EmployeesPage() {
                     className="mt-1"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="mobile">Mobile Number</Label>
+                  <Input
+                    id="mobile"
+                    type="tel"
+                    value={formData.mobile}
+                    onChange={(e) => handleInputChange("mobile", e.target.value)}
+                    placeholder="e.g., +1 555-123-4567"
+                    className="mt-1"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -248,28 +413,45 @@ export default function EmployeesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="department">Department *</Label>
-                  <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(value) => {
+                      handleInputChange("department", value)
+                      // Reset position when department changes
+                      handleInputChange("position", "")
+                    }}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Engineering">Engineering</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Sales">Sales</SelectItem>
-                      <SelectItem value="HR">HR</SelectItem>
-                      <SelectItem value="Finance">Finance</SelectItem>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label htmlFor="position">Position *</Label>
-                  <Input
-                    id="position"
+                  <Select
                     value={formData.position}
-                    onChange={(e) => handleInputChange("position", e.target.value)}
-                    placeholder="Enter job position"
-                    className="mt-1"
-                  />
+                    onValueChange={(value) => handleInputChange("position", value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select designation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        const selectedDept = departments.find((d) => d.name === formData.department)
+                        const filtered = selectedDept
+                          ? designations.filter((des) => des.department_id === selectedDept.id)
+                          : []
+                        return filtered.map((des) => (
+                          <SelectItem key={des.id} value={des.name}>{des.name}</SelectItem>
+                        ))
+                      })()}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -298,15 +480,27 @@ export default function EmployeesPage() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="joiningDate">Joining Date *</Label>
-                <Input
-                  id="joiningDate"
-                  type="date"
-                  value={formData.joiningDate}
-                  onChange={(e) => handleInputChange("joiningDate", e.target.value)}
-                  className="mt-1"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="workingHours">Working Hours</Label>
+                  <Input
+                    id="workingHours"
+                    value={formData.workingHours}
+                    onChange={(e) => handleInputChange("workingHours", e.target.value)}
+                    placeholder="e.g., 9:00 AM - 6:00 PM"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="joiningDate">Joining Date *</Label>
+                  <Input
+                    id="joiningDate"
+                    type="date"
+                    value={formData.joiningDate}
+                    onChange={(e) => handleInputChange("joiningDate", e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -327,6 +521,17 @@ export default function EmployeesPage() {
                     value={formData.emergencyContactNumber}
                     onChange={(e) => handleInputChange("emergencyContactNumber", e.target.value)}
                     placeholder="+1-555-0000"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="emergencyContactEmail">Emergency Contact Email</Label>
+                  <Input
+                    id="emergencyContactEmail"
+                    type="email"
+                    value={formData.emergencyContact}
+                    onChange={(e) => handleInputChange("emergencyContact", e.target.value)}
+                    placeholder="contact@example.com"
                     className="mt-1"
                   />
                 </div>
@@ -450,11 +655,9 @@ export default function EmployeesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Departments</SelectItem>
-                  <SelectItem value="Engineering">Engineering</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Sales">Sales</SelectItem>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -478,7 +681,7 @@ export default function EmployeesPage() {
 
       {/* Employee List */}
       <div className="grid gap-4">
-        {filteredEmployees.map((employee) => (
+        {paginatedEmployees.map((employee) => (
           <Card key={employee.id}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -649,10 +852,94 @@ export default function EmployeesPage() {
                       </DialogContent>
                     </Dialog>
 
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
+                    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEdit(employee)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Edit Employee - {editEmployee?.name}</DialogTitle>
+                          <DialogDescription>Update employee details</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="edit_name">Full Name *</Label>
+                              <Input id="edit_name" value={editForm.name} onChange={(e)=>handleEditChange('name', e.target.value)} className="mt-1" />
+                            </div>
+                            <div>
+                              <Label htmlFor="edit_email">Email *</Label>
+                              <Input id="edit_email" type="email" value={editForm.email} onChange={(e)=>handleEditChange('email', e.target.value)} className="mt-1" />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="edit_empId">Employee ID *</Label>
+                              <Input id="edit_empId" value={editForm.empId} onChange={(e)=>handleEditChange('empId', e.target.value)} className="mt-1" />
+                            </div>
+                            <div>
+                              <Label htmlFor="edit_empType">Employment Type *</Label>
+                              <Select value={editForm.empType} onValueChange={(v)=>handleEditChange('empType', v)}>
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue placeholder="Select employment type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="fulltime">Full Time</SelectItem>
+                                  <SelectItem value="parttime">Part Time</SelectItem>
+                                  <SelectItem value="internship">Internship</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="edit_salary">Salary</Label>
+                              <Input id="edit_salary" type="number" value={editForm.salary} onChange={(e)=>handleEditChange('salary', e.target.value)} className="mt-1" />
+                            </div>
+                            <div>
+                              <Label htmlFor="edit_income">Annual Income</Label>
+                              <Input id="edit_income" type="number" value={editForm.income} onChange={(e)=>handleEditChange('income', e.target.value)} className="mt-1" />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="edit_joining">Joining Date</Label>
+                              <Input id="edit_joining" type="date" value={editForm.joiningDate} onChange={(e)=>handleEditChange('joiningDate', e.target.value)} className="mt-1" />
+                            </div>
+                            <div>
+                              <Label htmlFor="edit_image">Profile Image URL</Label>
+                              <Input id="edit_image" value={editForm.image} onChange={(e)=>handleEditChange('image', e.target.value)} className="mt-1" />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="edit_ec_name">Emergency Contact Name</Label>
+                              <Input id="edit_ec_name" value={editForm.emergencyContactName} onChange={(e)=>handleEditChange('emergencyContactName', e.target.value)} className="mt-1" />
+                            </div>
+                            <div>
+                              <Label htmlFor="edit_ec_number">Emergency Contact Number</Label>
+                              <Input id="edit_ec_number" value={editForm.emergencyContactNumber} onChange={(e)=>handleEditChange('emergencyContactNumber', e.target.value)} className="mt-1" />
+                            </div>
+                          </div>
+
+                          <div className="flex space-x-2 pt-2">
+                            <Button onClick={saveEdit} className="flex-1">Save</Button>
+                            <Button variant="outline" className="flex-1" onClick={()=>setIsEditDialogOpen(false)}>Cancel</Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
 
                     <Button
                       variant="outline"
@@ -670,6 +957,52 @@ export default function EmployeesPage() {
           </Card>
         ))}
       </div>
+
+      {/* Pagination Controls */}
+      {filteredEmployees.length > perPage && (
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing {((page - 1) * perPage) + 1} to {Math.min(page * perPage, filteredEmployees.length)} of {filteredEmployees.length} employees
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
+                  if (pageNum > totalPages) return null
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      className="w-8 h-8 p-0"
+                      onClick={() => setPage(pageNum)}
+                    >
+                      {pageNum}
+                    </Button>
+                  )
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {filteredEmployees.length === 0 && (
         <Card>

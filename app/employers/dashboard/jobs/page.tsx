@@ -34,10 +34,11 @@ import {
   GraduationCap,
   Globe,
   Loader2,
+  Sparkles,
 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { employerApiService, Job, AddJobRequest } from "@/lib/employer-api"
-import { getAssetUrl } from "@/lib/api-config"
+import { getAssetUrl, getBaseUrl } from "@/lib/api-config"
 import { jobsApiService } from "@/lib/jobs-api"
 
 interface Candidate {
@@ -59,17 +60,17 @@ interface Candidate {
     institution: string
     year: string
   }[]
-  languages: {
-    name: string
-    proficiency: string
-  }[]
-  resumeUrl: string
-  ctc?: string
-  documents?: string[]
-}
-
-export default function JobsPage() {
-  const [activeTab, setActiveTab] = useState("manage")
+      languages: {
+        name: string
+        proficiency: string
+      }[]
+      resumeUrl: string
+      ctc?: string
+      documents?: string[]
+  }
+  
+  export default function JobsPage() {
+    const [activeTab, setActiveTab] = useState("manage")
   const [selectedJob, setSelectedJob] = useState<any>(null)
   const [candidateView, setCandidateView] = useState("applied")
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
@@ -77,6 +78,12 @@ export default function JobsPage() {
   const [editingJob, setEditingJob] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [aiGeneratingJD, setAiGeneratingJD] = useState(false)
+  const [states, setStates] = useState<any[]>([])
+  const [cities, setCities] = useState<any[]>([])
+  const [loadingStates, setLoadingStates] = useState(false)
+  const [loadingCities, setLoadingCities] = useState(false)
+  const [aiSuggestingSkills, setAiSuggestingSkills] = useState(false)
 
   // Fetch jobs from API
   useEffect(() => {
@@ -157,6 +164,50 @@ export default function JobsPage() {
   
   // Initialize jobs state
   const [jobs, setJobs] = useState<any[]>([])
+
+  const fetchStates = async (countryId: string) => {
+    try {
+      setLoadingStates(true)
+      const response = await fetch(getBaseUrl(`/api/common_api/state?country_id=${countryId}`), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (data.status === 1 && data.data) {
+        setStates(data.data)
+      } else {
+        setStates([])
+      }
+    } catch (error) {
+      console.error('Error fetching states:', error)
+      setStates([])
+    } finally {
+      setLoadingStates(false)
+    }
+  }
+
+  const fetchCities = async (stateId: string) => {
+    try {
+      setLoadingCities(true)
+      const response = await fetch(getBaseUrl(`/api/common_api/cities?state_id=${stateId}`), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (data.status === 1 && data.data) {
+        setCities(data.data)
+      } else {
+        setCities([])
+      }
+    } catch (error) {
+      console.error('Error fetching cities:', error)
+      setCities([])
+    } finally {
+      setLoadingCities(false)
+    }
+  }
   
   // Sample candidates data - ensure it's never undefined
   const [candidates, setCandidates] = useState<Record<string, Candidate[]>>({
@@ -279,6 +330,26 @@ export default function JobsPage() {
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setJobForm((prev) => ({ ...prev, [field]: value }))
+    
+    // Handle dynamic dropdowns
+    if (field === 'country' && typeof value === 'string' && value) {
+      fetchStates(value)
+      // Reset province and city when country changes
+      setJobForm((prev) => ({ 
+        ...prev, 
+        country: value,
+        province: '',
+        city: ''
+      }))
+    } else if (field === 'province' && typeof value === 'string' && value) {
+      fetchCities(value)
+      // Reset city when province changes
+      setJobForm((prev) => ({ 
+        ...prev, 
+        province: value,
+        city: ''
+      }))
+    }
   }
 
   const handleSubmitJob = async () => {
@@ -379,11 +450,46 @@ export default function JobsPage() {
     })
   }
 
+  const handleGenerateJobDescription = async () => {
+    try {
+      const title = (jobForm.title || '').trim()
+      const skills = (jobForm.skills || '').trim()
+      if (!title || !skills) {
+        toast({
+          title: "Missing details",
+          description: "Enter Job Title and Required Skills first.",
+          variant: "destructive",
+        })
+        return
+      }
+      setAiGeneratingJD(true)
+      const res = await fetch(getBaseUrl('/employers/job/generate_jd'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ job_title: title, skills })
+      })
+      const data = await res.json()
+      const jd = data?.jd || data?.description || ''
+      if (jd) {
+        setJobForm((prev) => ({ ...prev, description: jd }))
+        toast({ title: 'Generated', description: 'Job description generated with AI.' })
+      } else {
+        toast({ title: 'No content', description: 'AI did not return a description.', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      console.error('AI JD error:', e)
+      toast({ title: 'Error', description: e?.message || 'Failed to generate description.', variant: 'destructive' })
+    } finally {
+      setAiGeneratingJD(false)
+    }
+  }
+
   const handleEditJob = async (job: any) => {
     try {
       setLoading(true)
       // Get detailed job information from API
-      const jobDetail = await employerApiService.getJobById(job.id)
+      const jobDetail: any = await employerApiService.getJobById(job.id)
       setEditingJob(jobDetail)
       
       // Parse salary range if available
@@ -503,7 +609,7 @@ export default function JobsPage() {
       setSelectedJob(job)
       
       // Fetch candidates from API
-      const candidatesData = await employerApiService.getJobCandidates(job.id)
+      const candidatesData: any = await employerApiService.getJobCandidates(job.id)
       
       // Initialize organized candidates structure
       const organizedCandidates: Record<string, Candidate[]> = {
@@ -576,27 +682,70 @@ export default function JobsPage() {
         })
         return
       }
-      
-      await employerApiService.updateCandidateStatus(selectedJob.id, candidateId, newStatus as "reviewed" | "shortlisted" | "rejected" | "hired" | "interviewed")
+
+      // optimistic update
+      const prevCandidates = JSON.parse(JSON.stringify(candidates)) as Record<string, Candidate[]>
+      let movedCandidate: Candidate | null = null
+      const groups = Object.keys(prevCandidates)
+      for (const group of groups) {
+        const idx = (prevCandidates[group] || []).findIndex((c) => c.id === candidateId)
+        if (idx !== -1) {
+          movedCandidate = { ...prevCandidates[group][idx], status: newStatus as any }
+          prevCandidates[group].splice(idx, 1)
+          break
+        }
+      }
+      if (!movedCandidate) {
+        // If not found in current lists, try selectedCandidate as source
+        if (selectedCandidate && selectedCandidate.id === candidateId) {
+          movedCandidate = { ...selectedCandidate, status: newStatus as any }
+        }
+      }
+      if (movedCandidate) {
+        if (!prevCandidates[newStatus]) prevCandidates[newStatus] = [] as any
+        prevCandidates[newStatus] = [movedCandidate as Candidate, ...(prevCandidates[newStatus] || [])]
+        setCandidates(prevCandidates)
+        if (selectedCandidate && selectedCandidate.id === candidateId) {
+          setSelectedCandidate(movedCandidate)
+        }
+      }
+
+      // send to API
+      await employerApiService.updateCandidateStatus(
+        selectedJob.id,
+        candidateId,
+        newStatus as "reviewed" | "shortlisted" | "rejected" | "hired" | "interviewed" | "contacted"
+      )
+
       toast({
         title: "Success",
         description: `Candidate moved to ${newStatus} successfully`,
       })
-      
-      // Refresh candidates list
-      if (selectedJob) {
-        const updatedCandidates = await employerApiService.getJobCandidates(selectedJob.id)
-        // Update candidates state with the new data
-        // This is a placeholder - actual implementation would depend on API response structure
-        console.log("Updated candidates:", updatedCandidates)
-      }
     } catch (err) {
       console.error("Error updating candidate status:", err)
       toast({
         title: "Error",
-        description: "Failed to update candidate status. Please try again.",
+        description: "Failed to update candidate status. Reverting.",
         variant: "destructive",
       })
+      // reload from API to revert
+      try {
+        if (selectedJob) {
+          const updated = await employerApiService.getJobCandidates(selectedJob.id)
+          // Basic rebuild assuming flat array
+          const rebuilt: Record<string, Candidate[]> = {
+            applied: [], reviewed: [], shortlisted: [], contacted: [], rejected: [], hired: []
+          }
+          ;(Array.isArray(updated) ? updated : (updated?.data || [])).forEach((c: any) => {
+            const s = (c.status || 'applied').toLowerCase()
+            const key = rebuilt[s] ? s : 'applied'
+            rebuilt[key].push(c)
+          })
+          setCandidates(rebuilt)
+        }
+      } catch (e) {
+        console.error("Failed to reload candidates after error:", e)
+      }
     } finally {
       setLoading(false)
     }
@@ -809,6 +958,9 @@ export default function JobsPage() {
                         const formUrl = `${window.location.origin}/employers/interview-form?job_id=${encodeURIComponent(selectedJob.id)}&job_title=${encodeURIComponent(selectedJob.title || '')}&candidate_email=${encodeURIComponent(selectedCandidate.email || '')}&candidate_name=${encodeURIComponent(selectedCandidate.name || '')}&employer_email=${encodeURIComponent(interviewerEmail)}`
                         const loginUrl = `http://localhost:8080/index.php/googlecalendar/login?job_id=${encodeURIComponent(selectedJob.id)}&redirect=${encodeURIComponent(formUrl)}`
                         window.open(loginUrl, '_blank')
+                        // move to interviewed and switch to Contacted tab
+                        await moveCandidateToStatus(selectedCandidate.id, 'interviewed')
+                        setCandidateView('contacted')
                       } catch (e: any) {
                         console.error(e)
                         toast({ title: 'Error', description: e.message || 'Failed to open interview scheduler', variant: 'destructive' })
@@ -819,7 +971,7 @@ export default function JobsPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => {
+                      onClick={async () => {
                         try {
                           const phoneRaw = selectedCandidate?.phone || ''
                           if (!phoneRaw) {
@@ -827,10 +979,13 @@ export default function JobsPage() {
                             return
                           }
                           const phone = phoneRaw.replace(/[^\d+]/g, '')
-                          const jobTitle = selectedJob?.title ? ` for "${selectedJob.title}"` : ''
+                          const jobTitle = selectedJob?.title ? ` for \"${selectedJob.title}\"` : ''
                           const message = `Hi ${selectedCandidate?.name || ''}, you have been shortlisted for an interview${jobTitle}. You will receive an email with details shortly. Please reply to confirm.`
                           const waUrl = `https://wa.me/${encodeURIComponent(phone)}?text=${encodeURIComponent(message)}`
                           window.open(waUrl, '_blank')
+                          // mark contacted and jump to Contacted tab
+                          await moveCandidateToStatus(selectedCandidate.id, 'contacted')
+                          setCandidateView('contacted')
                         } catch (e: any) {
                           console.error(e)
                           toast({ title: 'Error', description: e?.message || 'Failed to open WhatsApp', variant: 'destructive' })
@@ -840,7 +995,21 @@ export default function JobsPage() {
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Message
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={async () => {
+                      // open tel: and switch to Contacted tab
+                      try {
+                        const phoneRaw = selectedCandidate?.phone || ''
+                        if (phoneRaw) {
+                          const tel = `tel:${phoneRaw.replace(/[^\d+]/g, '')}`
+                          window.open(tel, '_self')
+                        }
+                        await moveCandidateToStatus(selectedCandidate.id, 'contacted')
+                        setCandidateView('contacted')
+                      } catch (e) {
+                        // ignore
+                        setCandidateView('contacted')
+                      }
+                    }}>
                       <Phone className="h-4 w-4 mr-2" />
                       Call
                     </Button>
@@ -1175,7 +1344,57 @@ export default function JobsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Job Details</h3>
                 <div>
-                  <Label htmlFor="skills">Required Skills *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="skills">Required Skills *</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 bg-transparent h-8 px-3"
+                      onClick={async () => {
+                        try {
+                          const title = (jobForm.title || '').trim()
+                          if (!title) {
+                            toast({ title: 'Missing title', description: 'Enter Job Title first.', variant: 'destructive' })
+                            return
+                          }
+                          setAiSuggestingSkills(true)
+                          const res = await fetch(getBaseUrl('/job/get_skills_by_title'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            credentials: 'include',
+                            body: new URLSearchParams({ job_title: title }).toString(),
+                          })
+                          const text = await res.text()
+                          const suggested = text.replace(/\n/g, ' ').trim()
+                          if (suggested) {
+                            setJobForm((prev) => ({ ...prev, skills: suggested }))
+                            toast({ title: 'Suggested', description: 'Skills filled from AI suggestion.' })
+                          } else {
+                            toast({ title: 'No suggestion', description: 'AI did not return skills.', variant: 'destructive' })
+                          }
+                        } catch (e: any) {
+                          console.error('AI skills error:', e)
+                          toast({ title: 'Error', description: e?.message || 'Failed to fetch skills.', variant: 'destructive' })
+                        } finally {
+                          setAiSuggestingSkills(false)
+                        }
+                      }}
+                      disabled={aiSuggestingSkills}
+                      title="Suggest skills based on Job Title"
+                    >
+                      {aiSuggestingSkills ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Suggesting...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Suggest skills
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <Input
                     id="skills"
                     value={jobForm.skills}
@@ -1187,7 +1406,29 @@ export default function JobsPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Job Description *</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="description">Job Description *</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 bg-transparent h-8 px-3"
+                      onClick={handleGenerateJobDescription}
+                      disabled={aiGeneratingJD}
+                      title="Generate job description with AI"
+                    >
+                      {aiGeneratingJD ? (
+                        <>
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Generate with AI
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <Textarea
                     id="description"
                     rows={6}
@@ -1212,36 +1453,54 @@ export default function JobsPage() {
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="us">United States</SelectItem>
-                        <SelectItem value="ca">Canada</SelectItem>
-                        <SelectItem value="uk">United Kingdom</SelectItem>
-                        <SelectItem value="au">Australia</SelectItem>
-                        <SelectItem value="de">Germany</SelectItem>
-                        <SelectItem value="fr">France</SelectItem>
-                        <SelectItem value="in">India</SelectItem>
-                        <SelectItem value="sg">Singapore</SelectItem>
+                        <SelectItem value="231">United States</SelectItem>
+                        <SelectItem value="38">Canada</SelectItem>
+                        <SelectItem value="230">United Kingdom</SelectItem>
+                        <SelectItem value="13">Australia</SelectItem>
+                        <SelectItem value="82">Germany</SelectItem>
+                        <SelectItem value="75">France</SelectItem>
+                        <SelectItem value="101">India</SelectItem>
+                        <SelectItem value="196">Singapore</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label htmlFor="province">Province/State *</Label>
-                    <Input
-                      id="province"
-                      value={jobForm.province}
-                      onChange={(e) => handleInputChange("province", e.target.value)}
-                      placeholder="e.g. California, Ontario"
-                      required
-                    />
+                    <Select 
+                      value={jobForm.province} 
+                      onValueChange={(value) => handleInputChange("province", value)}
+                      disabled={!jobForm.country || loadingStates}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingStates ? "Loading..." : "Select province/state"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {states.map((state) => (
+                          <SelectItem key={state.id} value={state.id.toString()}>
+                            {state.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      value={jobForm.city}
-                      onChange={(e) => handleInputChange("city", e.target.value)}
-                      placeholder="e.g. San Francisco, Toronto"
-                      required
-                    />
+                    <Select 
+                      value={jobForm.city} 
+                      onValueChange={(value) => handleInputChange("city", value)}
+                      disabled={!jobForm.province || loadingCities}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingCities ? "Loading..." : "Select city"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map((city) => (
+                          <SelectItem key={city.id} value={city.id.toString()}>
+                            {city.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div>
@@ -1625,7 +1884,7 @@ export default function JobsPage() {
                       <TabsTrigger value="applied">Applied ({candidates?.applied?.length || 0})</TabsTrigger>
                       <TabsTrigger value="reviewed">Reviewed ({candidates?.reviewed?.length || 0})</TabsTrigger>
                       <TabsTrigger value="shortlisted">Shortlisted ({candidates?.shortlisted?.length || 0})</TabsTrigger>
-                      <TabsTrigger value="contacted">Contacted ({candidates?.contacted?.length || 0})</TabsTrigger>
+                      <TabsTrigger value="contacted">Contact/interview ({candidates?.contacted?.length || 0})</TabsTrigger>
                       <TabsTrigger value="rejected">Rejected ({candidates?.rejected?.length || 0})</TabsTrigger>
                       <TabsTrigger value="hired">Hired ({candidates?.hired?.length || 0})</TabsTrigger>
                     </TabsList>
@@ -1717,6 +1976,7 @@ export default function JobsPage() {
 
       {/* Candidate Profile Modal */}
       <CandidateProfileModal />
-    </div>
-  )
-}
+      </div>
+    )
+  }
+

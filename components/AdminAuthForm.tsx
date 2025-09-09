@@ -100,7 +100,11 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
           })
           setIsLoading(false)
           return
+
+
+          
         }
+
 
         // Call registration API
         const response = await fetch('/api/admin/auth/register', {
