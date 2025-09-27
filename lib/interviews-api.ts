@@ -46,9 +46,14 @@ export async function updateInterviewStatus(id: number, status: 'scheduled' | 'c
     credentials: 'include',
     body: JSON.stringify({ status })
   })
-  const json = await res.json().catch(() => ({}))
-  if (!res.ok || !json?.success) {
-    throw new Error(json?.message || `Failed to update status (${res.status})`)
+  // Treat plain 2xx as success even if body is empty or doesn't include { success }
+  const contentType = res.headers.get('content-type') || ''
+  const json = contentType.includes('application/json') ? await res.json().catch(() => ({})) : {}
+  if (!res.ok) {
+    throw new Error((json as any)?.message || `Failed to update status (${res.status})`)
+  }
+  if (contentType.includes('application/json') && (json as any)?.success === false) {
+    throw new Error((json as any)?.message || `Failed to update status (${res.status})`)
   }
 }
 
@@ -61,9 +66,14 @@ export async function saveInterviewReview(id: number, review: NonNullable<Interv
     credentials: 'include',
     body: JSON.stringify(payload)
   })
-  const json = await res.json().catch(() => ({}))
-  if (!res.ok || !json?.success) {
-    throw new Error(json?.message || `Failed to save review (${res.status})`)
+  // Accept 2xx with empty body or different shape; only fail when explicit error or non-2xx
+  const contentType = res.headers.get('content-type') || ''
+  const json = contentType.includes('application/json') ? await res.json().catch(() => ({})) : {}
+  if (!res.ok) {
+    throw new Error((json as any)?.message || `Failed to save review (${res.status})`)
+  }
+  if (contentType.includes('application/json') && (json as any)?.success === false) {
+    throw new Error((json as any)?.message || `Failed to save review (${res.status})`)
   }
 }
 

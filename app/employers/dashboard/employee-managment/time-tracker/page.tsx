@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -25,8 +24,10 @@ import {
   AlertTriangle,
   CheckCircle,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
-import Link from "next/link" // Added Link import for navigation
+import Link from "next/link"
 import { 
   getActiveSessions, 
   getTimeRecords, 
@@ -275,118 +276,116 @@ export default function TimeTrackerPage() {
   )
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-white">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center space-x-4">
-            {" "}
-            {/* Added flex container for back button */}
+    <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8 py-4">
+      {/* Header - Mobile responsive */}
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-4 sm:p-6 text-white">
+        <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
             <Link href="/employers/dashboard/employee-managment">
               <Button
                 variant="secondary"
                 size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm mb-2 sm:mb-0"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
+                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Back to Employment
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold mb-2">Time Tracker</h1>
-              <p className="text-green-100">
+            <div className="sm:ml-2">
+              <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Time Tracker</h1>
+              <p className="text-green-100 text-sm sm:text-base">
                 Monitor work hours, breaks, and calculate overtime with location tracking
               </p>
             </div>
           </div>
-          <div className="mt-4 md:mt-0 flex items-center space-x-4">
-            <div className="text-right">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="text-center sm:text-right">
               <p className="text-sm text-green-100">Current Time</p>
-              <p className="text-xl font-mono font-bold">
+              <p className="text-lg sm:text-xl font-mono font-bold">
                 {currentTime ? currentTime.toLocaleTimeString() : '--:--:--'}
               </p>
             </div>
-            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-              <Download className="h-4 w-4 mr-2" />
+            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm mt-2 sm:mt-0">
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Export Report
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Quick Stats - Mobile responsive grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <Play className="h-6 w-6 text-green-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-green-100">
+                <Play className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{clockedIn}</p>
-                <p className="text-sm text-gray-600">Clocked In</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{clockedIn}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Clocked In</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-yellow-100">
-                <Coffee className="h-6 w-6 text-yellow-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-yellow-100">
+                <Coffee className="h-4 w-4 sm:h-6 sm:w-6 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{onBreak}</p>
-                <p className="text-sm text-gray-600">On Break</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{onBreak}</p>
+                <p className="text-xs sm:text-sm text-gray-600">On Break</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Timer className="h-6 w-6 text-blue-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100">
+                <Timer className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{formatNumber(totalHoursToday)}</p>
-                <p className="text-sm text-gray-600">Total Hours Today</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{formatNumber(totalHoursToday)}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Hours Today</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-orange-100">
-                <TrendingUp className="h-6 w-6 text-orange-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-orange-100">
+                <TrendingUp className="h-4 w-4 sm:h-6 sm:w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{formatNumber(totalOvertimeToday)}</p>
-                <p className="text-sm text-gray-600">Overtime Hours</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{formatNumber(totalOvertimeToday)}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Overtime Hours</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Clock Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Quick Clock Actions - Mobile responsive */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-green-600" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               <span>Quick Actions</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             <div>
-              <Label htmlFor="employee-select">Select Employee</Label>
+              <Label htmlFor="employee-select" className="text-sm sm:text-base">Select Employee</Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger>
+                <SelectTrigger className="text-sm sm:text-base">
                   <SelectValue placeholder="Choose employee" />
                 </SelectTrigger>
                 <SelectContent>
@@ -401,20 +400,20 @@ export default function TimeTrackerPage() {
 
             <div className="grid grid-cols-2 gap-2">
               <Button 
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-xs sm:text-sm h-9 sm:h-10"
                 onClick={() => handleClockAction('clock-in')}
                 disabled={loading || !selectedEmployee}
               >
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Clock In
               </Button>
               <Button 
                 variant="outline" 
-                className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
+                className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent text-xs sm:text-sm h-9 sm:h-10"
                 onClick={() => handleClockAction('clock-out')}
                 disabled={loading || !selectedEmployee}
               >
-                <Square className="h-4 w-4 mr-2" />
+                <Square className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Clock Out
               </Button>
             </div>
@@ -422,127 +421,125 @@ export default function TimeTrackerPage() {
             <div className="grid grid-cols-2 gap-2">
               <Button 
                 variant="outline" 
-                className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 bg-transparent"
+                className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 bg-transparent text-xs sm:text-sm h-9 sm:h-10"
                 onClick={() => handleClockAction('break-start')}
                 disabled={loading || !selectedEmployee}
               >
-                <Pause className="h-4 w-4 mr-2" />
+                <Pause className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 Start Break
               </Button>
               <Button 
                 variant="outline" 
-                className="border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent"
+                className="border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent text-xs sm:text-sm h-9 sm:h-10"
                 onClick={() => handleClockAction('break-end')}
                 disabled={loading || !selectedEmployee}
               >
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                 End Break
               </Button>
             </div>
 
-            <div className="pt-4 border-t">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <MapPin className="h-4 w-4" />
+            <div className="pt-3 sm:pt-4 border-t">
+              <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Location tracking enabled</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Current Status */}
+        {/* Current Status - Mobile responsive */}
         <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Timer className="h-5 w-5 text-green-600" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+              <Timer className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
               <span>Employee Status</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className={`space-y-4 ${showAllEmployees ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+          <CardContent className="p-2 sm:p-6">
+            <div className={`space-y-3 sm:space-y-4 ${showAllEmployees ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
               {loading ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300 animate-spin" />
-                  <p>Loading employee status...</p>
+                <div className="text-center py-6 sm:py-8 text-gray-500">
+                  <Clock className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-300 animate-spin" />
+                  <p className="text-sm sm:text-base">Loading employee status...</p>
                 </div>
               ) : employees.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No employees found</p>
+                <div className="text-center py-6 sm:py-8 text-gray-500">
+                  <Clock className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-300" />
+                  <p className="text-sm sm:text-base">No employees found</p>
                 </div>
               ) : (
                 <>
                   {displayedEmployees.map((employee) => {
-                  const status = getEmployeeStatus(employee.id)
-                  const session = activeSessions.find(s => s.employeeId === employee.id)
-                  
-                  return (
-                <div key={employee.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="h-10 w-10">
-                          <AvatarImage 
-                            src={employee.image || "/placeholder.svg"} 
-                            alt={employee.name} 
-                          />
-                      <AvatarFallback className="bg-green-100 text-green-600">
-                        {employee.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                          <button
-                            onClick={() => handleOpenEmployeeDetails(employee)}
-                            className="font-medium text-gray-900 hover:text-blue-600 hover:underline cursor-pointer text-left"
+                    const status = getEmployeeStatus(employee.id)
+                    const session = activeSessions.find(s => s.employeeId === employee.id)
+                    
+                    return (
+                      <div key={employee.id} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
+                          <Avatar className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0">
+                            <AvatarImage 
+                              src={employee.image || "/placeholder.svg"} 
+                              alt={employee.name} 
+                            />
+                            <AvatarFallback className="bg-green-100 text-green-600 text-xs sm:text-sm">
+                              {employee.name.split(" ").map((n) => n[0]).join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <button
+                              onClick={() => handleOpenEmployeeDetails(employee)}
+                              className="font-medium text-gray-900 hover:text-blue-600 hover:underline cursor-pointer text-left text-sm sm:text-base truncate block w-full text-start"
+                            >
+                              {employee.name}
+                            </button>
+                            <p className="text-xs sm:text-sm text-gray-600 truncate">{employee.emp_type}</p>
+                            <div className="flex items-center space-x-1 sm:space-x-2 mt-0.5 sm:mt-1">
+                              <MapPin className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                              <span className="text-xs text-gray-500 truncate">{session?.location || "Office"}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right space-y-1 sm:space-y-2 ml-2 flex-shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={`${getStatusColor(status)} flex items-center space-x-1 text-xs px-2 py-0.5 sm:px-2 sm:py-1`}
                           >
-                            {employee.name}
-                          </button>
-                          <p className="text-sm text-gray-600">{employee.emp_type}</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <MapPin className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-500">{session?.location || "Office"}</span>
+                            {getStatusIcon(status)}
+                            <span className="capitalize hidden xs:inline">{status.replace("-", " ")}</span>
+                          </Badge>
+                          <div className="text-xs sm:text-sm text-gray-600">
+                            {session?.clockInTime && <p className="whitespace-nowrap">In: {session.clockInTime}</p>}
+                            {session?.totalWorkHours && <p className="whitespace-nowrap">Hours: {formatNumber(session.totalWorkHours)}</p>}
+                          </div>
+                        </div>
                       </div>
+                    )
+                  })}
+                  
+                  {/* Show More/Less Button */}
+                  {employees.length > 5 && (
+                    <div className="text-center pt-3 sm:pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAllEmployees(!showAllEmployees)}
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50 text-xs sm:text-sm"
+                        size="sm"
+                      >
+                        {showAllEmployees ? (
+                          <>
+                            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            Show Less
+                          </>
+                        ) : (
+                          <>
+                            Show More ({employees.length - 5} more)
+                            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2 rotate-180" />
+                          </>
+                        )}
+                      </Button>
                     </div>
-                  </div>
-                  <div className="text-right space-y-2">
-                    <Badge
-                      variant="outline"
-                          className={`${getStatusColor(status)} flex items-center space-x-1`}
-                    >
-                          {getStatusIcon(status)}
-                          <span className="capitalize">{status.replace("-", " ")}</span>
-                    </Badge>
-                    <div className="text-sm text-gray-600">
-                          {session?.clockInTime && <p>In: {session.clockInTime}</p>}
-                          {session?.totalWorkHours && <p>Hours: {formatNumber(session.totalWorkHours)}</p>}
-                    </div>
-                  </div>
-                </div>
-                  )
-                })}
-                
-                {/* Show More/Less Button */}
-                {employees.length > 5 && (
-                  <div className="text-center pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowAllEmployees(!showAllEmployees)}
-                      className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                    >
-                      {showAllEmployees ? (
-                        <>
-                          <ArrowLeft className="h-4 w-4 mr-2" />
-                          Show Less
-                        </>
-                      ) : (
-                        <>
-                          Show More ({employees.length - 5} more)
-                          <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
+                  )}
                 </>
               )}
             </div>
@@ -550,153 +547,167 @@ export default function TimeTrackerPage() {
         </Card>
       </div>
 
-      {/* Time Records */}
+      {/* Time Records - Mobile responsive */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-green-600" />
+        <CardHeader className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row items-start sm:items-center justify-between pb-3">
+          <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
             <span>Time Records</span>
           </CardTitle>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
             <Input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-40"
+              className="w-full sm:w-40 text-sm"
             />
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+              <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Filter
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Clock In</TableHead>
-                  <TableHead>Clock Out</TableHead>
-                  <TableHead>Break Time</TableHead>
-                  <TableHead>Total Hours</TableHead>
-                  <TableHead>Overtime</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
+        <CardContent className="p-2 sm:p-6">
+          <div className="rounded-md border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                      <Clock className="h-8 w-8 mx-auto mb-2 text-gray-300 animate-spin" />
-                      Loading time records...
-                    </TableCell>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap">Employee</TableHead>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap hidden sm:table-cell">Date</TableHead>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap">Clock In</TableHead>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap hidden xs:table-cell">Clock Out</TableHead>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap hidden lg:table-cell">Break Time</TableHead>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap">Total Hours</TableHead>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap hidden md:table-cell">Overtime</TableHead>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap hidden xl:table-cell">Location</TableHead>
+                    <TableHead className="text-xs sm:text-sm px-2 sm:px-4 py-3 whitespace-nowrap">Status</TableHead>
                   </TableRow>
-                ) : timeRecords.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                      <Clock className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      No time records found for this date
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedTimeRecords.map((record) => (
-                  <TableRow key={record.id}>
-                      <TableCell className="font-medium">{record.emp_name || `Employee ${record.employee_id}`}</TableCell>
-                      <TableCell>{formatDate(record.date)}</TableCell>
-                      <TableCell>{record.clock_in_time || "-"}</TableCell>
-                      <TableCell>{record.clock_out_time || "-"}</TableCell>
-                    <TableCell>
-                        {record.break_start_time && record.break_end_time 
-                          ? `${record.break_start_time} - ${record.break_end_time}`
-                          : record.break_start_time 
-                            ? `${record.break_start_time} - (ongoing)`
-                            : "-"
-                        }
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-6 sm:py-8 text-gray-500 px-4">
+                        <Clock className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-gray-300 animate-spin" />
+                        <p className="text-sm sm:text-base">Loading time records...</p>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {record.total_work_hours ? `${formatNumber(record.total_work_hours)}h` : "-"}
-                    </TableCell>
-                    <TableCell>
-                        {record.overtime_hours && record.overtime_hours > 0 ? (
-                        <div className="flex items-center space-x-1">
-                          <AlertTriangle className="h-4 w-4 text-orange-500" />
-                            <span className="text-orange-600 font-medium">{formatNumber(record.overtime_hours)}h</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-1">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-green-600">0h</span>
-                        </div>
-                      )}
-                    </TableCell>
-                      <TableCell className="text-sm text-gray-600">{record.location || "Office"}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                            record.is_active === 0 ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"
-                        }
-                      >
-                          {record.is_active === 0 ? "completed" : "active"}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          
-          {/* Pagination Controls */}
-          {timeRecords.length > timeRecordsPerPage && (
-            <div className="flex items-center justify-between px-6 py-4 border-t">
-              <div className="text-sm text-gray-700">
-                Showing {((timeRecordsPage - 1) * timeRecordsPerPage) + 1} to {Math.min(timeRecordsPage * timeRecordsPerPage, timeRecords.length)} of {timeRecords.length} records
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setTimeRecordsPage(Math.max(1, timeRecordsPage - 1))}
-                  disabled={timeRecordsPage === 1}
-                >
-                  Previous
-                </Button>
-                
-                {/* Page Numbers */}
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalTimeRecordsPages) }, (_, i) => {
-                    const pageNum = Math.max(1, Math.min(totalTimeRecordsPages - 4, timeRecordsPage - 2)) + i
-                    if (pageNum > totalTimeRecordsPages) return null
-                    
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={timeRecordsPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setTimeRecordsPage(pageNum)}
-                        className="w-8 h-8 p-0"
-                      >
-                        {pageNum}
-                      </Button>
-                    )
-                  })}
-                </div>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setTimeRecordsPage(Math.min(totalTimeRecordsPages, timeRecordsPage + 1))}
-                  disabled={timeRecordsPage === totalTimeRecordsPages}
-                >
-                  Next
-                </Button>
-              </div>
+                    </TableRow>
+                  ) : timeRecords.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-6 sm:py-8 text-gray-500 px-4">
+                        <Clock className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm sm:text-base">No time records found for this date</p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedTimeRecords.map((record) => (
+                      <TableRow key={record.id} className="text-xs sm:text-sm">
+                        <TableCell className="font-medium px-2 sm:px-4 py-2 whitespace-nowrap truncate max-w-[100px] sm:max-w-none">
+                          {record.emp_name || `Employee ${record.employee_id}`}
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 py-2 whitespace-nowrap hidden sm:table-cell">
+                          {formatDate(record.date)}
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 py-2 whitespace-nowrap">
+                          {record.clock_in_time || "-"}
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 py-2 whitespace-nowrap hidden xs:table-cell">
+                          {record.clock_out_time || "-"}
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 py-2 whitespace-nowrap hidden lg:table-cell">
+                          {record.break_start_time && record.break_end_time 
+                            ? `${record.break_start_time} - ${record.break_end_time}`
+                            : record.break_start_time 
+                              ? `${record.break_start_time} - (ongoing)`
+                              : "-"
+                          }
+                        </TableCell>
+                        <TableCell className="font-medium px-2 sm:px-4 py-2 whitespace-nowrap">
+                          {record.total_work_hours ? `${formatNumber(record.total_work_hours)}h` : "-"}
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 py-2 whitespace-nowrap hidden md:table-cell">
+                          {record.overtime_hours && record.overtime_hours > 0 ? (
+                            <div className="flex items-center space-x-1">
+                              <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
+                              <span className="text-orange-600 font-medium">{formatNumber(record.overtime_hours)}h</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1">
+                              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                              <span className="text-green-600">0h</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-gray-600 px-2 sm:px-4 py-2 whitespace-nowrap hidden xl:table-cell">
+                          {record.location || "Office"}
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 py-2 whitespace-nowrap">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${record.is_active === 0 ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}
+                          >
+                            {record.is_active === 0 ? "completed" : "active"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          )}
+            
+            {/* Pagination Controls - Mobile responsive */}
+            {timeRecords.length > timeRecordsPerPage && (
+              <div className="flex flex-col sm:flex-row items-center justify-between px-3 sm:px-6 py-3 border-t space-y-2 sm:space-y-0">
+                <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
+                  Showing {((timeRecordsPage - 1) * timeRecordsPerPage) + 1} to {Math.min(timeRecordsPage * timeRecordsPerPage, timeRecords.length)} of {timeRecords.length} records
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTimeRecordsPage(Math.max(1, timeRecordsPage - 1))}
+                    disabled={timeRecordsPage === 1}
+                    className="h-8 px-2 text-xs"
+                  >
+                    <ChevronLeft className="h-3 w-3 mr-1" />
+                    Prev
+                  </Button>
+                  
+                  {/* Page Numbers */}
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(3, totalTimeRecordsPages) }, (_, i) => {
+                      const pageNum = Math.max(1, Math.min(totalTimeRecordsPages - 2, timeRecordsPage - 1)) + i
+                      if (pageNum > totalTimeRecordsPages) return null
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={timeRecordsPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setTimeRecordsPage(pageNum)}
+                          className="h-8 w-8 p-0 text-xs"
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTimeRecordsPage(Math.min(totalTimeRecordsPages, timeRecordsPage + 1))}
+                    disabled={timeRecordsPage === totalTimeRecordsPages}
+                    className="h-8 px-2 text-xs"
+                  >
+                    Next
+                    <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

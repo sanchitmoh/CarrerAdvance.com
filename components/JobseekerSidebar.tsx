@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { User, FileText, PenTool, CheckCircle, Briefcase, Target, Heart, Lock, LogOut, Menu, X } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
@@ -72,117 +73,114 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
     router.push('/job-seekers/login')
   }
 
-  const shouldExpand = !collapsed || isHovered
+  // Sidebar sizing follows employer sidebar: desktop fixed narrow; mobile slide-in when open
+  const shouldExpand = !collapsed
 
   return (
-    <aside 
-      className={`fixed left-0 top-16 min-h-screen bg-gradient-to-b from-gray-950 via-emerald-950 to-gray-950 text-white transition-all duration-300 z-50 ${
-        isMobile
-          ? collapsed 
-            ? '-translate-x-full' 
-            : 'translate-x-0 w-64'
-          : shouldExpand 
-            ? 'w-64' 
+    <TooltipProvider>
+      <div
+        className={`fixed left-0 top-16 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-30 shadow-sm overflow-y-auto ${
+          isMobile
+            ? collapsed
+              ? '-translate-x-full'
+              : 'translate-x-0 w-64'
             : 'w-16'
-      } shadow-2xl`}
-      onMouseEnter={!isMobile ? () => setIsHovered(true) : undefined}
-      onMouseLeave={!isMobile ? () => setIsHovered(false) : undefined}
-    >
-      {/* Header */}
-      <div className="p-4 border-b border-emerald-800/50">
-        <div className="flex items-center justify-between">
-          {(shouldExpand || isMobile) && (
+        }`}
+        onMouseEnter={() => !isMobile && setIsHovered(true)}
+        onMouseLeave={() => !isMobile && setIsHovered(false)}
+      >
+        {/* Mobile header */}
+        {isMobile && !collapsed && (
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
-                <User className="h-4 w-4 text-white" />
+              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">J</span>
               </div>
-              <span className="font-bold text-lg bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
-                Dashboard
-              </span>
+              <span className="text-lg font-semibold text-gray-900">Job Seeker</span>
             </div>
-          )}
-          {!shouldExpand && !isMobile && (
-            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-500 rounded-lg flex items-center justify-center mx-auto">
-              <User className="h-4 w-4 text-white" />
-            </div>
-          )}
-          {(shouldExpand || isMobile) && (
+            <Button variant="ghost" size="sm" onClick={onToggle} className="p-2 rounded-lg hover:bg-gray-100">
+              <X className="w-5 h-5 text-gray-600" />
+            </Button>
+          </div>
+        )}
+
+        {/* Logo (desktop) */}
+        <div className="hidden md:flex items-center justify-center py-4">
+          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-lg">J</span>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className={`${isMobile ? 'p-4' : 'p-2'} flex-1`}>
+          <ul className="space-y-2">
+            {sidebarItems.map((item) => {
+              const isActive = pathname === item.href
+              const Icon = item.icon
+
+              const linkContent = (
+                <Link
+                  href={item.href}
+                  className={`group relative flex items-center ${isMobile && !collapsed ? 'space-x-3 px-3 py-3 rounded-lg' : 'justify-center w-12 h-12 rounded-lg'} transition-colors ${
+                    isActive ? 'bg-emerald-100 text-emerald-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                  title={item.name}
+                  onClick={() => {
+                    if (isMobile) onToggle?.()
+                  }}
+                >
+                  <Icon className="w-5 h-5" />
+                  {isMobile && !collapsed && <span className="font-medium">{item.name}</span>}
+                </Link>
+              )
+
+              if (!isMobile) {
+                return (
+                  <li key={item.href}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>{item.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </li>
+                )
+              }
+
+              return <li key={item.href}>{linkContent}</li>
+            })}
+          </ul>
+        </nav>
+
+        {/* Logout */}
+        <div className={`${isMobile ? 'p-4' : 'p-2'} border-t border-gray-200`}>
+          {isMobile && !collapsed ? (
             <Button
               variant="ghost"
-              size="sm"
-              onClick={onToggle}
-              className="text-emerald-400 hover:text-white hover:bg-emerald-800/50 p-2"
+              onClick={handleLogout}
+              className="w-full flex items-center space-x-3 px-3 py-3 text-red-600 hover:bg-red-50"
             >
-              {isMobile ? <X className="h-4 w-4" /> : (collapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />)}
+              <LogOut className="h-5 w-5" />
+              <span className="font-medium">Logout</span>
             </Button>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center p-3 text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Logout</p>
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
-
-      {/* User Profile */}
-      <div className="p-4 border-b border-emerald-800/50">
-        <div className="flex items-center space-x-3">
-          <Avatar className="h-10 w-10 ring-2 ring-emerald-500/50 flex-shrink-0">
-            <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-            <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-green-500 text-white">
-              {user.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          {(shouldExpand || isMobile) && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-emerald-300 truncate">{user.name}</p>
-              <p className="text-xs text-gray-400 truncate">{user.email}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {sidebarItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href
-          
-          return (
-            <Link key={item.name} href={item.href} onClick={() => isMobile && onToggle()}>
-              <div className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative ${
-                isActive 
-                  ? 'bg-gradient-to-r from-emerald-600 to-green-600 text-white shadow-lg' 
-                  : 'text-gray-300 hover:text-white hover:bg-emerald-800/50'
-              }`}>
-                <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-emerald-400 group-hover:text-white'}`} />
-                {(shouldExpand || isMobile) && (
-                  <span className="font-medium truncate">{item.name}</span>
-                )}
-                {!shouldExpand && !isMobile && (
-                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                    {item.name}
-                  </div>
-                )}
-              </div>
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Logout */}
-      <div className="p-4 border-t border-emerald-800/50">
-        <Button
-          variant="ghost"
-          className={`w-full flex items-center space-x-3 px-3 py-2.5 text-gray-300 hover:text-white hover:bg-red-600/20 rounded-xl transition-all duration-200 group relative ${
-            !shouldExpand && !isMobile ? 'justify-center' : ''
-          }`}
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5 text-red-400 flex-shrink-0" />
-          {(shouldExpand || isMobile) && <span className="font-medium">Logout</span>}
-          {!shouldExpand && !isMobile && (
-            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-              Logout
-            </div>
-          )}
-        </Button>
-      </div>
-    </aside>
+    </TooltipProvider>
   )
 }

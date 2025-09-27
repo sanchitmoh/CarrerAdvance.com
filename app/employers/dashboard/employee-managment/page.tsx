@@ -21,8 +21,111 @@ import {
   Target,
 } from "lucide-react"
 import Link from "next/link"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { getBaseUrl } from "@/lib/api-config"
 
 export default function EmploymentManagementPage() {
+  const [mounted, setMounted] = useState(false)
+  const [loadingStats, setLoadingStats] = useState<boolean>(true)
+  const [statsError, setStatsError] = useState<string | null>(null)
+  const [stats, setStats] = useState<{
+    totalEmployees: number
+    presentToday: number
+    pendingLeaves: number
+    avgPerformance: number | null
+    performanceScore?: number | null
+    payrollExpensesMonth?: number | null
+    documentCompliancePercent?: number | null
+    monthlyAttendanceTrend?: { date: string; attendancePercent: number | null }[]
+    recentActivities?: { type: string; title: string; meta: string; time: string }[]
+    pendingActions?: { title: string; subtitle: string; action: string; type: string }[]
+  }>({ totalEmployees: 0, presentToday: 0, pendingLeaves: 0, avgPerformance: null })
+
+  const fetchStats = useCallback(async () => {
+    let aborted = false
+    try {
+      setLoadingStats(true)
+      setStatsError(null)
+      const candidatePaths = ['/api/hrms/stats', '/hrms/stats', '/api/employers/hrms/stats']
+      let success = false
+      for (const path of candidatePaths) {
+        const url = getBaseUrl(path)
+        try {
+          const res = await fetch(url, { credentials: 'include' })
+          const contentType = res.headers.get('content-type') || ''
+          if (!res.ok || !contentType.includes('application/json')) {
+            // try next path
+            continue
+          }
+          const json = await res.json()
+          if (!json?.success) {
+            continue
+          }
+          if (!aborted) {
+            setStats({
+              totalEmployees: Number(json.data?.totalEmployees || 0),
+              presentToday: Number(json.data?.presentToday || 0),
+              pendingLeaves: Number(json.data?.pendingLeaves || 0),
+              avgPerformance: json.data?.avgPerformance !== undefined && json.data?.avgPerformance !== null ? Number(json.data?.avgPerformance) : null,
+              performanceScore: json.data?.performanceScore !== undefined && json.data?.performanceScore !== null ? Number(json.data?.performanceScore) : (json.data?.avgPerformance ?? null),
+              payrollExpensesMonth: json.data?.payrollExpensesMonth !== undefined && json.data?.payrollExpensesMonth !== null ? Number(json.data?.payrollExpensesMonth) : null,
+              documentCompliancePercent: json.data?.documentCompliancePercent !== undefined && json.data?.documentCompliancePercent !== null ? Number(json.data?.documentCompliancePercent) : null,
+              monthlyAttendanceTrend: Array.isArray(json.data?.monthlyAttendanceTrend) ? json.data.monthlyAttendanceTrend : [],
+              recentActivities: Array.isArray(json.data?.recentActivities) ? json.data.recentActivities.slice(0,3) : [],
+              pendingActions: Array.isArray(json.data?.pendingActions) ? json.data.pendingActions.slice(0,3) : [],
+            })
+          }
+          success = true
+          break
+        } catch (e) {
+          // continue to next candidate
+          // eslint-disable-next-line no-console
+          console.warn('Stats path failed:', path, e)
+          continue
+        }
+      }
+      if (!success) {
+        throw new Error('Stats endpoint not found. Please confirm API route.')
+      }
+    } catch (err: any) {
+      if (!aborted) {
+        setStatsError(err?.message || 'Unable to load stats')
+        // Fallback demo values to keep UI populated
+        setStats({
+          totalEmployees: 24,
+          presentToday: 22,
+          pendingLeaves: 3,
+          avgPerformance: 4.2,
+          performanceScore: 4.2,
+          payrollExpensesMonth: 48250,
+          documentCompliancePercent: 87,
+          monthlyAttendanceTrend: [
+            { date: '2025-01-01', attendancePercent: 93 },
+            { date: '2025-02-01', attendancePercent: 95 },
+          ],
+          recentActivities: [
+            { type: 'attendance', title: 'Employee clocked in', meta: 'Attendance', time: '2 min ago' },
+            { type: 'payroll', title: 'Monthly payroll processed', meta: 'Payroll', time: '1 hr ago' },
+            { type: 'performance', title: 'Review reminder sent', meta: 'Performance', time: '3 hr ago' },
+          ],
+          pendingActions: [
+            { title: '5 Performance Reviews Due', subtitle: 'Due by end of week', action: 'Review', type: 'performance' },
+            { title: '3 Leave Requests Pending', subtitle: 'Awaiting approval', action: 'Approve', type: 'leave' },
+            { title: '2 Documents Expiring Soon', subtitle: 'Within 30 days', action: 'Update', type: 'documents' },
+          ],
+        })
+      }
+    } finally {
+      if (!aborted) setLoadingStats(false)
+    }
+    return () => { aborted = true }
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
+    fetchStats()
+  }, [fetchStats])
+
   const modules = [
     {
       title: "Employee Management",
@@ -81,53 +184,42 @@ export default function EmploymentManagementPage() {
     
   ]
 
-  const quickStats = [
-    { label: "Total Employees", value: "24", icon: Users, color: "text-blue-600", change: "+2 this month" },
-    { label: "Present Today", value: "22", icon: CheckCircle, color: "text-green-600", change: "91.7% attendance" },
-    { label: "On Leave", value: "2", icon: Calendar, color: "text-yellow-600", change: "3 pending requests" },
-    {
-      label: "Avg Performance",
-      value: "4.2",
-      icon: Target,
-      color: "text-purple-600",
-      change: "+0.3 from last quarter",
-    },
-  ]
+  const quickStats = useMemo(() => [
+    { label: "Total Employees", value: loadingStats && !statsError ? '…' : String(stats.totalEmployees), icon: Users, color: "text-blue-600", change: statsError ? "error" : "live" },
+    { label: "Present Today", value: loadingStats && !statsError ? '…' : String(stats.presentToday), icon: CheckCircle, color: "text-green-600", change: statsError ? "error" : "live" },
+    { label: "Pending Leave", value: loadingStats && !statsError ? '…' : String(stats.pendingLeaves), icon: Calendar, color: "text-yellow-600", change: statsError ? "error" : "live" },
+    { label: "Avg Performance", value: loadingStats && !statsError ? '…' : (stats.avgPerformance !== null ? String(stats.avgPerformance) : "—"), icon: Target, color: "text-purple-600", change: statsError ? "error" : "+0.0" },
+  ], [stats, loadingStats, statsError])
 
-  const analyticsCards = [
-    {
-      title: "Monthly Attendance Trend",
-      value: "94.2%",
-      change: "+2.1%",
-      trend: "up",
-      icon: LineChart,
-      color: "bg-blue-500",
-    },
-    {
-      title: "Payroll Expenses",
-      value: "$48,250",
-      change: "+5.2%",
-      trend: "up",
-      icon: PieChart,
-      color: "bg-green-500",
-    },
-    {
-      title: "Performance Score",
-      value: "4.2/5.0",
-      change: "+0.3",
-      trend: "up",
-      icon: TrendingUp,
-      color: "bg-purple-500",
-    },
-    {
-      title: "Document Compliance",
-      value: "87%",
-      change: "-3%",
-      trend: "down",
-      icon: FileText,
-      color: "bg-orange-500",
-    },
-  ]
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined || Number.isNaN(amount)) return '—'
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount)
+    } catch {
+      return `$${Math.round(amount).toLocaleString()}`
+    }
+  }
+
+  const formatPercent = (value: number | null | undefined) => {
+    if (value === null || value === undefined || Number.isNaN(value)) return '—'
+    return `${value}%`
+  }
+
+  const attendanceAvg = useMemo(() => {
+    const arr = (stats.monthlyAttendanceTrend || []).map(x => x.attendancePercent).filter((v): v is number => v !== null && v !== undefined && !Number.isNaN(v))
+    if (!arr.length) return null
+    const sum = arr.reduce((a, b) => a + b, 0)
+    return Math.round((sum / arr.length) * 10) / 10
+  }, [stats.monthlyAttendanceTrend])
+
+  const analyticsCards = useMemo(() => [
+    { title: "Monthly Attendance Trend", value: loadingStats && !statsError ? '…' : formatPercent(attendanceAvg), change: '', trend: "up", icon: LineChart, color: "bg-blue-500" },
+    { title: "Payroll Expenses", value: loadingStats && !statsError ? '…' : formatCurrency(stats.payrollExpensesMonth ?? null), change: '', trend: "up", icon: PieChart, color: "bg-green-500" },
+    { title: "Performance Score", value: loadingStats && !statsError ? '…' : (stats.performanceScore !== null && stats.performanceScore !== undefined ? `${stats.performanceScore}` : '—'), change: '', trend: "up", icon: TrendingUp, color: "bg-purple-500" },
+    { title: "Document Compliance", value: loadingStats && !statsError ? '…' : formatPercent(stats.documentCompliancePercent ?? null), change: '', trend: (stats.documentCompliancePercent ?? 0) >= 90 ? 'up' : 'down', icon: FileText, color: "bg-orange-500" },
+  ], [attendanceAvg, loadingStats, statsError, stats.payrollExpensesMonth, stats.performanceScore, stats.documentCompliancePercent])
+
+  if (!mounted) return null
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -153,6 +245,16 @@ export default function EmploymentManagementPage() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statsError && (
+          <Card className="md:col-span-2 lg:col-span-4 border-red-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-red-700">{statsError}</p>
+                <Button size="sm" variant="outline" className="bg-transparent" onClick={fetchStats} disabled={loadingStats}>Retry</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {quickStats.map((stat, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">

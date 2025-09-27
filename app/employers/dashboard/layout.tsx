@@ -12,6 +12,7 @@ export default function EmployerDashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  const [mounted, setMounted] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(64) // Default to collapsed (64px)
   const [isMobile, setIsMobile] = useState(false)
@@ -22,6 +23,7 @@ export default function EmployerDashboardLayout({
 
   // Handle responsive behavior
   useEffect(() => {
+    setMounted(true)
     const checkScreenSize = () => {
       const mobile = window.innerWidth < 768
       setIsMobile(mobile)
@@ -44,10 +46,18 @@ export default function EmployerDashboardLayout({
     }
   }, [])
 
+  if (!mounted) {
+    return <div className="min-h-screen bg-gray-50 flex" suppressHydrationWarning />
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex" suppressHydrationWarning>
       {/* Sidebar */}
-      <EmployerSidebar onToggle={() => isMobile && setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      <EmployerSidebar 
+        onToggle={() => isMobile && setIsMobileMenuOpen(!isMobileMenuOpen)} 
+        isMobileMenuOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
 
       {/* Mobile overlay */}
       {isMobileMenuOpen && (

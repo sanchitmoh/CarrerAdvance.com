@@ -309,7 +309,7 @@ export default function InterviewTrackerPage() {
   const InterviewCard = ({ interview }: { interview: any }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
               {getTypeIcon(interview.type)}
@@ -377,11 +377,11 @@ export default function InterviewTrackerPage() {
               </div>
             )}
           </div>
-          <div className="flex flex-col space-y-2">
+          <div className="mt-3 sm:mt-0 sm:ml-4 flex flex-col space-y-2 w-full sm:w-auto">
             <Button
               size="sm"
               variant="outline"
-              className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent"
+              className="w-full sm:w-auto text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent"
             >
               <Edit className="h-3 w-3 mr-1" />
               Edit
@@ -390,7 +390,7 @@ export default function InterviewTrackerPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
+                className="w-full sm:w-auto text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
                 onClick={async () => {
                   await setStatus(interview.id, 'confirmed')
                   setActiveTab('confirmed')
@@ -404,7 +404,7 @@ export default function InterviewTrackerPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-blue-600 border-blue-600 hover:bg-blue-50 bg-transparent"
+                className="w-full sm:w-auto text-blue-600 border-blue-600 hover:bg-blue-50 bg-transparent"
                 onClick={() => {
                   setSelectedInterview(interview)
                   if (interview.review) {
@@ -421,7 +421,7 @@ export default function InterviewTrackerPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-gray-700 border-gray-300 hover:bg-gray-50 bg-transparent"
+                className="w-full sm:w-auto text-gray-700 border-gray-300 hover:bg-gray-50 bg-transparent"
                 onClick={async () => {
                   await setStatus(interview.id, 'completed')
                   setActiveTab('completed')
@@ -434,7 +434,7 @@ export default function InterviewTrackerPage() {
             <Button
               size="sm"
               variant="outline"
-              className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+              className="w-full sm:w-auto text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
               onClick={async () => {
                 await setStatus(interview.id, 'cancelled')
                 setActiveTab('cancelled')
@@ -450,7 +450,7 @@ export default function InterviewTrackerPage() {
   )
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
@@ -655,7 +655,7 @@ export default function InterviewTrackerPage() {
 
       {/* Interview Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="scheduled">Scheduled ({filterInterviews("scheduled").length})</TabsTrigger>
           <TabsTrigger value="confirmed">Confirmed ({filterInterviews("confirmed").length})</TabsTrigger>
           <TabsTrigger value="completed">Completed ({filterInterviews("completed").length})</TabsTrigger>

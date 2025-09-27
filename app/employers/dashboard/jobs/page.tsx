@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Plus,
   Briefcase,
@@ -35,8 +36,9 @@ import {
   Globe,
   Loader2,
   Sparkles,
+  Award,
+  FileText,
 } from "lucide-react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { employerApiService, Job, AddJobRequest } from "@/lib/employer-api"
 import { getAssetUrl, getBaseUrl } from "@/lib/api-config"
 import { jobsApiService } from "@/lib/jobs-api"
@@ -84,6 +86,7 @@ interface Candidate {
   const [loadingStates, setLoadingStates] = useState(false)
   const [loadingCities, setLoadingCities] = useState(false)
   const [aiSuggestingSkills, setAiSuggestingSkills] = useState(false)
+  const [selectedJobFilter, setSelectedJobFilter] = useState<string | null>(null)
 
   // Fetch jobs from API
   useEffect(() => {
@@ -141,6 +144,7 @@ interface Candidate {
         hired: 1,
       },
     },
+    
     {
       id: 2,
       title: "Product Manager",
@@ -463,7 +467,7 @@ interface Candidate {
         return
       }
       setAiGeneratingJD(true)
-      const res = await fetch(getBaseUrl('/employers/job/generate_jd'), {
+      const res = await fetch(getBaseUrl('/api/ai/generate_jd'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -736,7 +740,7 @@ interface Candidate {
           const rebuilt: Record<string, Candidate[]> = {
             applied: [], reviewed: [], shortlisted: [], contacted: [], rejected: [], hired: []
           }
-          ;(Array.isArray(updated) ? updated : (updated?.data || [])).forEach((c: any) => {
+          ;(Array.isArray(updated) ? updated : ((updated as any)?.data || [])).forEach((c: any) => {
             const s = (c.status || 'applied').toLowerCase()
             const key = rebuilt[s] ? s : 'applied'
             rebuilt[key].push(c)
@@ -751,9 +755,9 @@ interface Candidate {
     }
   }
 
-  const CandidateCard = ({ candidate }: { candidate: Candidate }) => (
+  const CandidateCard = ({ candidate, extraFooter }: { candidate: Candidate; extraFooter?: React.ReactNode }) => (
     <Card
-      className="hover:shadow-md transition-shadow cursor-pointer"
+      className="hover:shadow-md transition-shadow cursor-pointer border border-gray-200 hover:border-emerald-300 rounded-xl"
       onClick={() => {
         setSelectedCandidate(candidate)
         setShowCandidateProfile(true)
@@ -775,8 +779,8 @@ interface Candidate {
         }
       }}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start space-x-4">
+      <CardContent className="p-4 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:space-x-4 space-y-3 sm:space-y-0">
           <Avatar className="w-12 h-12">
             <AvatarImage src={candidate.avatar || "/placeholder.svg"} alt={candidate.name} />
             <AvatarFallback className="bg-emerald-100 text-emerald-700">
@@ -787,8 +791,75 @@ interface Candidate {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-gray-900 truncate">{candidate.name}</h4>
-            <p className="text-sm text-gray-600">{candidate.designation}</p>
+            <div>
+              <div className="min-w-0 flex-1 pr-2">
+                <h4 className="font-semibold text-gray-900 truncate">{candidate.name}</h4>
+                <p className="text-xs sm:text-sm text-gray-600">{candidate.designation}</p>
+              </div>
+              <div className="mt-2 flex flex-row flex-wrap items-center gap-1 sm:gap-2 justify-start sm:justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent px-3 h-7 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedCandidate(candidate)
+                    setShowCandidateProfile(true)
+                    if (candidate.status === 'applied' && selectedJob) {
+                      employerApiService
+                        .updateCandidateStatus(selectedJob.id, candidate.id, 'reviewed')
+                        .then(() => {
+                          setCandidates((prev) => {
+                            const updated = { ...prev }
+                            updated.applied = (prev.applied || []).filter((c) => c.id !== candidate.id)
+                            const updatedCandidate = { ...candidate, status: 'reviewed' as const }
+                            updated.reviewed = [updatedCandidate, ...(prev.reviewed || [])]
+                            return updated
+                          })
+                          setSelectedCandidate((prevSel) => (prevSel && prevSel.id === candidate.id ? { ...prevSel, status: 'reviewed' } : prevSel))
+                        })
+                        .catch((err) => console.error('Failed to auto-mark reviewed from View button:', err))
+                    }
+                  }}
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  <span className="hidden xs:inline">View</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-green-600 border-green-600 hover:bg-green-50 px-2 py-1 h-7 bg-transparent"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    moveCandidateToStatus(candidate.id, "shortlisted")
+                  }}
+                >
+                  <Check className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-red-600 border-red-600 hover:bg-red-50 px-2 py-1 h-7 bg-transparent"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    moveCandidateToStatus(candidate.id, "rejected")
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-yellow-600 border-yellow-600 hover:bg-yellow-50 px-2 py-1 h-7 bg-transparent"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    moveCandidateToStatus(candidate.id, "reviewed")
+                  }}
+                >
+                  <HelpCircle className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
             <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
               <span className="flex items-center">
                 <MapPin className="h-3 w-3 mr-1" />
@@ -796,7 +867,7 @@ interface Candidate {
               </span>
               <span>{candidate.industry}</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">{candidate.email}</p>
+            <p className="text-xs text-gray-500 mt-1 break-all">{candidate.email}</p>
             <div className="flex flex-wrap gap-1 mt-2">
               {candidate.skills.slice(0, 3).map((skill, index) => (
                 <Badge key={index} variant="outline" className="text-xs">
@@ -810,72 +881,13 @@ interface Candidate {
               )}
             </div>
           </div>
-          <div className="flex flex-col space-y-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent"
-              onClick={(e) => {
-                e.stopPropagation()
-                setSelectedCandidate(candidate)
-                setShowCandidateProfile(true)
-                if (candidate.status === 'applied' && selectedJob) {
-                  employerApiService
-                    .updateCandidateStatus(selectedJob.id, candidate.id, 'reviewed')
-                    .then(() => {
-                      setCandidates((prev) => {
-                        const updated = { ...prev }
-                        updated.applied = (prev.applied || []).filter((c) => c.id !== candidate.id)
-                        const updatedCandidate = { ...candidate, status: 'reviewed' as const }
-                        updated.reviewed = [updatedCandidate, ...(prev.reviewed || [])]
-                        return updated
-                      })
-                      setSelectedCandidate((prevSel) => (prevSel && prevSel.id === candidate.id ? { ...prevSel, status: 'reviewed' } : prevSel))
-                    })
-                    .catch((err) => console.error('Failed to auto-mark reviewed from View button:', err))
-                }
-              }}
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              View
-            </Button>
-            <div className="flex space-x-1">
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-green-600 border-green-600 hover:bg-green-50 px-2 bg-transparent"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  moveCandidateToStatus(candidate.id, "shortlisted")
-                }}
-              >
-                <Check className="h-3 w-3" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-red-600 border-red-600 hover:bg-red-50 px-2 bg-transparent"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  moveCandidateToStatus(candidate.id, "rejected")
-                }}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-yellow-600 border-yellow-600 hover:bg-yellow-50 px-2 bg-transparent"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  moveCandidateToStatus(candidate.id, "reviewed")
-                }}
-              >
-                <HelpCircle className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
+          
         </div>
+        {extraFooter && (
+          <div className="mt-3">
+            {extraFooter}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -885,11 +897,11 @@ interface Candidate {
 
     return (
       <Dialog open={showCandidateProfile} onOpenChange={setShowCandidateProfile}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl lg:max-w-6xl max-h-[90vh] overflow-hidden p-0">
           <DialogTitle className="sr-only">Candidate Profile</DialogTitle>
           <div className="flex h-[80vh]">
             {/* Sidebar with candidate list */}
-            <div className="w-80 border-r bg-gray-50 overflow-y-auto">
+            <div className="hidden md:block w-80 border-r bg-gray-50 overflow-y-auto">
               <div className="p-4">
                 <Button
                   variant="ghost"
@@ -941,16 +953,16 @@ interface Candidate {
 
             {/* Main profile content */}
             <div className="flex-1 overflow-y-auto">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 {/* Header */}
                 <div className="text-center mb-6">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{selectedCandidate.name}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 break-words">{selectedCandidate.name}</h1>
                   <p className="text-gray-600 mb-4">
                     {selectedCandidate.designation} at EY Technology • {selectedCandidate.location}
                   </p>
 
                   {/* Action buttons */}
-                  <div className="flex justify-center space-x-4 mb-6">
+                  <div className="flex flex-col sm:flex-row justify-center gap-2 sm:space-x-4 mb-6">
                     <Button className="bg-blue-600 hover:bg-blue-700" onClick={async () => {
                       try {
                         if (!selectedJob || !selectedCandidate) return
@@ -1180,12 +1192,12 @@ interface Candidate {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Jobs Management</h1>
-          <p className="text-gray-600">Post new jobs and manage applications</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Jobs Management</h1>
+          <p className="text-sm sm:text-base text-gray-600">Post new jobs and manage applications</p>
         </div>
       </div>
 
@@ -1197,14 +1209,14 @@ interface Candidate {
       )}
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="post" className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
+        <TabsList className="grid w-full grid-cols-2 h-auto">
+          <TabsTrigger value="post" className="flex items-center justify-center space-x-2 p-3">
+            <Plus className="h-5 w-5 text-emerald-600" />
             <span>{editingJob ? "Edit Job" : "Post New Job"}</span>
           </TabsTrigger>
-          <TabsTrigger value="manage" className="flex items-center space-x-2">
+          <TabsTrigger value="manage" className="flex items-center justify-center space-x-2 p-3">
             <Briefcase className="h-4 w-4" />
-            <span>Manage Jobs</span>
+            <span className="text-xs sm:text-sm">Manage Jobs</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1217,35 +1229,45 @@ interface Candidate {
                 <span>{editingJob ? "Edit Job" : "Post New Job"}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-8">
+            <CardContent className="space-y-6 lg:space-y-8">
               {/* Basic Job Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Job Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">
+                  Basic Job Information
+                </h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="title">Job Title *</Label>
+                    <Label htmlFor="title" className="text-sm font-medium">
+                      Job Title *
+                    </Label>
                     <Input
                       id="title"
                       value={jobForm.title}
                       onChange={(e) => handleInputChange("title", e.target.value)}
                       placeholder="e.g. Senior Frontend Developer"
                       required
+                      className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="location">Job Location *</Label>
+                    <Label htmlFor="location" className="text-sm font-medium">
+                      Job Location *
+                    </Label>
                     <Input
                       id="location"
                       value={jobForm.location}
                       onChange={(e) => handleInputChange("location", e.target.value)}
                       placeholder="e.g. San Francisco, CA or Remote"
                       required
+                      className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="type">Job Type *</Label>
+                    <Label htmlFor="type" className="text-sm font-medium">
+                      Job Type *
+                    </Label>
                     <Select value={jobForm.type} onValueChange={(value) => handleInputChange("type", value)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1260,7 +1282,9 @@ interface Candidate {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="positions">Position Available *</Label>
+                    <Label htmlFor="positions" className="text-sm font-medium">
+                      Position Available *
+                    </Label>
                     <Input
                       id="positions"
                       type="number"
@@ -1269,6 +1293,7 @@ interface Candidate {
                       min="1"
                       placeholder="Number of positions"
                       required
+                      className="mt-1"
                     />
                   </div>
                   <div>
@@ -1295,37 +1320,45 @@ interface Candidate {
 
               {/* Salary and Benefits */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Salary and Benefits</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">Salary and Benefits</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="salaryMin">Minimum Salary *</Label>
+                    <Label htmlFor="salaryMin" className="text-sm font-medium">
+                      Minimum Salary *
+                    </Label>
                     <Input
                       id="salaryMin"
                       type="number"
                       value={jobForm.salaryMin}
                       onChange={(e) => handleInputChange("salaryMin", e.target.value)}
                       placeholder="50000"
+                      className="mt-1"
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="salaryMax">Maximum Salary *</Label>
+                    <Label htmlFor="salaryMax" className="text-sm font-medium">
+                      Maximum Salary *
+                    </Label>
                     <Input
                       id="salaryMax"
                       type="number"
                       value={jobForm.salaryMax}
                       onChange={(e) => handleInputChange("salaryMax", e.target.value)}
                       placeholder="80000"
+                      className="mt-1"
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="salaryPeriod">Salary Period *</Label>
+                    <Label htmlFor="salaryPeriod" className="text-sm font-medium">
+                      Salary Period *
+                    </Label>
                     <Select
                       value={jobForm.salaryPeriod}
                       onValueChange={(value) => handleInputChange("salaryPeriod", value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1342,10 +1375,10 @@ interface Candidate {
 
               {/* Skills and Description */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Job Details</h3>
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">Job Details</h3>
                 <div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="skills">Required Skills *</Label>
+                    <Label htmlFor="skills" className="text-sm font-medium">Required Skills *</Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -1358,14 +1391,20 @@ interface Candidate {
                             return
                           }
                           setAiSuggestingSkills(true)
-                          const res = await fetch(getBaseUrl('/job/get_skills_by_title'), {
+                          const res = await fetch(getBaseUrl('/api/ai/skills'), {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                             credentials: 'include',
                             body: new URLSearchParams({ job_title: title }).toString(),
                           })
-                          const text = await res.text()
-                          const suggested = text.replace(/\n/g, ' ').trim()
+                          let suggested = ''
+                          try {
+                            const data = await res.json()
+                            suggested = (data?.skills || '').toString().replace(/\n/g, ' ').trim()
+                          } catch {
+                            const text = await res.text()
+                            suggested = text.replace(/\n/g, ' ').trim()
+                          }
                           if (suggested) {
                             setJobForm((prev) => ({ ...prev, skills: suggested }))
                             toast({ title: 'Suggested', description: 'Skills filled from AI suggestion.' })
@@ -1401,13 +1440,14 @@ interface Candidate {
                     onChange={(e) => handleInputChange("skills", e.target.value)}
                     placeholder="React, TypeScript, Node.js (comma separated)"
                     required
+                    className="mt-1"
                   />
-                  <p className="text-sm text-gray-500 mt-1">Separate skills with commas</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">Separate skills with commas</p>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="description">Job Description *</Label>
+                    <Label htmlFor="description" className="text-sm font-medium">Job Description *</Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -1436,6 +1476,7 @@ interface Candidate {
                     onChange={(e) => handleInputChange("description", e.target.value)}
                     placeholder="Describe the role, responsibilities, company culture, and what makes this position exciting..."
                     required
+                    className="mt-1"
                   />
                 </div>
 
@@ -1444,12 +1485,14 @@ interface Candidate {
 
               {/* Location Details */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Location Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">Location Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="country">Country *</Label>
+                    <Label htmlFor="country" className="text-sm font-medium">
+                      Country *
+                    </Label>
                     <Select value={jobForm.country} onValueChange={(value) => handleInputChange("country", value)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1465,13 +1508,15 @@ interface Candidate {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="province">Province/State *</Label>
+                    <Label htmlFor="province" className="text-sm font-medium">
+                      Province/State *
+                    </Label>
                     <Select 
                       value={jobForm.province} 
                       onValueChange={(value) => handleInputChange("province", value)}
                       disabled={!jobForm.country || loadingStates}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue placeholder={loadingStates ? "Loading..." : "Select province/state"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1484,13 +1529,15 @@ interface Candidate {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="city">City *</Label>
+                    <Label htmlFor="city" className="text-sm font-medium">
+                      City *
+                    </Label>
                     <Select 
                       value={jobForm.city} 
                       onValueChange={(value) => handleInputChange("city", value)}
                       disabled={!jobForm.province || loadingCities}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue placeholder={loadingCities ? "Loading..." : "Select city"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1504,23 +1551,28 @@ interface Candidate {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="fullAddress">Full Address</Label>
+                  <Label htmlFor="fullAddress" className="text-sm font-medium">
+                    Full Address
+                  </Label>
                   <Input
                     id="fullAddress"
                     value={jobForm.fullAddress}
                     onChange={(e) => handleInputChange("fullAddress", e.target.value)}
                     placeholder="Complete street address (optional for remote positions)"
+                    className="mt-1"
                   />
-                  <p className="text-sm text-gray-500 mt-1">This will be used to show location on map</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">This will be used to show location on map</p>
                 </div>
               </div>
 
               {/* Application Settings */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Application Settings</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">Application Settings</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="expiryDate">Job Expiry Date *</Label>
+                    <Label htmlFor="expiryDate" className="text-sm font-medium">
+                      Job Expiry Date *
+                    </Label>
                     <Input
                       id="expiryDate"
                       type="date"
@@ -1528,15 +1580,18 @@ interface Candidate {
                       onChange={(e) => handleInputChange("expiryDate", e.target.value)}
                       min={new Date().toISOString().split("T")[0]}
                       required
+                      className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="applicationSettings">How should candidates apply? *</Label>
+                    <Label htmlFor="applicationSettings" className="text-sm font-medium">
+                      How should candidates apply? *
+                    </Label>
                     <Select
                       value={jobForm.applicationSettings}
                       onValueChange={(value) => handleInputChange("applicationSettings", value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1552,10 +1607,12 @@ interface Candidate {
 
               {/* Work Schedule */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Work Schedule</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">Work Schedule</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="hoursPerWeek">Hours per Week *</Label>
+                    <Label htmlFor="hoursPerWeek" className="text-sm font-medium">
+                      Hours per Week *
+                    </Label>
                     <Input
                       id="hoursPerWeek"
                       type="number"
@@ -1565,12 +1622,15 @@ interface Candidate {
                       max="80"
                       placeholder="40"
                       required
+                      className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="schedule">Job Schedule *</Label>
+                    <Label htmlFor="schedule" className="text-sm font-medium">
+                      Job Schedule *
+                    </Label>
                     <Select value={jobForm.schedule} onValueChange={(value) => handleInputChange("schedule", value)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1584,9 +1644,11 @@ interface Candidate {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="urgency">Hiring Urgency *</Label>
+                    <Label htmlFor="urgency" className="text-sm font-medium">
+                      Hiring Urgency *
+                    </Label>
                     <Select value={jobForm.urgency} onValueChange={(value) => handleInputChange("urgency", value)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1602,26 +1664,32 @@ interface Candidate {
 
               {/* Timeline */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Timeline</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">Timeline</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="startDate">Planned Start Date</Label>
+                    <Label htmlFor="startDate" className="text-sm font-medium">
+                      Planned Start Date
+                    </Label>
                     <Input
                       id="startDate"
                       type="date"
                       value={jobForm.startDate}
                       onChange={(e) => handleInputChange("startDate", e.target.value)}
                       min={new Date().toISOString().split("T")[0]}
+                      className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="deadline">Application Deadline</Label>
+                    <Label htmlFor="deadline" className="text-sm font-medium">
+                      Application Deadline
+                    </Label>
                     <Input
                       id="deadline"
                       type="date"
                       value={jobForm.deadline}
                       onChange={(e) => handleInputChange("deadline", e.target.value)}
                       min={new Date().toISOString().split("T")[0]}
+                      className="mt-1"
                     />
                   </div>
                 </div>
@@ -1629,10 +1697,12 @@ interface Candidate {
 
               {/* Contact Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Contact Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">Contact Information</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="notificationEmail">Notification Email *</Label>
+                    <Label htmlFor="notificationEmail" className="text-sm font-medium">
+                      Notification Email *
+                    </Label>
                     <Input
                       id="notificationEmail"
                       type="email"
@@ -1640,8 +1710,9 @@ interface Candidate {
                       onChange={(e) => handleInputChange("notificationEmail", e.target.value)}
                       placeholder="hr@company.com"
                       required
+                      className="mt-1"
                     />
-                    <p className="text-sm text-gray-500 mt-1">Where should application notifications be sent?</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">Where should application notifications be sent?</p>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
@@ -1650,15 +1721,15 @@ interface Candidate {
                         id="allowCalls"
                         checked={jobForm.allowCalls}
                         onChange={(e) => handleInputChange("allowCalls", e.target.checked)}
-                        className="rounded border-gray-300"
+                          className="mt-1 rounded border-gray-300"
                         title="Allow direct calls from candidates"
                         placeholder="Allow direct calls"
                       />
-                      <Label htmlFor="allowCalls">Allow direct calls from candidates</Label>
+                      <Label htmlFor="allowCalls" className="text-sm font-medium">Allow direct calls from candidates</Label>
                     </div>
                     {jobForm.allowCalls && (
                       <div>
-                        <Label htmlFor="phoneNumber">Phone Number *</Label>
+                        <Label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number *</Label>
                         <Input
                           id="phoneNumber"
                           type="tel"
@@ -1674,7 +1745,7 @@ interface Candidate {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-4 pt-6 border-t">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 pt-6 border-t">
                 {editingJob && (
                   <Button
                     variant="outline"
@@ -1758,106 +1829,138 @@ interface Candidate {
                   <p>No jobs found. Click "Post New Job" to create your first job listing.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Job Title</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Date Posted</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Candidates</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {jobs.map((job) => (
-                      <TableRow key={job.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{job.title}</div>
-                            <div className="text-sm text-gray-500">{job.type}</div>
+                <div className="space-y-4">
+                  {jobs.map((job) => (
+                    <Card key={job.id} className="hover:shadow-md transition-shadow cursor-pointer border border-gray-200">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <h4 className="font-semibold text-gray-900 text-sm sm:text-base break-words">{job.title}</h4>
+                            <p className="text-xs sm:text-sm text-gray-600 break-words">{job.location}</p>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500">
+                              <span className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+                                <span className="truncate">{job.datePosted ? new Date(job.datePosted).toLocaleDateString() : ''}</span>
+                              </span>
+                              <Badge variant="outline" className="w-fit">
+                                {job.type}
+                              </Badge>
+                              <Badge
+                                variant={job.status === "Active" ? "default" : "secondary"}
+                                className={job.status === "Active" ? "bg-emerald-600" : ""}
+                              >
+                                {job.status}
+                              </Badge>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1 sm:gap-2 mt-3">
+                              <Badge
+                                variant="outline"
+                                className="cursor-pointer hover:bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                                onClick={() => {
+                                  setSelectedJob(job)
+                                  setCandidateView("applied")
+                                  handleViewCandidates(job)
+                                }}
+                              >
+                                Applied: {job?.candidates?.applied ?? 0}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className="cursor-pointer hover:bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                                onClick={() => {
+                                  setSelectedJob(job)
+                                  setCandidateView("reviewed")
+                                  handleViewCandidates(job)
+                                }}
+                              >
+                                Reviewed: {job?.candidates?.reviewed ?? 0}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className="cursor-pointer hover:bg-green-50 text-green-700 border-green-200 text-xs"
+                                onClick={() => {
+                                  setSelectedJob(job)
+                                  setCandidateView("shortlisted")
+                                  handleViewCandidates(job)
+                                }}
+                              >
+                                Shortlisted: {job?.candidates?.shortlisted ?? 0}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className="cursor-pointer hover:bg-purple-50 text-purple-700 border-purple-200 text-xs"
+                                onClick={() => {
+                                  setSelectedJob(job)
+                                  setCandidateView("contacted")
+                                  handleViewCandidates(job)
+                                }}
+                              >
+                                Contacted: {job?.candidates?.contacted ?? 0}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className="cursor-pointer hover:bg-red-50 text-red-700 border-red-200 text-xs"
+                                onClick={() => {
+                                  setSelectedJob(job)
+                                  setCandidateView("rejected")
+                                  handleViewCandidates(job)
+                                }}
+                              >
+                                Rejected: {job?.candidates?.rejected ?? 0}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className="cursor-pointer hover:bg-emerald-50 text-emerald-700 border-emerald-200 text-xs"
+                                onClick={() => {
+                                  setSelectedJob(job)
+                                  setCandidateView("hired")
+                                  handleViewCandidates(job)
+                                }}
+                              >
+                                Hired: {job?.candidates?.hired ?? 0}
+                              </Badge>
+                            </div>
+
+                            <p className="text-xs sm:text-sm text-gray-700 line-clamp-2 break-words">{job.description}</p>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-1 text-gray-400" />
-                            {job.location}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-                            {job.datePosted ? new Date(job.datePosted).toLocaleDateString() : ''}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={job.status === "Active" ? "default" : "secondary"}
-                            className={job.status === "Active" ? "bg-green-100 text-green-800" : ""}
-                          >
-                            {job.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            <Badge
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <Button
+                              size="sm"
                               variant="outline"
-                              className="cursor-pointer hover:bg-blue-50"
                               onClick={() => {
                                 setSelectedJob(job)
                                 setCandidateView("applied")
                                 handleViewCandidates(job)
                               }}
+                              className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent text-xs sm:text-sm"
                             >
-                              Applied: {job?.candidates?.applied ?? 0}
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className="cursor-pointer hover:bg-yellow-50"
-                              onClick={() => {
-                                setSelectedJob(job)
-                                setCandidateView("reviewed")
-                                handleViewCandidates(job)
-                              }}
-                            >
-                              Reviewed: {job?.candidates?.reviewed ?? 0}
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className="cursor-pointer hover:bg-green-50"
-                              onClick={() => {
-                                setSelectedJob(job)
-                                setCandidateView("shortlisted")
-                                handleViewCandidates(job)
-                              }}
-                            >
-                              Shortlisted: {job?.candidates?.shortlisted ?? 0}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => handleEditJob(job)}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleEditJob(job)}>
-                              <Edit className="h-4 w-4" />
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                              View Applications
                             </Button>
                             <Button
-                              variant="outline"
                               size="sm"
-                              className="text-red-600 hover:bg-red-50 bg-transparent"
-                              onClick={() => handleDeleteJob(job.id)}
+                              variant="outline"
+                              onClick={() => handleEditJob(job)}
+                              className="text-blue-600 border-blue-600 hover:bg-blue-50 bg-transparent text-xs sm:text-sm"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteJob(job.id)}
+                              className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent text-xs sm:text-sm"
+                            >
+                              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                              Delete
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    </TableBody>
-                  </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -1880,17 +1983,65 @@ interface Candidate {
                   </div>
                 ) : (
                   <Tabs value={candidateView} onValueChange={setCandidateView}>
-                    <TabsList className="grid w-full grid-cols-6">
-                      <TabsTrigger value="applied">Applied ({candidates?.applied?.length || 0})</TabsTrigger>
-                      <TabsTrigger value="reviewed">Reviewed ({candidates?.reviewed?.length || 0})</TabsTrigger>
-                      <TabsTrigger value="shortlisted">Shortlisted ({candidates?.shortlisted?.length || 0})</TabsTrigger>
-                      <TabsTrigger value="contacted">Contact/interview ({candidates?.contacted?.length || 0})</TabsTrigger>
-                      <TabsTrigger value="rejected">Rejected ({candidates?.rejected?.length || 0})</TabsTrigger>
-                      <TabsTrigger value="hired">Hired ({candidates?.hired?.length || 0})</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1 h-auto p-1">
+                      <TabsTrigger
+                        value="applied"
+                        className="text-xs md:text-sm px-1 md:px-2 py-2 flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-1"
+                      >
+                        <span>Applied</span>
+                        <Badge variant="secondary" className="text-xs px-1 py-0">
+                          {candidates?.applied?.length || 0}
+                        </Badge>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="reviewed"
+                        className="text-xs md:text-sm px-1 md:px-2 py-2 flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-1"
+                      >
+                        <span>Reviewed</span>
+                        <Badge variant="secondary" className="text-xs px-1 py-0">
+                          {candidates?.reviewed?.length || 0}
+                        </Badge>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="shortlisted"
+                        className="text-xs md:text-sm px-1 md:px-2 py-2 flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-1"
+                      >
+                        <span>Shortlisted</span>
+                        <Badge variant="secondary" className="text-xs px-1 py-0">
+                          {candidates?.shortlisted?.length || 0}
+                        </Badge>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="contacted"
+                        className="text-xs md:text-sm px-1 md:px-2 py-2 flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-1"
+                      >
+                        <span>Contacted</span>
+                        <Badge variant="secondary" className="text-xs px-1 py-0">
+                          {candidates?.contacted?.length || 0}
+                        </Badge>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="rejected"
+                        className="text-xs md:text-sm px-1 md:px-2 py-2 flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-1"
+                      >
+                        <span>Rejected</span>
+                        <Badge variant="secondary" className="text-xs px-1 py-0">
+                          {candidates?.rejected?.length || 0}
+                        </Badge>
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="hired"
+                        className="text-xs md:text-sm px-1 md:px-2 py-2 flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-1"
+                      >
+                        <span>Hired</span>
+                        <Badge variant="secondary" className="text-xs px-1 py-0">
+                          {candidates?.hired?.length || 0}
+                        </Badge>
+                      </TabsTrigger>
                     </TabsList>
 
                   <TabsContent value="applied" className="mt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {candidates?.applied?.map((candidate) => (
                         <CandidateCard key={candidate.id} candidate={candidate} />
                       ))}
@@ -1901,7 +2052,7 @@ interface Candidate {
                   </TabsContent>
 
                   <TabsContent value="shortlisted" className="mt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {candidates?.shortlisted?.map((candidate) => (
                         <CandidateCard key={candidate.id} candidate={candidate} />
                       ))}
@@ -1912,7 +2063,7 @@ interface Candidate {
                   </TabsContent>
 
                   <TabsContent value="reviewed" className="mt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {candidates?.reviewed?.map((candidate) => (
                         <CandidateCard key={candidate.id} candidate={candidate} />
                       ))}
@@ -1923,7 +2074,7 @@ interface Candidate {
                   </TabsContent>
 
                   <TabsContent value="contacted" className="mt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {candidates?.contacted?.map((candidate) => (
                         <CandidateCard key={candidate.id} candidate={candidate} />
                       ))}
@@ -1934,21 +2085,24 @@ interface Candidate {
                   </TabsContent>
 
                   <TabsContent value="rejected" className="mt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {candidates?.rejected?.map((candidate) => (
-                        <div key={candidate.id} className="relative">
-                          <CandidateCard candidate={candidate} />
-                          <div className="absolute top-2 right-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
-                              onClick={() => moveCandidateToStatus(candidate.id, "shortlisted")}
-                            >
-                              Move to Shortlisted
-                            </Button>
-                          </div>
-                        </div>
+                        <CandidateCard
+                          key={candidate.id}
+                          candidate={candidate}
+                          extraFooter={
+                            <div className="flex justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full sm:w-auto text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
+                                onClick={() => moveCandidateToStatus(candidate.id, "shortlisted")}
+                              >
+                                Move to Shortlisted
+                              </Button>
+                            </div>
+                          }
+                        />
                       ))}
                     </div>
                     {(!candidates?.rejected || candidates.rejected.length === 0) && (
@@ -1957,7 +2111,7 @@ interface Candidate {
                   </TabsContent>
 
                   <TabsContent value="hired" className="mt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {candidates?.hired?.map((candidate) => (
                         <CandidateCard key={candidate.id} candidate={candidate} />
                       ))}

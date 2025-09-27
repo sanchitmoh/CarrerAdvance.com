@@ -85,7 +85,9 @@ function ResumeBuilderContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen w-full overflow-x-hidden">
+      <div className="container mx-auto max-w-6xl px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+        <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div className="flex items-center space-x-3">
@@ -145,14 +147,14 @@ function ResumeBuilderContent() {
       )}
 
       {/* Template Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {templates.map((template) => (
           <Card
             key={template.id}
             className="cursor-pointer hover:shadow-lg transition-shadow border-emerald-200 hover:border-emerald-300"
           >
             <CardContent className="p-6">
-              <div className="aspect-[3/4] bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
+              <div className="aspect-[3/4] bg-gray-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
                 <img
                   src={template.preview || "/placeholder.svg"}
                   alt={template.name}
@@ -174,7 +176,7 @@ function ResumeBuilderContent() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card
           className="border-emerald-200 hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() => router.push("/job-seekers/dashboard/resume")}
@@ -193,6 +195,8 @@ function ResumeBuilderContent() {
             <p className="text-sm text-gray-600">Explore more template options</p>
           </CardContent>
         </Card>
+      </div>
+        </div>
       </div>
     </div>
   )

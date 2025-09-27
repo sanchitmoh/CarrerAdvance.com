@@ -14,10 +14,10 @@ import {
   FileText,
   Shield,
   Settings,
-  User,
+  X,
 } from "lucide-react"
 
-const sidebarItems = [
+export const sidebarItems = [
   {
     title: "Dashboard",
     href: "/admin/dashboard",
@@ -70,65 +70,95 @@ const sidebarItems = [
   },
 ]
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  isMobileMenuOpen?: boolean
+  onClose?: () => void
+}
+
+function AdminSidebar({ isMobileMenuOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname()
 
   return (
-    <div className="sidebar-group group fixed left-0 top-0 z-40 h-full w-16 hover:w-64 bg-gradient-to-b from-green-600 to-green-800 transition-all duration-300 ease-in-out shadow-lg">
-      <div className="flex flex-col h-full">
-        <div className="p-4 border-b border-green-500/30">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-sm">CA</span>
-            </div>
-            <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
-              <h2 className="text-lg font-bold text-white whitespace-nowrap">CareerAdvance</h2>
-              <p className="text-xs text-green-100 whitespace-nowrap">Admin Panel</p>
-            </div>
+    <>
+      <div className="hidden lg:flex fixed left-0 top-0 h-full w-20 bg-white border-r border-gray-200 flex-col items-center py-4 z-40">
+        {/* Logo */}
+        <div className="mb-8">
+          <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-lg">CA</span>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-4">
-          <div className="space-y-2 px-2">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
+        {/* Navigation Items */}
+        <nav className="flex-1 flex flex-col space-y-2">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 relative",
-                    isActive ? "bg-white/20 text-white shadow-md" : "text-green-100 hover:bg-white/10 hover:text-white",
-                  )}
-                >
-                  <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-green-200")} />
-                  <span className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-                    {item.title}
-                  </span>
-                  {isActive && (
-                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-white rounded-l-full" />
-                  )}
-                </Link>
-              )
-            })}
-          </div>
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "group relative flex items-center justify-center w-12 h-12 rounded-lg transition-colors",
+                  isActive ? "bg-green-100 text-green-600" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                )}
+                title={item.title}
+              >
+                <Icon className="w-5 h-5" />
+
+                {/* Tooltip */}
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                  {item.title}
+                </div>
+              </Link>
+            )
+          })}
         </nav>
-
-        <div className="p-4 border-t border-green-500/30">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-              <User className="w-4 h-4 text-white" />
-            </div>
-            <div className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
-              <p className="text-sm font-medium text-white truncate whitespace-nowrap">Administrator</p>
-              <p className="text-xs text-green-100 truncate whitespace-nowrap">admin@careeradvance.com</p>
-            </div>
-          </div>
-        </div>
       </div>
-    </div>
+
+      <div
+        className={cn(
+          "lg:hidden fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40 transform transition-transform duration-300 ease-in-out",
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold">CA</span>
+            </div>
+            <span className="text-lg font-semibold text-gray-900">CareerAdvance Admin</span>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Mobile Navigation */}
+        <nav className="p-4 space-y-2">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  "flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors",
+                  isActive ? "bg-green-100 text-green-600" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{item.title}</span>
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
+    </>
   )
 }
 

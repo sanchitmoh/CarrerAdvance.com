@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import BackButton from "@/components/back-button"
+import Link from "next/link"
 import {
   Plus,
   Search,
@@ -41,46 +42,41 @@ export default function JobsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedFilter, setSelectedFilter] = useState("all")
   const [activeTab, setActiveTab] = useState("all")
+  const [jobs, setJobs] = useState<Job[]>([])
 
-  // Sample jobs data - empty initially as per requirements
-  const [jobs] = useState<Job[]>([])
+  useEffect(() => {
+    const savedJobs = JSON.parse(localStorage.getItem("adminJobs") || "[]")
+    setJobs(savedJobs)
+  }, [])
+
+  const activeJobs = jobs.filter((job) => job.status === "Active")
+  const totalApplications = jobs.reduce((sum, job) => sum + job.applications, 0)
+  const avgSalary =
+    jobs.length > 0
+      ? Math.round(
+          jobs.reduce((sum, job) => {
+            const salaryMatch = job.salary.match(/\$(\d+(?:,\d+)?)/g)
+            if (salaryMatch) {
+              const salaries = salaryMatch.map((s) => Number.parseInt(s.replace(/[$,]/g, "")))
+              return sum + (salaries.length > 1 ? (salaries[0] + salaries[1]) / 2 : salaries[0])
+            }
+            return sum
+          }, 0) / jobs.length,
+        )
+      : 0
 
   const stats = [
-    {
-      title: "Total Jobs",
-      value: "0",
-      icon: Briefcase,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
-    {
-      title: "Active Jobs",
-      value: "0",
-      icon: TrendingUp,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-    },
-    {
-      title: "Total Applications",
-      value: "0",
-      icon: Users,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-    },
-    {
-      title: "Avg. Salary",
-      value: "$0",
-      icon: DollarSign,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-    },
+    { title: "Total Jobs", value: jobs.length.toString(), icon: Briefcase, color: "text-blue-600", bgColor: "bg-blue-50" },
+    { title: "Active Jobs", value: activeJobs.length.toString(), icon: TrendingUp, color: "text-green-600", bgColor: "bg-green-50" },
+    { title: "Total Applications", value: totalApplications.toString(), icon: Users, color: "text-purple-600", bgColor: "bg-purple-50" },
+    { title: "Avg. Salary", value: avgSalary > 0 ? `$${avgSalary.toLocaleString()}` : "$0", icon: DollarSign, color: "text-orange-600", bgColor: "bg-orange-50" },
   ]
 
   const filterTabs = [
-    { id: "all", label: "All Jobs", count: 0 },
-    { id: "active", label: "Active", count: 0 },
-    { id: "pending", label: "Pending", count: 0 },
-    { id: "expired", label: "Expired", count: 0 },
+    { id: "all", label: "All Jobs", count: jobs.length },
+    { id: "active", label: "Active", count: activeJobs.length },
+    { id: "pending", label: "Pending", count: jobs.filter((job) => job.status === "Pending").length },
+    { id: "expired", label: "Expired", count: jobs.filter((job) => job.status === "Expired").length },
   ]
 
   const filteredJobs = jobs.filter((job) => {
@@ -106,35 +102,38 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <div className="px-4 sm:px-6 md:px-8 pt-4">
+        <BackButton />
+      </div>
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Job Management</h1>
-              <p className="text-gray-600">Manage job postings and applications</p>
-            </div>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Job
-            </Button>
+        <div className="px-4 sm:px-6 md:px-8 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Job Management</h1>
+            <p className="text-gray-600">Manage job postings and applications</p>
           </div>
+          <Link href="/admin/jobs/add" className="self-stretch sm:self-auto">
+            <Button className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto flex items-center justify-center">
+              <Plus className="h-4 w-4 mr-2" /> Add Job
+            </Button>
+          </Link>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 md:p-8 space-y-6">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {stats.map((stat, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</p>
                   </div>
                   <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
                   </div>
                 </div>
               </CardContent>
@@ -142,10 +141,10 @@ export default function JobsPage() {
           ))}
         </div>
 
-        {/* Search and Filters */}
+        {/* Search & Filter */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -155,8 +154,8 @@ export default function JobsPage() {
                   className="pl-10"
                 />
               </div>
-              <Select value={selectedFilter} onValueChange={setSelectedFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+              <Select value={selectedFilter} onValueChange={setSelectedFilter} className="w-full sm:w-[180px]">
+                <SelectTrigger>
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter" />
                 </SelectTrigger>
@@ -170,7 +169,7 @@ export default function JobsPage() {
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
               {filterTabs.map((tab) => (
                 <Button
                   key={tab.id}
@@ -187,79 +186,41 @@ export default function JobsPage() {
               ))}
             </div>
 
-            {/* Jobs Table */}
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Job Title</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Salary</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Applications</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            {/* Jobs Table - visible on md+ */}
+            <div className="hidden md:block border rounded-lg overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Job Title</th>
+                    <th className="px-4 py-2 text-left">Company</th>
+                    <th className="px-4 py-2 text-left">Location</th>
+                    <th className="px-4 py-2 text-left">Type</th>
+                    <th className="px-4 py-2 text-left">Salary</th>
+                    <th className="px-4 py-2 text-left">Status</th>
+                    <th className="px-4 py-2 text-left">Applications</th>
+                    <th className="px-4 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {filteredJobs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12">
-                        <div className="flex flex-col items-center space-y-4">
-                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                            <Briefcase className="h-8 w-8 text-gray-400" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900">Jobs (0)</h3>
-                            <p className="text-gray-500 mt-1">Manage job postings and monitor applications</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <tr>
+                      <td colSpan={8} className="text-center py-12 text-gray-500">
+                        No jobs found
+                      </td>
+                    </tr>
                   ) : (
                     filteredJobs.map((job) => (
-                      <TableRow key={job.id} className="hover:bg-gray-50">
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                              <Briefcase className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900">{job.title}</div>
-                              <div className="text-sm text-gray-500 flex items-center">
-                                <Clock className="h-3 w-3 mr-1" />
-                                Posted {job.datePosted}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Building className="h-4 w-4 text-gray-400" />
-                            <span className="font-medium">{job.company}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <MapPin className="h-4 w-4 text-gray-400" />
-                            <span>{job.location}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{job.type}</Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{job.salary}</TableCell>
-                        <TableCell>
+                      <tr key={job.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2">{job.title}</td>
+                        <td className="px-4 py-2">{job.company}</td>
+                        <td className="px-4 py-2">{job.location}</td>
+                        <td className="px-4 py-2">{job.type}</td>
+                        <td className="px-4 py-2">{job.salary}</td>
+                        <td className="px-4 py-2">
                           <Badge className={getStatusColor(job.status)}>{job.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Users className="h-4 w-4 text-gray-400" />
-                            <span className="font-medium">{job.applications}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
+                        </td>
+                        <td className="px-4 py-2">{job.applications}</td>
+                        <td className="px-4 py-2 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
@@ -268,25 +229,78 @@ export default function JobsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Job
+                                <Eye className="h-4 w-4 mr-2" /> View
                               </DropdownMenuItem>
                               <DropdownMenuItem>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit Job
+                                <Edit className="h-4 w-4 mr-2" /> Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Job
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))
                   )}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile / tablet cards */}
+            <div className="md:hidden space-y-4">
+              {filteredJobs.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No jobs found</div>
+              ) : (
+                filteredJobs.map((job) => (
+                  <Card key={job.id} className="shadow-sm hover:shadow-md">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">{job.title}</h3>
+                          <p className="text-sm text-gray-500 flex items-center gap-1">
+                            <Building className="h-3 w-3" /> {job.company}
+                          </p>
+                          <p className="text-sm text-gray-500 flex items-center gap-1">
+                            <MapPin className="h-3 w-3" /> {job.location}
+                          </p>
+                          <p className="text-sm text-gray-500 flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> Posted {job.datePosted}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge className={getStatusColor(job.status)}>{job.status}</Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <Eye className="h-4 w-4 mr-2" /> View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Edit className="h-4 w-4 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Badge variant="outline">{job.type}</Badge>
+                        <span className="font-medium">{job.salary}</span>
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3 w-3" /> {job.applications}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

@@ -886,9 +886,9 @@ export default function ResumeBuilderPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex">
+      <div className="flex flex-col lg:flex-row">
         {/* Editor Panel */}
-        <div className="w-1/2 p-6 bg-white border-r border-gray-200 overflow-y-auto max-h-screen">
+        <div className="w-full lg:w-1/2 p-3 sm:p-4 lg:p-6 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 overflow-y-auto max-h-screen">
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -924,7 +924,7 @@ export default function ResumeBuilderPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap gap-2 lg:gap-3">
               <Button
                 onClick={handleSave}
                 className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
@@ -2001,22 +2001,22 @@ export default function ResumeBuilderPage() {
         </div>
 
         {/* Live Preview Panel */}
-        <div className="w-1/2 p-6 bg-gray-100 overflow-y-auto max-h-screen">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
-            <div className="space-y-6">
+        <div className="w-full lg:w-1/2 p-3 sm:p-4 lg:p-6 bg-gray-100 overflow-y-auto max-h-screen">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 max-w-full lg:max-w-2xl mx-auto">
+            <div className="space-y-4 lg:space-y-6">
               {/* Header */}
-              <div className="text-center border-b border-gray-200 pb-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{resumeData.personalInfo.fullName}</h1>
-                <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+              <div className="text-center border-b border-gray-200 pb-4 lg:pb-6">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 break-words">{resumeData.personalInfo.fullName}</h1>
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                   <span>{resumeData.personalInfo.email}</span>
-                  <span>•</span>
+                  <span className="hidden sm:inline">•</span>
                   <span>{resumeData.personalInfo.phone}</span>
-                  <span>•</span>
+                  <span className="hidden sm:inline">•</span>
                   <span>{resumeData.personalInfo.location}</span>
                 </div>
-                <div className="flex flex-wrap justify-center gap-4 text-sm text-emerald-600 mt-2">
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-emerald-600 mt-2">
                   <span>{resumeData.personalInfo.linkedin}</span>
-                  <span>•</span>
+                  <span className="hidden sm:inline">•</span>
                   <span>{resumeData.personalInfo.website}</span>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import BackButton from "@/components/back-button"
 import {
   Users,
   GraduationCap,
@@ -24,164 +26,48 @@ import {
   UserSearch,
 } from "lucide-react"
 
-type UIUser = {
-  id: number
-  name: string
-  email: string
-  role: string
-  status: string
-  joinDate?: string
-  lastActive?: string
-  stats?: string
-  avatar?: string
-  type?: string
-}
-
-const users = [
-  {
-    id: 1,
-    name: "Karan Kamble",
-    email: "karankamble@gmail.com",
-    role: "Student",
-    status: "Active",
-    joinDate: "8/23/2025",
-    lastActive: "8/23/2025",
-    stats: "0 enrolled\n0 completed",
-    avatar: "K",
-  },
-  {
-    id: 2,
-    name: "Admin User",
-    email: "admin@careeradvance.com",
-    role: "Admin",
-    status: "Active",
-    joinDate: "8/23/2025",
-    lastActive: "8/23/2025",
-    stats: "",
-    avatar: "A",
-  },
-  {
-    id: 3,
-    name: "John Employer",
-    email: "john@company.com",
-    role: "Employer",
-    status: "Active",
-    joinDate: "8/20/2025",
-    lastActive: "8/22/2025",
-    stats: "3 jobs posted\n12 applications",
-    avatar: "J",
-  },
-  {
-    id: 4,
-    name: "Sarah Seeker",
-    email: "sarah@email.com",
-    role: "Job-Seeker",
-    status: "Active",
-    joinDate: "8/18/2025",
-    lastActive: "8/23/2025",
-    stats: "5 applications\n2 interviews",
-    avatar: "S",
-  },
+// Sample stats and users data (same as your original)
+const stats = [
+  { title: "Total Users", value: "4", icon: Users, color: "text-blue-600", bgColor: "bg-blue-50" },
+  { title: "Active Students", value: "1", icon: GraduationCap, color: "text-green-600", bgColor: "bg-green-50" },
+  { title: "Active Teachers", value: "0", icon: UserCheck, color: "text-purple-600", bgColor: "bg-purple-50" },
+  { title: "Suspended Users", value: "0", icon: UserX, color: "text-red-600", bgColor: "bg-red-50" },
 ]
 
+const users = [
+  { id: 1, name: "Karan Kamble", email: "karankamble@gmail.com", role: "Student", status: "Active", joinDate: "8/23/2025", lastActive: "8/23/2025", stats: "0 enrolled\n0 completed", avatar: "K" },
+  { id: 2, name: "Admin User", email: "admin@careeradvance.com", role: "Admin", status: "Active", joinDate: "8/23/2025", lastActive: "8/23/2025", stats: "", avatar: "A" },
+  { id: 3, name: "John Employer", email: "john@company.com", role: "Employer", status: "Active", joinDate: "8/20/2025", lastActive: "8/22/2025", stats: "3 jobs posted\n12 applications", avatar: "J" },
+  { id: 4, name: "Sarah Seeker", email: "sarah@email.com", role: "Job-Seeker", status: "Active", joinDate: "8/18/2025", lastActive: "8/23/2025", stats: "5 applications\n2 interviews", avatar: "S" },
+]
+
+// Badge colors
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
-    case "active":
-      return "bg-green-100 text-green-800"
-    case "suspended":
-      return "bg-red-100 text-red-800"
-    case "pending":
-      return "bg-yellow-100 text-yellow-800"
-    default:
-      return "bg-gray-100 text-gray-800"
+    case "active": return "bg-green-100 text-green-800"
+    case "suspended": return "bg-red-100 text-red-800"
+    case "pending": return "bg-yellow-100 text-yellow-800"
+    default: return "bg-gray-100 text-gray-800"
   }
 }
-
 const getRoleColor = (role: string) => {
   switch (role.toLowerCase()) {
-    case "admin":
-      return "bg-purple-100 text-purple-800"
-    case "teacher":
-      return "bg-blue-100 text-blue-800"
-    case "student":
-      return "bg-green-100 text-green-800"
-    case "employer":
-      return "bg-orange-100 text-orange-800"
-    case "job-seeker":
-      return "bg-cyan-100 text-cyan-800"
-    default:
-      return "bg-gray-100 text-gray-800"
+    case "admin": return "bg-purple-100 text-purple-800"
+    case "teacher": return "bg-blue-100 text-blue-800"
+    case "student": return "bg-green-100 text-green-800"
+    case "employer": return "bg-orange-100 text-orange-800"
+    case "job-seeker": return "bg-cyan-100 text-cyan-800"
+    default: return "bg-gray-100 text-gray-800"
   }
 }
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
-  const [selectedUser, setSelectedUser] = useState<UIUser | null>(null)
+  const [selectedUser, setSelectedUser] = useState<(typeof users)[0] | null>(null)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
-  const [usersData, setUsersData] = useState<UIUser[]>([])
-
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      try {
-        const res = await fetch('/api/admin/users/list', { headers: { 'Accept': 'application/json' } })
-        const json = await res.json()
-        const list = Array.isArray(json?.data) ? json.data : []
-        const mapped: UIUser[] = list.map((u: any, idx: number) => {
-          const name = String(u?.name || '').trim() || 'User'
-          const email = String(u?.email || '').trim()
-          const role = String(u?.role || '').trim() || 'User'
-          const status = String(u?.status || '').trim() || 'Active'
-          const avatar = name.charAt(0).toUpperCase() || 'U'
-          return {
-            id: idx + 1,
-            name,
-            email,
-            role,
-            status,
-            avatar,
-            type: u?.type,
-          }
-        })
-        if (!cancelled) setUsersData(mapped)
-      } catch (e) {
-        // fallback to existing static users when API fails
-        if (!cancelled) setUsersData(users as unknown as UIUser[])
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const statsComputed = useMemo(() => {
-    const total = usersData.length
-    const activeStudents = usersData.filter(u => /student/i.test(u.role) && /active/i.test(u.status)).length
-    const activeEmployers = usersData.filter(u => /employer/i.test(u.role) && /active/i.test(u.status)).length
-    const suspended = usersData.filter(u => /suspend|deactive/i.test(u.status)).length
-    return [
-      { title: 'Total Users', value: String(total), icon: Users, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-      { title: 'Active Students', value: String(activeStudents), icon: GraduationCap, color: 'text-green-600', bgColor: 'bg-green-50' },
-      { title: 'Active Employers', value: String(activeEmployers), icon: Briefcase, color: 'text-purple-600', bgColor: 'bg-purple-50' },
-      { title: 'Suspended Users', value: String(suspended), icon: UserX, color: 'text-red-600', bgColor: 'bg-red-50' },
-    ]
-  }, [usersData])
-
-  const filteredUsers = usersData.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-
-    if (activeTab === "all") return matchesSearch
-    if (activeTab === "students") return matchesSearch && user.role.toLowerCase() === "student"
-    if (activeTab === "employers") return matchesSearch && user.role.toLowerCase() === "employer"
-    if (activeTab === "job-seekers") return matchesSearch && user.role.toLowerCase() === "job-seeker"
-
-    return matchesSearch
-  })
+  const [usersData, setUsersData] = useState(users)
 
   const tabs = [
     { id: "all", label: "All Users", icon: Users },
@@ -190,267 +76,232 @@ export default function UsersPage() {
     { id: "job-seekers", label: "Job-Seekers", icon: UserSearch },
   ]
 
-  const handleViewProfile = (user: UIUser) => {
-    setSelectedUser(user)
-    setIsProfileDialogOpen(true)
-  }
+  const filteredUsers = usersData.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    if (activeTab === "all") return matchesSearch
+    if (activeTab === "students") return matchesSearch && user.role.toLowerCase() === "student"
+    if (activeTab === "employers") return matchesSearch && user.role.toLowerCase() === "employer"
+    if (activeTab === "job-seekers") return matchesSearch && user.role.toLowerCase() === "job-seeker"
+    return matchesSearch
+  })
 
-  const handleSuspendUser = (userId: number) => {
-    setUsersData((prev) => prev.filter((user) => user.id !== userId))
-  }
-
-  const handleUserLogin = (user: UIUser) => {
-    setSelectedUser(user)
-    setIsLoginDialogOpen(true)
-  }
+  const handleViewProfile = (user: (typeof users)[0]) => { setSelectedUser(user); setIsProfileDialogOpen(true) }
+  const handleSuspendUser = (userId: number) => { setUsersData((prev) => prev.filter((user) => user.id !== userId)) }
+  const handleUserLogin = (user: (typeof users)[0]) => { setSelectedUser(user); setIsLoginDialogOpen(true) }
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <div className="px-4 sm:px-6 pt-4">
+        <BackButton />
+      </div>
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-              <p className="text-gray-600">Manage and monitor all platform users</p>
-            </div>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
+        <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Manage and monitor all platform users</p>
           </div>
+          <Link href="/admin/users/add">
+            <Button className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto text-sm sm:text-base">
+              <Plus className="h-4 w-4 mr-2" /> Add User
+            </Button>
+          </Link>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statsComputed.map((stat, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+      {/* Stats */}
+      <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, i) => (
+          <Card key={i} className="hover:shadow-lg transition-shadow">
+            <CardContent className="flex justify-between items-center p-4 sm:p-6">
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">{stat.title}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+              </div>
+              <div className={`p-2 sm:p-3 rounded-full ${stat.bgColor}`}>
+                <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Tabs & Search */}
+      <Card className="p-4 sm:p-6 mb-6">
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {tabs.map((tab) => (
+            <Button
+              key={tab.id}
+              variant={activeTab === tab.id ? "default" : "outline"}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 whitespace-nowrap px-3 py-2 ${
+                activeTab === tab.id
+                  ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+              }`}
+            >
+              <tab.icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </Button>
+          ))}
+        </div>
+
+        <div className="relative mt-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </Card>
+
+      {/* Users List */}
+      <div className="p-4 sm:p-6 space-y-4">
+        {/* Mobile Cards */}
+        <div className="sm:hidden space-y-4">
+          {filteredUsers.map((user) => (
+            <Card key={user.id} className="p-4 shadow-sm border border-gray-200">
+              <div className="flex justify-between items-start">
+                <div className="flex gap-3">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <span className="text-emerald-600 font-bold">{user.avatar}</span>
                   </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                    <div className="text-sm text-gray-500 break-words">{user.email}</div>
                   </div>
                 </div>
-              </CardContent>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleViewProfile(user)}>
+                      <Eye className="h-4 w-4 mr-2" /> View Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSuspendUser(user.id)}>
+                      <Ban className="h-4 w-4 mr-2" /> Suspend User
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleUserLogin(user)}>
+                      <LogIn className="h-4 w-4 mr-2" /> User Login
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Badge className={`${getRoleColor(user.role)} px-2 py-1 text-xs`}>{user.role}</Badge>
+                <Badge className={`${getStatusColor(user.status)} px-2 py-1 text-xs`}>{user.status}</Badge>
+              </div>
+              {user.stats && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{user.stats}</p>}
             </Card>
           ))}
         </div>
 
-        {/* Tab Navigation */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap gap-2">
-                {tabs.map((tab) => (
-                  <Button
-                    key={tab.id}
-                    variant={activeTab === tab.id ? "default" : "outline"}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 ${
-                      activeTab === tab.id
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                        : "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
-                    }`}
-                  >
-                    <tab.icon className="h-4 w-4" />
-                    {tab.label}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Users Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Users className="h-5 w-5 mr-2" />
-              Users ({filteredUsers.length})
-            </CardTitle>
-            <CardDescription>Manage user accounts and permissions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Join Date</TableHead>
-                    <TableHead>Last Active</TableHead>
-                    <TableHead>Stats</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                            <span className="text-emerald-600 font-medium">{user.avatar}</span>
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">{user.name}</div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getRoleColor(user.role)}>{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(user.status)}>{user.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">{user.joinDate}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{user.lastActive}</TableCell>
-                      <TableCell>
-                        {user.stats && <div className="text-sm text-gray-600 whitespace-pre-line">{user.stats}</div>}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewProfile(user)}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSuspendUser(user.id)}>
-                              <Ban className="h-4 w-4 mr-2" />
-                              Suspend User
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUserLogin(user)}>
-                              <LogIn className="h-4 w-4 mr-2" />
-                              User Login
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Desktop/Table */}
+        <div className="hidden sm:block overflow-x-auto">
+          <Table className="min-w-[700px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden lg:table-cell">Join Date</TableHead>
+                <TableHead className="hidden lg:table-cell">Last Active</TableHead>
+                <TableHead className="hidden xl:table-cell">Stats</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                        <span className="text-emerald-600 font-medium">{user.avatar}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                        <div className="text-sm text-gray-500 break-words">{user.email}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell><Badge className={getRoleColor(user.role)}>{user.role}</Badge></TableCell>
+                  <TableCell><Badge className={getStatusColor(user.status)}>{user.status}</Badge></TableCell>
+                  <TableCell className="hidden lg:table-cell">{user.joinDate}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{user.lastActive}</TableCell>
+                  <TableCell className="hidden xl:table-cell">{user.stats && <div className="whitespace-pre-line">{user.stats}</div>}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewProfile(user)}>
+                          <Eye className="h-4 w-4 mr-2" /> View Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSuspendUser(user.id)}>
+                          <Ban className="h-4 w-4 mr-2" /> Suspend User
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleUserLogin(user)}>
+                          <LogIn className="h-4 w-4 mr-2" /> User Login
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
-      {/* View Profile Dialog */}
+      {/* Dialogs */}
       <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>User Profile</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-md w-full">
+          <DialogHeader><DialogTitle>User Profile</DialogTitle></DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
-              {/* User Avatar and Name */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
                   <span className="text-emerald-600 font-bold text-xl">{selectedUser.avatar}</span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{selectedUser.name}</h3>
-                  <p className="text-gray-600">{selectedUser.email}</p>
+                  <p className="font-semibold text-gray-900">{selectedUser.name}</p>
+                  <p className="text-gray-600 text-sm">{selectedUser.email}</p>
                 </div>
               </div>
-
-              {/* User Details */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Role:</span>
-                  <Badge className={getRoleColor(selectedUser.role)}>{selectedUser.role}</Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Status:</span>
-                  <Badge className={getStatusColor(selectedUser.status)}>{selectedUser.status}</Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Joined:</span>
-                  <span className="text-sm text-gray-900">{selectedUser.joinDate}</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Last Active:</span>
-                  <span className="text-sm text-gray-900">{selectedUser.lastActive}</span>
-                </div>
-
-                {/* Student-specific fields */}
-                {selectedUser.role.toLowerCase() === "student" && (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">Courses Enrolled:</span>
-                      <span className="text-sm text-gray-900">0</span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-600">Courses Completed:</span>
-                      <span className="text-sm text-gray-900">0</span>
-                    </div>
-                  </>
-                )}
+              <div className="space-y-2">
+                <div className="flex justify-between"><span>Role:</span> <Badge className={getRoleColor(selectedUser.role)}>{selectedUser.role}</Badge></div>
+                <div className="flex justify-between"><span>Status:</span> <Badge className={getStatusColor(selectedUser.status)}>{selectedUser.status}</Badge></div>
+                <div className="flex justify-between"><span>Joined:</span> {selectedUser.joinDate}</div>
+                <div className="flex justify-between"><span>Last Active:</span> {selectedUser.lastActive}</div>
               </div>
-
-              {/* Edit Profile button */}
-              <div className="pt-4 border-t">
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
-              </div>
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4"><Edit className="h-4 w-4 mr-2"/> Edit Profile</Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* User Login Dialog */}
       <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Admin Login</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-md w-full">
+          <DialogHeader><DialogTitle>Admin Login</DialogTitle></DialogHeader>
           {selectedUser && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-emerald-600 font-bold text-xl">{selectedUser.avatar}</span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Login to {selectedUser.name} Account</h3>
-                <p className="text-gray-600 text-sm">
-                  You are about to login as {selectedUser.name} ({selectedUser.role})
-                </p>
+            <div className="space-y-4 text-center">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+                <span className="text-emerald-600 font-bold text-xl">{selectedUser.avatar}</span>
               </div>
-
-              <div className="pt-4">
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Login
-                </Button>
-              </div>
+              <p className="font-semibold text-gray-900">Login to {selectedUser.name} Account</p>
+              <p className="text-gray-600 text-sm">You are about to login as {selectedUser.name} ({selectedUser.role})</p>
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700"><LogIn className="h-4 w-4 mr-2"/> Login</Button>
             </div>
           )}
         </DialogContent>

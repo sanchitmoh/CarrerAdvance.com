@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,404 +9,665 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, Plus, Edit, Trash2, Eye, Calendar, User, TrendingUp, Search } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Plus, FileText, Search, Edit, Trash2, Calendar, Eye, User, Tag } from "lucide-react"
+import BackButton from "@/components/back-button"
+
+interface BlogPost {
+  id: number
+  title: string
+  content: string
+  excerpt: string
+  author: string
+  category: string
+  status: "draft" | "published" | "archived"
+  publishDate: string
+  tags: string[]
+  readTime: string
+  views: number
+}
 
 export default function BlogsPage() {
-  const [activeTab, setActiveTab] = useState("published")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [isAddingPost, setIsAddingPost] = useState(false)
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
+  const [previewingPost, setPreviewingPost] = useState<BlogPost | null>(null)
 
-  // Sample blog data
-  const [blogs] = useState([
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([
     {
       id: 1,
-      title: "Top 10 Interview Questions for Software Engineers",
-      category: "Interview Tips",
+      title: "The Future of Remote Work in Tech Industry",
+      content: "Remote work has become a permanent fixture in the tech industry...",
+      excerpt:
+        "Exploring how remote work is reshaping the technology sector and what it means for the future of employment.",
+      author: "John Smith",
+      category: "Technology",
       status: "published",
-      author: "John Doe",
       publishDate: "2024-01-15",
+      tags: ["remote work", "technology", "future"],
+      readTime: "5 min read",
       views: 1250,
-      likes: 45,
-      excerpt: "Essential questions every software engineer should be prepared to answer during technical interviews.",
     },
     {
       id: 2,
-      title: "Remote Work Best Practices for Tech Teams",
-      category: "Remote Work",
+      title: "Building Effective Development Teams",
+      content: "Creating high-performing development teams requires...",
+      excerpt:
+        "Key strategies for building and managing successful software development teams in modern organizations.",
+      author: "Sarah Johnson",
+      category: "Management",
       status: "published",
-      author: "Jane Smith",
-      publishDate: "2024-01-12",
+      publishDate: "2024-01-10",
+      tags: ["team building", "management", "development"],
+      readTime: "7 min read",
       views: 890,
-      likes: 32,
-      excerpt: "How to maintain productivity and team cohesion in a remote work environment.",
     },
     {
       id: 3,
-      title: "Building a Strong Company Culture",
-      category: "Company Culture",
+      title: "AI and Machine Learning Trends 2024",
+      content: "The landscape of AI and ML is rapidly evolving...",
+      excerpt:
+        "A comprehensive look at the latest trends and developments in artificial intelligence and machine learning.",
+      author: "Mike Wilson",
+      category: "AI/ML",
       status: "draft",
-      author: "John Doe",
-      publishDate: "",
+      publishDate: "2024-01-20",
+      tags: ["AI", "machine learning", "trends", "2024"],
+      readTime: "8 min read",
       views: 0,
-      likes: 0,
-      excerpt: "Strategies for creating and maintaining a positive workplace culture that attracts top talent.",
     },
   ])
 
-  const [categories] = useState([
-    "Interview Tips",
-    "Remote Work",
-    "Company Culture",
-    "Career Development",
-    "Technology Trends",
-    "Recruitment",
-  ])
-
-  const [newBlog, setNewBlog] = useState({
+  const [newPost, setNewPost] = useState({
     title: "",
-    category: "",
     content: "",
     excerpt: "",
+    category: "",
     tags: "",
-    status: "draft",
+    readTime: "",
   })
 
+  const categories = ["Technology", "Management", "AI/ML", "Career", "Industry News", "Company Updates"]
+
   const handleInputChange = (field: string, value: string) => {
-    setNewBlog((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const handleCreateBlog = () => {
-    console.log("Creating blog:", newBlog)
-    setIsDialogOpen(false)
-    // Reset form
-    setNewBlog({
-      title: "",
-      category: "",
-      content: "",
-      excerpt: "",
-      tags: "",
-      status: "draft",
-    })
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "published":
-        return "bg-green-100 text-green-800"
-      case "draft":
-        return "bg-yellow-100 text-yellow-800"
-      case "archived":
-        return "bg-gray-100 text-gray-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+    if (editingPost) {
+      setEditingPost({ ...editingPost, [field]: value })
+    } else {
+      setNewPost((prev) => ({ ...prev, [field]: value }))
     }
   }
 
-  const filterBlogs = (status: string) => {
-    return blogs.filter((blog) => blog.status === status)
-  }
-
-  // Fixed filter function with proper null checks
-  const filteredBlogs = (status?: string) => {
-    return blogs.filter((blog) => {
-      const title = blog?.title || ""
-      const category = blog?.category || ""
-      const author = blog?.author || ""
-      const blogStatus = blog?.status || ""
-
-      const matchesSearch =
-        title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        author.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesStatus = status ? blogStatus === status : true
-
-      return matchesSearch && matchesStatus
+  const handleAddPost = (status: "draft" | "published") => {
+    const post: BlogPost = {
+      id: Date.now(),
+      ...newPost,
+      author: "Current User",
+      status,
+      publishDate: new Date().toISOString().split("T")[0],
+      tags: newPost.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag),
+      views: 0,
+    }
+    setBlogPosts([...blogPosts, post])
+    setNewPost({
+      title: "",
+      content: "",
+      excerpt: "",
+      category: "",
+      tags: "",
+      readTime: "",
     })
+    setIsAddingPost(false)
   }
 
-  const BlogCard = ({ blog }: { blog: any }) => (
+  const handleUpdatePost = () => {
+    if (editingPost) {
+      setBlogPosts(blogPosts.map((post) => (post.id === editingPost.id ? editingPost : post)))
+      setEditingPost(null)
+    }
+  }
+
+  const handleDeletePost = (id: number) => {
+    setBlogPosts(blogPosts.filter((post) => post.id !== id))
+  }
+
+  const filteredPosts = blogPosts.filter((post) => {
+    const matchesSearch =
+      (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (post.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus = statusFilter === "all" || post.status === statusFilter
+    const matchesTab = activeTab === "all" || post.status === activeTab
+
+    return matchesSearch && matchesStatus && matchesTab
+  })
+
+  const publishedPosts = blogPosts.filter((post) => post.status === "published")
+  const draftPosts = blogPosts.filter((post) => post.status === "draft")
+  const archivedPosts = blogPosts.filter((post) => post.status === "archived")
+
+  const BlogCard = ({ post }: { post: BlogPost }) => (
     <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{blog.title}</h3>
-            <p className="text-sm text-gray-600 mb-3">{blog.excerpt}</p>
-            <div className="flex items-center space-x-4 text-xs text-gray-500">
-              <span className="flex items-center">
-                <User className="h-3 w-3 mr-1" />
-                {blog.author}
-              </span>
-              {blog.publishDate && (
-                <span className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  {new Date(blog.publishDate).toLocaleDateString()}
-                </span>
-              )}
-              <Badge variant="outline" className="text-xs">
-                {blog.category}
-              </Badge>
+      <CardContent className="p-4 sm:p-6">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge
+                  variant={post.status === "published" ? "default" : post.status === "draft" ? "secondary" : "outline"}
+                  className={
+                    post.status === "published"
+                      ? "bg-green-100 text-green-800"
+                      : post.status === "draft"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-gray-100 text-gray-800"
+                  }
+                >
+                  {post.status}
+                </Badge>
+                <Badge variant="outline" className="text-emerald-600 border-emerald-200 text-xs">
+                  {post.category}
+                </Badge>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm sm:text-base break-words">
+                {post.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2 break-words">{post.excerpt}</p>
             </div>
           </div>
-          <Badge variant="outline" className={getStatusColor(blog.status)}>
-            {blog.status}
-          </Badge>
-        </div>
 
-        {blog.status === "published" && (
-          <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-            <span className="flex items-center">
-              <Eye className="h-4 w-4 mr-1" />
-              {blog.views} views
-            </span>
-            <span className="flex items-center">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              {blog.likes} likes
-            </span>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {post.tags.slice(0, 2).map((tag, index) => (
+              <Badge key={index} variant="outline" className="text-xs">
+                <Tag className="h-2 w-2 mr-1" />
+                <span className="truncate max-w-16 sm:max-w-none">{tag}</span>
+              </Badge>
+            ))}
+            {post.tags.length > 2 && (
+              <Badge variant="outline" className="text-xs">
+                +{post.tags.length - 2}
+              </Badge>
+            )}
           </div>
-        )}
 
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent"
-          >
-            <Edit className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
-          <Button variant="outline" size="sm">
-            <Eye className="h-3 w-3 mr-1" />
-            Preview
-          </Button>
-          <Button variant="outline" size="sm" className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent">
-            <Trash2 className="h-3 w-3 mr-1" />
-            Delete
-          </Button>
+          <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 text-xs text-gray-500">
+            <div className="flex flex-wrap items-center gap-2 xs:gap-4">
+              <span className="flex items-center">
+                <User className="h-3 w-3 mr-1" />
+                <span className="truncate max-w-20 sm:max-w-none">{post.author}</span>
+              </span>
+              <span className="flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                <span className="hidden xs:inline">{new Date(post.publishDate).toLocaleDateString("en-US")}</span>
+                <span className="xs:hidden">
+                  {new Date(post.publishDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+              </span>
+              <span className="hidden sm:inline">{post.readTime}</span>
+            </div>
+            {post.status === "published" && (
+              <div className="flex items-center">
+                <Eye className="h-3 w-3 mr-1" />
+                <span>{post.views} views</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col xs:flex-row justify-end gap-2 xs:space-x-2 pt-2 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewingPost(post)}
+              className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent text-xs sm:text-sm"
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              Preview
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditingPost(post)}
+              className="text-blue-600 border-blue-600 hover:bg-blue-50 text-xs sm:text-sm"
+            >
+              <Edit className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDeletePost(post.id)}
+              className="text-red-600 border-red-600 hover:bg-red-50 text-xs sm:text-sm"
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
   )
 
+  const PostForm = ({ isEditing = false }: { isEditing?: boolean }) => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="title">Blog Title *</Label>
+          <Input
+            id="title"
+            value={isEditing ? editingPost?.title || "" : newPost.title}
+            onChange={(e) => handleInputChange("title", e.target.value)}
+            placeholder="Enter blog post title"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="excerpt">Excerpt *</Label>
+          <Textarea
+            id="excerpt"
+            rows={2}
+            value={isEditing ? editingPost?.excerpt || "" : newPost.excerpt}
+            onChange={(e) => handleInputChange("excerpt", e.target.value)}
+            placeholder="Brief description of the blog post"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="category">Category *</Label>
+            <Select
+              value={isEditing ? editingPost?.category || "" : newPost.category}
+              onValueChange={(value) => handleInputChange("category", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="readTime">Read Time</Label>
+            <Input
+              id="readTime"
+              value={isEditing ? editingPost?.readTime || "" : newPost.readTime}
+              onChange={(e) => handleInputChange("readTime", e.target.value)}
+              placeholder="e.g., 5 min read"
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="tags">Tags</Label>
+          <Input
+            id="tags"
+            value={isEditing ? editingPost?.tags?.join(", ") || "" : newPost.tags}
+            onChange={(e) => handleInputChange("tags", e.target.value)}
+            placeholder="Enter tags separated by commas"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="content">Content *</Label>
+          <Textarea
+            id="content"
+            rows={12}
+            value={isEditing ? editingPost?.content || "" : newPost.content}
+            onChange={(e) => handleInputChange("content", e.target.value)}
+            placeholder="Write your blog post content here..."
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col xs:flex-row justify-end gap-2 xs:space-x-3">
+        <Button
+          variant="outline"
+          onClick={() => {
+            if (isEditing) {
+              setEditingPost(null)
+            } else {
+              setIsAddingPost(false)
+              setNewPost({
+                title: "",
+                content: "",
+                excerpt: "",
+                category: "",
+                tags: "",
+                readTime: "",
+              })
+            }
+          }}
+          className="order-3 xs:order-1"
+        >
+          Cancel
+        </Button>
+        {!isEditing && (
+          <Button
+            variant="outline"
+            onClick={() => handleAddPost("draft")}
+            className="border-yellow-600 text-yellow-600 hover:bg-yellow-50 order-2"
+          >
+            Save as Draft
+          </Button>
+        )}
+        <Button
+          onClick={isEditing ? handleUpdatePost : () => handleAddPost("published")}
+          className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 order-1 xs:order-3"
+        >
+          {isEditing ? "Update Post" : "Publish Post"}
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <BackButton />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Blog Management</h1>
-          <p className="text-gray-600">Create and manage your company blog posts</p>
+          <p className="text-gray-600">Create and manage your blog content</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Post
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Blog Post</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={newBlog.title}
-                    onChange={(e) => handleInputChange("title", e.target.value)}
-                    placeholder="Enter blog post title"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <Select value={newBlog.category} onValueChange={(value) => handleInputChange("category", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="excerpt">Excerpt</Label>
-                <Textarea
-                  id="excerpt"
-                  value={newBlog.excerpt}
-                  onChange={(e) => handleInputChange("excerpt", e.target.value)}
-                  placeholder="Brief description of the blog post"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="content">Content</Label>
-                <Textarea
-                  id="content"
-                  value={newBlog.content}
-                  onChange={(e) => handleInputChange("content", e.target.value)}
-                  placeholder="Write your blog post content here..."
-                  rows={12}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="tags">Tags</Label>
-                  <Input
-                    id="tags"
-                    value={newBlog.tags}
-                    onChange={(e) => handleInputChange("tags", e.target.value)}
-                    placeholder="Enter tags separated by commas"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={newBlog.status} onValueChange={(value) => handleInputChange("status", value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateBlog}
-                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
-                >
-                  Create Post
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Search */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search blog posts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <FileText className="h-4 w-4" />
+            <span>{publishedPosts.length} Published</span>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{blogs.length}</p>
-                <p className="text-sm text-gray-600">Total Posts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Eye className="h-8 w-8 text-green-600" />
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{filterBlogs("published").length}</p>
-                <p className="text-sm text-gray-600">Published</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Edit className="h-8 w-8 text-yellow-600" />
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{filterBlogs("draft").length}</p>
-                <p className="text-sm text-gray-600">Drafts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{blogs.reduce((sum, blog) => sum + blog.views, 0)}</p>
-                <p className="text-sm text-gray-600">Total Views</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
-      {/* Blog Tabs */}
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="published">Published ({filterBlogs("published").length})</TabsTrigger>
-          <TabsTrigger value="draft">Drafts ({filterBlogs("draft").length})</TabsTrigger>
-          <TabsTrigger value="archived">Archived ({filterBlogs("archived").length})</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 h-auto p-1">
+          <TabsTrigger
+            value="all"
+            className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm px-2 py-2"
+          >
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">All</span>
+            <span className="xs:hidden">All</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="published"
+            className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm px-2 py-2"
+          >
+            <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Published ({publishedPosts.length})</span>
+            <span className="sm:hidden">Pub ({publishedPosts.length})</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="draft"
+            className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm px-2 py-2"
+          >
+            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Drafts ({draftPosts.length})</span>
+            <span className="sm:hidden">Draft ({draftPosts.length})</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="archived"
+            className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm px-2 py-2"
+          >
+            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Archived ({archivedPosts.length})</span>
+            <span className="sm:hidden">Arch ({archivedPosts.length})</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="published" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredBlogs("published").map((blog) => (
-              <BlogCard key={blog.id} blog={blog} />
+        {/* Search and Filter Bar */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:space-x-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search blog posts..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex flex-col xs:flex-row items-stretch xs:items-center space-y-2 xs:space-y-0 xs:space-x-2 sm:space-x-4">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full xs:w-32 sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={() => setIsAddingPost(true)}
+                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 w-full xs:w-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="sm:hidden">New</span>
+                  <span className="hidden sm:inline">New Post</span>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Add Post Form */}
+        {isAddingPost && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Plus className="h-5 w-5 text-emerald-600" />
+                <span>Create New Blog Post</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PostForm />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Edit Post Dialog */}
+        <Dialog open={!!editingPost} onOpenChange={() => setEditingPost(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Edit className="h-5 w-5 text-emerald-600" />
+                <span>Edit Blog Post</span>
+              </DialogTitle>
+            </DialogHeader>
+            <PostForm isEditing={true} />
+          </DialogContent>
+        </Dialog>
+
+        {/* Blog Preview Dialog */}
+        <Dialog open={!!previewingPost} onOpenChange={() => setPreviewingPost(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Eye className="h-5 w-5 text-emerald-600" />
+                <span>Blog Preview</span>
+              </DialogTitle>
+            </DialogHeader>
+            {previewingPost && (
+              <div className="space-y-6">
+                {/* Blog Header */}
+                <div className="space-y-4 border-b pb-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant={
+                        previewingPost.status === "published"
+                          ? "default"
+                          : previewingPost.status === "draft"
+                            ? "secondary"
+                            : "outline"
+                      }
+                      className={
+                        previewingPost.status === "published"
+                          ? "bg-green-100 text-green-800"
+                          : previewingPost.status === "draft"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-gray-100 text-gray-800"
+                      }
+                    >
+                      {previewingPost.status}
+                    </Badge>
+                    <Badge variant="outline" className="text-emerald-600 border-emerald-200">
+                      {previewingPost.category}
+                    </Badge>
+                  </div>
+
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">{previewingPost.title}</h1>
+
+                  <p className="text-lg text-gray-600 leading-relaxed">{previewingPost.excerpt}</p>
+
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      <span>By {previewingPost.author}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      <span>
+                        {new Date(previewingPost.publishDate).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    {previewingPost.readTime && (
+                      <div className="flex items-center">
+                        <span>{previewingPost.readTime}</span>
+                      </div>
+                    )}
+                    {previewingPost.status === "published" && (
+                      <div className="flex items-center">
+                        <Eye className="h-4 w-4 mr-2" />
+                        <span>{previewingPost.views} views</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {previewingPost.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {previewingPost.tags.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          <Tag className="h-3 w-3 mr-1" />
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Blog Content */}
+                <div className="prose prose-gray max-w-none">
+                  <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{previewingPost.content}</div>
+                </div>
+
+                {/* Preview Footer */}
+                <div className="flex justify-end pt-6 border-t">
+                  <Button variant="outline" onClick={() => setPreviewingPost(null)}>
+                    Close Preview
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* All Posts Tab */}
+        <TabsContent value="all" className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filteredPosts.map((post) => (
+              <BlogCard key={post.id} post={post} />
             ))}
           </div>
-          {filteredBlogs("published").length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+          {filteredPosts.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
               <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No published posts yet</p>
+              <p className="text-lg font-medium mb-2">No blog posts found</p>
+              <p className="mb-4 text-sm sm:text-base px-4">Try adjusting your search or filter criteria</p>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="draft" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredBlogs("draft").map((blog) => (
-              <BlogCard key={blog.id} blog={blog} />
-            ))}
+        {/* Published Posts Tab */}
+        <TabsContent value="published" className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {publishedPosts
+              .filter((post) => {
+                const matchesSearch =
+                  (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+                return matchesSearch
+              })
+              .map((post) => (
+                <BlogCard key={post.id} post={post} />
+              ))}
           </div>
-          {filteredBlogs("draft").length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+        </TabsContent>
+
+        {/* Draft Posts Tab */}
+        <TabsContent value="draft" className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {draftPosts
+              .filter((post) => {
+                const matchesSearch =
+                  (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+                return matchesSearch
+              })
+              .map((post) => (
+                <BlogCard key={post.id} post={post} />
+              ))}
+          </div>
+          {draftPosts.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
               <Edit className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No draft posts</p>
+              <p className="text-lg font-medium mb-2">No draft posts</p>
+              <p className="mb-4 text-sm sm:text-base px-4">Create your first draft to get started</p>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="archived" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredBlogs("archived").map((blog) => (
-              <BlogCard key={blog.id} blog={blog} />
-            ))}
+        {/* Archived Posts Tab */}
+        <TabsContent value="archived" className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {archivedPosts
+              .filter((post) => {
+                const matchesSearch =
+                  (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (post.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+                return matchesSearch
+              })
+              .map((post) => (
+                <BlogCard key={post.id} post={post} />
+              ))}
           </div>
-          {filteredBlogs("archived").length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No archived posts</p>
+          {archivedPosts.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              <Trash2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium mb-2">No archived posts</p>
+              <p className="mb-4 text-sm sm:text-base px-4">Archived posts will appear here</p>
             </div>
           )}
         </TabsContent>

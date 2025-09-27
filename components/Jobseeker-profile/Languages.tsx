@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +19,8 @@ interface LanguageRow {
   name: string
   proficiencyLevel: 1 | 2 | 3
 }
+
+type UILanguageLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Native'
 
 const uiLevelToBackend = (level: UILanguageLevel): 1 | 2 | 3 => {
   switch (level) {
@@ -41,16 +42,14 @@ const backendLevelToUi = (level: number): UILanguageLevel => {
   return 'Advanced'
 }
 
-type UILanguageLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Native'
-
 export default function Languages() {
   const [languages, setLanguages] = useState<LanguageRow[]>([])
   const [isAdding, setIsAdding] = useState(false)
   const [languageOptions, setLanguageOptions] = useState<BackendLanguageOption[]>([])
   const [newLanguageId, setNewLanguageId] = useState<string>('')
   const [newLanguageLevel, setNewLanguageLevel] = useState<UILanguageLevel>('Beginner')
-
   const [proficiencyLevels, setProficiencyLevels] = useState<UILanguageLevel[]>(['Beginner', 'Intermediate', 'Advanced', 'Native'])
+
   const proficiencyColors = useMemo(
     () => ({
       Beginner: 'bg-yellow-100 text-yellow-700 border-yellow-200',
@@ -164,7 +163,7 @@ export default function Languages() {
   return (
     <Card className="border-emerald-200 shadow-lg">
       <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-t-lg">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center space-x-3">
             <Globe className="h-5 w-5 text-emerald-600" />
             <div>
@@ -176,7 +175,7 @@ export default function Languages() {
           </div>
           <Button
             onClick={() => setIsAdding(true)}
-            className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
+            className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Language
@@ -221,18 +220,18 @@ export default function Languages() {
                       </Select>
                     </div>
                   </div>
-                  <div className="flex justify-end space-x-3">
+                  <div className="flex flex-col sm:flex-row justify-end gap-3">
                     <Button
                       variant="outline"
                       onClick={() => setIsAdding(false)}
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
                     >
                       Cancel
                     </Button>
                     <Button
                       onClick={handleAdd}
                       disabled={!newLanguageId}
-                      className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
+                      className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
                     >
                       <Save className="h-4 w-4 mr-2" />
                       Add Language
@@ -247,7 +246,7 @@ export default function Languages() {
             {languages.map(language => (
               <Card key={language.id} className="border-gray-200 hover:border-emerald-300 transition-colors">
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                     <div className="flex items-center space-x-2">
                       <Globe className="h-4 w-4 text-emerald-600" />
                       <h3 className="font-semibold text-gray-900">{language.name}</h3>
@@ -299,7 +298,7 @@ export default function Languages() {
               <p className="mb-4">Add languages you speak to showcase your communication skills</p>
               <Button
                 onClick={() => setIsAdding(true)}
-                className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
+                className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Language

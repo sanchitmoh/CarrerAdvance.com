@@ -1,3 +1,4 @@
+import Footer from '@/components/Footer'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export default function JobSeekerLayout({
   return (
     <div className="overflow-x-hidden">
       {children}
+      <Footer/>
     </div>
   )
 }

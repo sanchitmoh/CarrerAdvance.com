@@ -320,25 +320,35 @@ export default function EmployeesPage() {
     }
   }
 
+  // SSR-safe date formatting to avoid hydration mismatches
+  const formatDate = (dateString: string) => {
+    if (!dateString) return ''
+    const dt = new Date(dateString)
+    const y = dt.getUTCFullYear()
+    const m = String(dt.getUTCMonth() + 1).padStart(2, '0')
+    const d = String(dt.getUTCDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header with Back Button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="space-y-3">
+        <div>
           <Link href="/employers/dashboard/employee-managment">
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Employment
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Employee Management</h1>
-            <p className="text-gray-600 mt-1">Manage employee information and records</p>
-          </div>
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold text-gray-900">Employee Management</h1>
+          <p className="text-gray-600 mt-1">Manage employee information and records</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Add Employee
             </Button>
@@ -684,7 +694,7 @@ export default function EmployeesPage() {
         {paginatedEmployees.map((employee) => (
           <Card key={employee.id}>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-16 w-16">
                     <AvatarImage src={employee.image || "/placeholder.svg"} alt={employee.name} />
@@ -704,21 +714,21 @@ export default function EmployeesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-6">
-                  <div className="text-center">
+                <div className="w-full sm:w-auto grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:items-center sm:justify-end sm:gap-6">
+                  <div className="text-center sm:text-left min-w-[140px]">
                     <p className="text-sm text-gray-600">Type</p>
                     <Badge className={getTypeColor(employee.empType)}>{getTypeLabel(employee.empType)}</Badge>
                   </div>
 
-                  <div className="text-center">
+                  <div className="text-center sm:text-left min-w-0">
                     <p className="text-sm text-gray-600">Email</p>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center justify-center sm:justify-start space-x-1">
                       <Mail className="h-4 w-4 text-gray-500" />
-                      <p className="font-medium text-sm">{employee.email}</p>
+                      <p className="font-medium text-sm break-all truncate max-w-[140px] sm:max-w-[260px] lg:max-w-none">{employee.email}</p>
                     </div>
                   </div>
 
-                  <div className="text-center">
+                  <div className="text-center sm:text-left min-w-[140px] col-span-1">
                     <p className="text-sm text-gray-600">Salary</p>
                     <div className="flex items-center space-x-1">
                       <DollarSign className="h-4 w-4 text-gray-500" />
@@ -730,20 +740,21 @@ export default function EmployeesPage() {
                     </div>
                   </div>
 
-                  <div className="text-center">
+                  <div className="text-center sm:text-left min-w-[140px] col-span-1">
                     <p className="text-sm text-gray-600">Joined</p>
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <p className="font-medium text-sm">{new Date(employee.joiningDate).toLocaleDateString()}</p>
+                      <p className="font-medium text-sm">{formatDate(employee.joiningDate)}</p>
                     </div>
                   </div>
 
-                  <div className="flex space-x-2">
+                  <div className="col-span-2 flex w-full sm:w-auto flex-row gap-2 sm:space-x-2 sm:self-end justify-center sm:justify-end">
                     <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
                       <DialogTrigger asChild>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="w-auto"
                           onClick={() => {
                             setSelectedEmployee(employee)
                             setIsViewDialogOpen(true)
@@ -801,7 +812,7 @@ export default function EmployeesPage() {
                                   <div className="flex justify-between">
                                     <span>Joining Date:</span>
                                     <span className="font-medium">
-                                      {new Date(selectedEmployee.joiningDate).toLocaleDateString()}
+                                      {formatDate(selectedEmployee.joiningDate)}
                                     </span>
                                   </div>
                                 </div>
@@ -857,6 +868,7 @@ export default function EmployeesPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          className="w-auto"
                           onClick={() => openEdit(employee)}
                         >
                           <Edit className="h-4 w-4 mr-1" />
@@ -945,7 +957,7 @@ export default function EmployeesPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteEmployee(employee.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="w-auto text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Delete

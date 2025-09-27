@@ -12,6 +12,7 @@ import { Edit, Save, X, Eye, Upload, MapPin, Globe, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { employerApiService, type EmployerProfile, type UpdateProfileRequest } from "@/lib/employer-api"
 import { useToast } from "@/hooks/use-toast"
+import BackButton from "@/components/back-button"
 
 export default function EmployerProfilePage() {
   const { toast } = useToast()
@@ -315,6 +316,8 @@ export default function EmployerProfilePage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      <BackButton />
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>

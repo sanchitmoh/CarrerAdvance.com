@@ -12,9 +12,7 @@ import {
   FileText,
   Lock,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Building2,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -32,12 +30,13 @@ const menuItems = [
 ]
 
 interface EmployerSidebarProps {
-  onToggle?: () => void;
+  onToggle?: () => void
+  open?: boolean
+  isMobileMenuOpen?: boolean
+  onClose?: () => void
 }
 
-export default function EmployerSidebar({ onToggle }: EmployerSidebarProps = {}) {
-  const [isCollapsed, setIsCollapsed] = useState(true)
-  const [isHovered, setIsHovered] = useState(false)
+export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onClose }: EmployerSidebarProps = {}) {
   const [isMobile, setIsMobile] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -51,33 +50,11 @@ export default function EmployerSidebar({ onToggle }: EmployerSidebarProps = {})
 
   // Handle responsive behavior
   useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768)
-      if (window.innerWidth < 768) {
-        setIsCollapsed(true)
-      }
-    }
-
+    const checkScreenSize = () => setIsMobile(window.innerWidth < 1024)
     checkScreenSize()
-    window.addEventListener('resize', checkScreenSize)
-    return () => window.removeEventListener('resize', checkScreenSize)
+    window.addEventListener("resize", checkScreenSize)
+    return () => window.removeEventListener("resize", checkScreenSize)
   }, [])
-
-  const showExpanded = !isCollapsed || isHovered
-
-  // Emit sidebar state changes for layout
-  useEffect(() => {
-    const event = new CustomEvent("sidebarStateChange", {
-      detail: { isExpanded: showExpanded }
-    })
-    window.dispatchEvent(event)
-  }, [showExpanded])
-  
-  // Toggle sidebar on mobile
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed)
-    if (onToggle) onToggle()
-  }
 
   // Fetch user details for avatar/name
   useEffect(() => {
@@ -114,184 +91,101 @@ export default function EmployerSidebar({ onToggle }: EmployerSidebarProps = {})
 
   return (
     <TooltipProvider>
-      <div
-        className={`fixed left-0 top-16 h-screen bg-gradient-to-b from-emerald-900 via-emerald-800 to-emerald-900 border-r border-emerald-700 transition-all duration-300 z-30 shadow-xl overflow-y-auto ${
-          isMobile
-            ? isCollapsed 
-              ? '-translate-x-full' 
-              : 'translate-x-0 w-64'
-            : showExpanded 
-              ? 'w-auto' 
-              : 'w-auto'
-        }`}
-        onMouseEnter={() => !isMobile && setIsHovered(true)}
-        onMouseLeave={() => !isMobile && setIsHovered(false)}
-      >
-        {/* Mobile toggle button */}
-        {isMobile && !isCollapsed && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleSidebar}
-            className="absolute right-2 top-2 h-10 w-10 md:h-12 md:w-12 p-0 hover:bg-emerald-700/50 text-emerald-200 hover:text-white transition-colors"
-          >
-            <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />
-          </Button>
-        )}
-        {/* Header */}
-        <div className="p-2 md:p-3 lg:p-4 border-b border-emerald-700/50">
-          <div className="flex items-center justify-between">
-            {showExpanded ? (
-              <div className="flex items-center space-x-1.5 md:space-x-2 lg:space-x-3">
-                <div className="relative">
-                  <Avatar className="h-9 w-9 md:h-11  md:w-11 lg:h-12 lg:w-12 border-2 border-emerald-400">
-                    <AvatarImage src={user.avatar || "/placeholder.svg?height=48&width=48"} alt="Employer" />
-                    <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-emerald-900 font-bold text-sm md:text-base lg:text-lg">
-                      {user.name.split(" ").map(n => n[0]).join("").toUpperCase() || "EM"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 md:h-3.5 md:w-3.5 lg:h-4 lg:w-4 bg-green-400 border-2 border-emerald-900 rounded-full"></div>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-white">{user.name}</span>
-                  <span className="text-xs text-emerald-200">{user.title}</span>
-                  <div className="flex items-center mt-1">
-                    <Building2 className="h-3 w-3 text-emerald-300 mr-1" />
-                    <span className="text-xs text-emerald-300">{user.company}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center">
-                <div className="relative">
-                  <Avatar className="h-9 w-9 md:h-11 md:w-11 lg:h-12 lg:w-12 border-2 border-emerald-400">
-                    <AvatarImage src={user.avatar || "/placeholder.svg?height=40&width=40"} alt="Employer" />
-                    <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-emerald-900 font-bold text-sm md:text-base lg:text-lg">
-                      {user.name.split(" ").map(n => n[0]).join("").toUpperCase() || "EM"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-1 -right-1 h-2.5 w-2.5 md:h-3.5 md:w-3.5 lg:h-4 lg:w-4 bg-green-400 border-2 border-emerald-900 rounded-full"></div>
-                </div>
-              </div>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden md:flex h-8 w-8 p-0 hover:bg-emerald-700/50 text-emerald-200 hover:text-white transition-colors"
-            >
-              {isCollapsed ? <ChevronRight className="h-5 w-5 md:h-6 md:w-6" /> : <ChevronLeft className="h-5 w-5 md:h-6 md:w-6" />}
-            </Button>
+      {/* Desktop sidebar */}
+      <div className="hidden lg:flex fixed left-0 top-0 h-full w-20 bg-white border-r border-gray-200 flex-col items-center py-4 z-40">
+        {/* Logo */}
+        <div className="mb-8">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-lg">C</span>
           </div>
-
-          {/* Company Info - Only show when expanded */}
-          {showExpanded && (
-            <div className="mt-3 p-2 bg-emerald-800/50 rounded-lg border border-emerald-700/50">
-              <div className="text-xs text-emerald-200">Active Jobs</div>
-              <div className="text-lg font-bold text-white">12</div>
-            </div>
-          )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-2 md:p-3 lg:p-4">
-          <ul className="space-y-1 md:space-y-1.5 lg:space-y-2">
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href
-              const Icon = item.icon
-
-              const linkContent = (
-                <Link
-                  href={item.href}
-                  className={`flex items-center ${showExpanded ? "space-x-2 md:space-x-3" : "justify-center"} px-2 md:px-3 py-2 md:py-2.5 lg:py-3 rounded-xl transition-all duration-200 group ${
-                    isActive
-                      ? "bg-gradient-to-r from-emerald-500 to-emerald-400 text-white shadow-lg transform scale-105"
-                      : "text-emerald-100 hover:bg-emerald-700/50 hover:text-white hover:transform hover:scale-105"
-                  }`}
-                >
-                  <Icon
-                    className={`${!showExpanded ? 'h-6 w-6 md:h-7 md:w-7' : 'h-5 w-5 md:h-6 md:w-6'} ${
-                      isActive ? "text-white" : "text-emerald-300 group-hover:text-white"
-                    }`}
-                  />
-                  {showExpanded && (
-                    <span
-                      className={`font-medium transition-colors ${
-                        isActive ? "text-white" : "text-emerald-100 group-hover:text-white"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  )}
-                  {isActive && showExpanded && <div className="ml-auto h-2 w-2 bg-white rounded-full"></div>}
-                </Link>
-              )
-
-              if (!showExpanded) {
-                return (
-                  <li key={item.href}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                      <TooltipContent side="right" className="bg-emerald-800 text-white border-emerald-600">
-                        <p>{item.label}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </li>
-                )
-              }
-
-              return <li key={item.href}>{linkContent}</li>
-            })}
-          </ul>
-        </nav>
-
-        {/* Quick Stats - Only show when expanded */}
-        {showExpanded && (
-          <div className="px-4 py-2">
-            <div className="bg-emerald-800/30 rounded-lg p-3 border border-emerald-700/50">
-              <div className="text-xs text-emerald-200 mb-2">This Month</div>
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div>
-                  <div className="text-lg font-bold text-white">24</div>
-                  <div className="text-xs text-emerald-300">Applications</div>
+        <nav className="flex-1 flex flex-col space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`
+                  group relative flex items-center justify-center w-12 h-12 rounded-lg transition-colors
+                  ${isActive ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                `}
+                title={item.label}
+              >
+                <Icon className="w-5 h-5" />
+                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                  {item.label}
                 </div>
-                <div>
-                  <div className="text-lg font-bold text-white">8</div>
-                  <div className="text-xs text-emerald-300">Interviews</div>
-                </div>
-              </div>
+              </Link>
+            )
+          })}
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="group relative flex items-center justify-center w-12 h-12 rounded-lg transition-colors text-red-600 hover:bg-red-50"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+              Logout
             </div>
-          </div>
-        )}
+          </button>
+        </nav>
+      </div>
 
-        {/* Logout */}
-        <div className="p-4 border-t border-emerald-700/50">
-          {!showExpanded ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center p-3 text-red-300 hover:bg-red-900/30 hover:text-red-200 transition-all duration-200 rounded-xl"
-                >
-                  <LogOut className="h-6 w-6 md:h-7 md:w-7" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="bg-red-800 text-white border-red-600">
-                <p>Logout</p>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-3 py-3 text-red-300 hover:bg-red-900/30 hover:text-red-200 transition-all duration-200 rounded-xl group"
-            >
-              <LogOut className="h-5 w-5 md:h-6 md:w-6 group-hover:transform group-hover:scale-110 transition-transform" />
-              <span className="font-medium">Logout</span>
-            </Button>
-          )}
+      {/* Mobile drawer */}
+      <div
+        className={`
+        lg:hidden fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out
+        ${(typeof isMobileMenuOpen === 'boolean' ? isMobileMenuOpen : !!open) ? 'translate-x-0' : '-translate-x-full'}
+      `}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold">C</span>
+            </div>
+            <span className="text-lg font-semibold text-gray-900">CareerAdvance</span>
+          </div>
+          <Button onClick={onClose || onToggle} variant="ghost" size="sm" className="p-2 rounded-lg hover:bg-gray-100">
+            <X className="w-5 h-5 text-gray-600" />
+          </Button>
         </div>
+
+        <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100%-64px)]">
+          {menuItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose || onToggle}
+                className={`
+                  flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors
+                  ${isActive ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                `}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            )
+          })}
+          <button
+            onClick={() => {
+              handleLogout()
+              if (onClose) onClose()
+              if (onToggle) onToggle()
+            }}
+            className="w-full flex items-center space-x-3 px-3 py-3 text-red-600 hover:bg-red-50 rounded-lg"
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="font-medium">Logout</span>
+          </button>
+        </nav>
       </div>
     </TooltipProvider>
   )
