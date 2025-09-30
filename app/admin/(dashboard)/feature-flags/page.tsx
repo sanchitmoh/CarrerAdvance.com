@@ -133,15 +133,15 @@ export default function FeatureFlagsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "active":
-        return <CheckCircle className="h-4 w-4" />
+        return <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
       case "beta":
-        return <Clock className="h-4 w-4" />
+        return <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
       case "testing":
-        return <Eye className="h-4 w-4" />
+        return <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
       case "disabled":
-        return <XCircle className="h-4 w-4" />
+        return <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
       default:
-        return <Flag className="h-4 w-4" />
+        return <Flag className="h-3 w-3 sm:h-4 sm:w-4" />
     }
   }
 
@@ -152,70 +152,70 @@ export default function FeatureFlagsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <div className="px-0 pt-0">
           <BackButton />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Flag className="h-8 w-8 text-green-600" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+              <Flag className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
               Feature Flags
             </h1>
-            <p className="text-gray-600 mt-2">Manage feature rollouts and A/B testing</p>
+            <p className="text-sm sm:text-base text-gray-600">Manage feature rollouts and A/B testing</p>
           </div>
-          <Button className="bg-green-600 hover:bg-green-700 whitespace-nowrap shrink-0 leading-normal w-full sm:w-auto">
+          <Button className="bg-green-600 hover:bg-green-700 whitespace-nowrap shrink-0 w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Create Feature Flag
           </Button>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <Card className="p-3 sm:p-6">
+            <CardContent className="p-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Flags</p>
-                  <p className="text-2xl font-bold text-gray-900">5</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Total Flags</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900">5</p>
                 </div>
-                <Flag className="h-8 w-8 text-blue-600" />
+                <Flag className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
+          <Card className="p-3 sm:p-6">
+            <CardContent className="p-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Flags</p>
-                  <p className="text-2xl font-bold text-green-600">2</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Active Flags</p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-600">2</p>
                 </div>
-                <CheckCircle className="h-8 w-8 text-green-600" />
+                <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
+          <Card className="p-3 sm:p-6">
+            <CardContent className="p-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Users Affected</p>
-                  <p className="text-2xl font-bold text-purple-600">6,122</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Users Affected</p>
+                  <p className="text-lg sm:text-2xl font-bold text-purple-600">6,122</p>
                 </div>
-                <Users className="h-8 w-8 text-purple-600" />
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
+          <Card className="p-3 sm:p-6">
+            <CardContent className="p-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Avg Conversion</p>
-                  <p className="text-2xl font-bold text-orange-600">23.5%</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Avg Conversion</p>
+                  <p className="text-lg sm:text-2xl font-bold text-orange-600">23.5%</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-orange-600" />
+                <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600" />
               </div>
             </CardContent>
           </Card>
@@ -223,19 +223,19 @@ export default function FeatureFlagsPage() {
 
         {/* Search and Filters */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search feature flags..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-10 sm:h-11 text-sm"
                 />
               </div>
               <Select defaultValue="all">
-                <SelectTrigger className="w-full sm:w-48">
+                <SelectTrigger className="w-full sm:w-48 h-10 sm:h-11 text-sm">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,78 +251,82 @@ export default function FeatureFlagsPage() {
         </Card>
 
         {/* Feature Flags List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredFlags.map((flag) => (
             <Card key={flag.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{flag.name}</h3>
-                      <Badge className={getStatusColor(flag.status)}>
-                        {getStatusIcon(flag.status)}
-                        <span className="ml-1 capitalize">{flag.status}</span>
-                      </Badge>
-                      <Badge variant="outline">{flag.environment}</Badge>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="flex-1 space-y-2 sm:space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">{flag.name}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className={`text-xs ${getStatusColor(flag.status)}`}>
+                          {getStatusIcon(flag.status)}
+                          <span className="ml-1 capitalize">{flag.status}</span>
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">{flag.environment}</Badge>
+                      </div>
                     </div>
-                    <p className="text-gray-600 mb-3">{flag.description}</p>
+                    <p className="text-sm sm:text-base text-gray-600">{flag.description}</p>
 
                     {flag.dependencies.length > 0 && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-sm text-gray-500">Dependencies:</span>
-                        {flag.dependencies.map((dep, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {dep}
-                          </Badge>
-                        ))}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span className="text-xs sm:text-sm text-gray-500">Dependencies:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {flag.dependencies.map((dep, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {dep}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                  <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="whitespace-nowrap shrink-0 leading-normal bg-transparent"
+                      className="flex-1 sm:flex-none text-xs sm:text-sm"
                     >
-                      <BarChart3 className="h-4 w-4 mr-1" />
+                      <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       Analytics
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="whitespace-nowrap shrink-0 leading-normal bg-transparent"
+                      className="flex-1 sm:flex-none text-xs sm:text-sm"
                     >
-                      <Settings className="h-4 w-4 mr-1" />
+                      <Settings className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                       Configure
                     </Button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Rollout Percentage</Label>
-                    <div className="mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-gray-600">Rollout Percentage</Label>
+                    <div>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-gray-900">{flag.rolloutPercentage}%</span>
-                        <span className="text-sm text-gray-500">{flag.usersAffected} users</span>
+                        <span className="text-sm sm:text-base text-gray-900">{flag.rolloutPercentage}%</span>
+                        <span className="text-xs sm:text-sm text-gray-500">{flag.usersAffected.toLocaleString()} users</span>
                       </div>
                       <Progress value={flag.rolloutPercentage} className="h-2" />
                     </div>
                   </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Conversion Rate</Label>
-                    <div className="mt-2">
-                      <span className="text-lg font-semibold text-green-600">{flag.metrics.conversionRate}%</span>
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-gray-600">Conversion Rate</Label>
+                    <div>
+                      <span className="text-base sm:text-lg font-semibold text-green-600">{flag.metrics.conversionRate}%</span>
                       <p className="text-xs text-gray-500">vs baseline</p>
                     </div>
                   </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Error Rate</Label>
-                    <div className="mt-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-gray-600">Error Rate</Label>
+                    <div>
                       <span
-                        className={`text-lg font-semibold ${flag.metrics.errorRate > 1 ? "text-red-600" : "text-green-600"}`}
+                        className={`text-base sm:text-lg font-semibold ${flag.metrics.errorRate > 1 ? "text-red-600" : "text-green-600"}`}
                       >
                         {flag.metrics.errorRate}%
                       </span>
@@ -330,18 +334,18 @@ export default function FeatureFlagsPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-gray-600">Performance Impact</Label>
-                    <div className="mt-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-gray-600">Performance Impact</Label>
+                    <div>
                       <Badge
                         variant="outline"
-                        className={
+                        className={`text-xs ${
                           flag.metrics.performanceImpact === "low"
                             ? "text-green-600 border-green-200"
                             : flag.metrics.performanceImpact === "medium"
                               ? "text-yellow-600 border-yellow-200"
                               : "text-red-600 border-red-200"
-                        }
+                        }`}
                       >
                         {flag.metrics.performanceImpact}
                       </Badge>
@@ -350,13 +354,13 @@ export default function FeatureFlagsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <div className="text-sm text-gray-500">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t">
+                  <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
                     Created: {flag.createdAt} • Last modified: {flag.lastModified}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
                     <Switch checked={flag.status === "active"} disabled={flag.status === "testing"} />
-                    <span className="text-sm text-gray-600">{flag.status === "active" ? "Enabled" : "Disabled"}</span>
+                    <span className="text-xs sm:text-sm text-gray-600">{flag.status === "active" ? "Enabled" : "Disabled"}</span>
                   </div>
                 </div>
               </CardContent>
@@ -366,10 +370,10 @@ export default function FeatureFlagsPage() {
 
         {filteredFlags.length === 0 && (
           <Card>
-            <CardContent className="p-12 text-center">
-              <Flag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No feature flags found</h3>
-              <p className="text-gray-600">Try adjusting your search or create a new feature flag.</p>
+            <CardContent className="p-6 sm:p-12 text-center">
+              <Flag className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No feature flags found</h3>
+              <p className="text-sm sm:text-base text-gray-600">Try adjusting your search or create a new feature flag.</p>
             </CardContent>
           </Card>
         )}

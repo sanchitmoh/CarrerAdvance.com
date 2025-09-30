@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, FileText, PenTool, CheckCircle, Briefcase, Target, Heart, Lock, LogOut, Menu, X } from 'lucide-react'
+import { User, FileText, PenTool, CheckCircle, Briefcase, Target, Heart, Lock, LogOut, Menu, X, FileIcon, Clock } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
 import { getApiUrl , PUBLIC_URL } from '@/lib/api-config'
 
@@ -21,9 +21,11 @@ interface SidebarProps {
 const sidebarItems = [
   { name: 'My Profile', href: '/job-seekers/dashboard/profile', icon: User },
   { name: 'Resume Management', href: '/job-seekers/dashboard/resume', icon: FileText },
+  { name: 'Document', href: '/job-seekers/dashboard/document', icon: FileIcon },
   { name: 'My Applications', href: '/job-seekers/dashboard/applications', icon: Briefcase },
   { name: 'Matching Jobs', href: '/job-seekers/dashboard/matching-jobs', icon: Target },
   { name: 'Saved Jobs', href: '/job-seekers/dashboard/saved-jobs', icon: Heart },
+  { name: 'Time Tracker', href: '/job-seekers/dashboard/time-tracker', icon: Clock },
   { name: 'Change Password', href: '/job-seekers/dashboard/change-password', icon: Lock },
 ]
 

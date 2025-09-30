@@ -24,6 +24,8 @@ import {
   LogIn,
   Briefcase,
   UserSearch,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 
 // Sample stats and users data (same as your original)
@@ -39,6 +41,15 @@ const users = [
   { id: 2, name: "Admin User", email: "admin@careeradvance.com", role: "Admin", status: "Active", joinDate: "8/23/2025", lastActive: "8/23/2025", stats: "", avatar: "A" },
   { id: 3, name: "John Employer", email: "john@company.com", role: "Employer", status: "Active", joinDate: "8/20/2025", lastActive: "8/22/2025", stats: "3 jobs posted\n12 applications", avatar: "J" },
   { id: 4, name: "Sarah Seeker", email: "sarah@email.com", role: "Job-Seeker", status: "Active", joinDate: "8/18/2025", lastActive: "8/23/2025", stats: "5 applications\n2 interviews", avatar: "S" },
+  // Adding more sample data to demonstrate pagination
+  { id: 5, name: "Mike Johnson", email: "mike@email.com", role: "Student", status: "Active", joinDate: "8/17/2025", lastActive: "8/22/2025", stats: "2 enrolled\n1 completed", avatar: "M" },
+  { id: 6, name: "Emily Davis", email: "emily@email.com", role: "Employer", status: "Active", joinDate: "8/16/2025", lastActive: "8/21/2025", stats: "5 jobs posted\n20 applications", avatar: "E" },
+  { id: 7, name: "Chris Wilson", email: "chris@email.com", role: "Job-Seeker", status: "Active", joinDate: "8/15/2025", lastActive: "8/20/2025", stats: "3 applications\n1 interview", avatar: "C" },
+  { id: 8, name: "Lisa Brown", email: "lisa@email.com", role: "Student", status: "Active", joinDate: "8/14/2025", lastActive: "8/19/2025", stats: "1 enrolled\n0 completed", avatar: "L" },
+  { id: 9, name: "David Miller", email: "david@email.com", role: "Employer", status: "Active", joinDate: "8/13/2025", lastActive: "8/18/2025", stats: "2 jobs posted\n8 applications", avatar: "D" },
+  { id: 10, name: "Anna Taylor", email: "anna@email.com", role: "Job-Seeker", status: "Active", joinDate: "8/12/2025", lastActive: "8/17/2025", stats: "4 applications\n0 interviews", avatar: "A" },
+  { id: 11, name: "Robert Clark", email: "robert@email.com", role: "Student", status: "Active", joinDate: "8/11/2025", lastActive: "8/16/2025", stats: "0 enrolled\n0 completed", avatar: "R" },
+  { id: 12, name: "Maria Garcia", email: "maria@email.com", role: "Employer", status: "Active", joinDate: "8/10/2025", lastActive: "8/15/2025", stats: "7 jobs posted\n25 applications", avatar: "M" },
 ]
 
 // Badge colors
@@ -68,6 +79,8 @@ export default function UsersPage() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [usersData, setUsersData] = useState(users)
+  const [currentPage, setCurrentPage] = useState(1)
+  const usersPerPage = 10
 
   const tabs = [
     { id: "all", label: "All Users", icon: Users },
@@ -87,9 +100,37 @@ export default function UsersPage() {
     return matchesSearch
   })
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
+  const indexOfLastUser = currentPage * usersPerPage
+  const indexOfFirstUser = indexOfLastUser - usersPerPage
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser)
+
   const handleViewProfile = (user: (typeof users)[0]) => { setSelectedUser(user); setIsProfileDialogOpen(true) }
   const handleSuspendUser = (userId: number) => { setUsersData((prev) => prev.filter((user) => user.id !== userId)) }
   const handleUserLogin = (user: (typeof users)[0]) => { setSelectedUser(user); setIsLoginDialogOpen(true) }
+
+  // Pagination handlers
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const handlePageClick = (pageNumber: number) => {
+    setCurrentPage(pageNumber)
+  }
+
+  // Reset to first page when search or filter changes
+  useState(() => {
+    setCurrentPage(1)
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -136,7 +177,10 @@ export default function UsersPage() {
             <Button
               key={tab.id}
               variant={activeTab === tab.id ? "default" : "outline"}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id)
+                setCurrentPage(1) // Reset to first page when tab changes
+              }}
               className={`flex items-center gap-2 whitespace-nowrap px-3 py-2 ${
                 activeTab === tab.id
                   ? "bg-emerald-600 text-white hover:bg-emerald-700"
@@ -154,7 +198,10 @@ export default function UsersPage() {
           <Input
             placeholder="Search users..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setCurrentPage(1) // Reset to first page when search changes
+            }}
             className="pl-10"
           />
         </div>
@@ -162,9 +209,16 @@ export default function UsersPage() {
 
       {/* Users List */}
       <div className="p-4 sm:p-6 space-y-4">
+        {/* Results count */}
+        <div className="flex justify-between items-center">
+          <p className="text-sm text-gray-600">
+            Showing {indexOfFirstUser + 1}-{Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length} users
+          </p>
+        </div>
+
         {/* Mobile Cards */}
         <div className="sm:hidden space-y-4">
-          {filteredUsers.map((user) => (
+          {currentUsers.map((user) => (
             <Card key={user.id} className="p-4 shadow-sm border border-gray-200">
               <div className="flex justify-between items-start">
                 <div className="flex gap-3">
@@ -219,7 +273,7 @@ export default function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
+              {currentUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -262,6 +316,56 @@ export default function UsersPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageClick(page)}
+                    className={`h-8 w-8 p-0 ${
+                      currentPage === page 
+                        ? "bg-emerald-600 text-white" 
+                        : "hover:bg-emerald-50 hover:text-emerald-700"
+                    }`}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dialogs */}

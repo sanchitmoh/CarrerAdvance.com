@@ -333,247 +333,303 @@ export default function EmployeesPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header with Back Button */}
-      <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 sm:p-8 rounded-xl bg-gradient-to-r from-purple-800 via-purple-900 to-purple-950 text-white">
+  {/* Back button */}
+  <div>
+    <Link href="/employers/dashboard/employee-managment">
+      <Button
+       variant="secondary"
+       size="sm"
+       className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto mb-2 sm:mb-0"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Employment
+      </Button>
+    </Link>
+  </div>
+
+  {/* Title + subtitle */}
+  <div className="min-w-0 text-center sm:text-left flex-1">
+    <h1 className="text-3xl font-bold">Employee Management</h1>
+    <p className="text-base opacity-90">
+      Manage employee information and records
+    </p>
+  </div>
+
+  {/* Add Employee dialog */}
+  <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+    <DialogTrigger asChild>
+      <Button variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto mb-2 sm:mb-0">
+        <Plus className="h-4 w-4 mr-2" />
+        Add Employee
+      </Button>
+    </DialogTrigger>
+
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>Add New Employee</DialogTitle>
+        <DialogDescription>
+          Fill in the employee details to add them to the system
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-6">
+        {/* Full form content you provided, unchanged */}
+        {/* Row 1 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="name">Full Name *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              placeholder="Enter full name"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="email">Email Address *</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              placeholder="Enter email address"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="mobile">Mobile Number</Label>
+            <Input
+              id="mobile"
+              type="tel"
+              value={formData.mobile}
+              onChange={(e) => handleInputChange("mobile", e.target.value)}
+              placeholder="e.g., +1 555-123-4567"
+              className="mt-1"
+            />
+          </div>
+        </div>
+
+        {/* Row 2 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="empId">Employee ID *</Label>
+            <Input
+              id="empId"
+              value={formData.empId}
+              onChange={(e) => handleInputChange("empId", e.target.value)}
+              placeholder="e.g., EMP004"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="empType">Employment Type *</Label>
+            <Select
+              value={formData.empType}
+              onValueChange={(value) => handleInputChange("empType", value)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select employment type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fulltime">Full Time</SelectItem>
+                <SelectItem value="parttime">Part Time</SelectItem>
+                <SelectItem value="internship">Internship</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 3 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="department">Department *</Label>
+            <Select
+              value={formData.department}
+              onValueChange={(value) => {
+                handleInputChange("department", value)
+                handleInputChange("position", "")
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.name}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="position">Position *</Label>
+            <Select
+              value={formData.position}
+              onValueChange={(value) => handleInputChange("position", value)}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select designation" />
+              </SelectTrigger>
+              <SelectContent>
+                {(() => {
+                  const selectedDept = departments.find(
+                    (d) => d.name === formData.department
+                  )
+                  const filtered = selectedDept
+                    ? designations.filter(
+                        (des) => des.department_id === selectedDept.id
+                      )
+                    : []
+                  return filtered.map((des) => (
+                    <SelectItem key={des.id} value={des.name}>
+                      {des.name}
+                    </SelectItem>
+                  ))
+                })()}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 4 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="salary">Salary *</Label>
+            <Input
+              id="salary"
+              type="number"
+              value={formData.salary}
+              onChange={(e) => handleInputChange("salary", e.target.value)}
+              placeholder="Monthly salary or hourly rate"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="income">Annual Income *</Label>
+            <Input
+              id="income"
+              type="number"
+              value={formData.income}
+              onChange={(e) => handleInputChange("income", e.target.value)}
+              placeholder="Annual income"
+              className="mt-1"
+            />
+          </div>
+        </div>
+
+        {/* Row 5 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="workingHours">Working Hours</Label>
+            <Input
+              id="workingHours"
+              value={formData.workingHours}
+              onChange={(e) => handleInputChange("workingHours", e.target.value)}
+              placeholder="e.g., 9:00 AM - 6:00 PM"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="joiningDate">Joining Date *</Label>
+            <Input
+              id="joiningDate"
+              type="date"
+              value={formData.joiningDate}
+              onChange={(e) => handleInputChange("joiningDate", e.target.value)}
+              className="mt-1"
+            />
+          </div>
+        </div>
+
+        {/* Row 6 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="emergencyContactName">
+              Emergency Contact Name *
+            </Label>
+            <Input
+              id="emergencyContactName"
+              value={formData.emergencyContactName}
+              onChange={(e) =>
+                handleInputChange("emergencyContactName", e.target.value)
+              }
+              placeholder="Emergency contact name"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="emergencyContactNumber">
+              Emergency Contact Number *
+            </Label>
+            <Input
+              id="emergencyContactNumber"
+              value={formData.emergencyContactNumber}
+              onChange={(e) =>
+                handleInputChange("emergencyContactNumber", e.target.value)
+              }
+              placeholder="+1-555-0000"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="emergencyContactEmail">
+              Emergency Contact Email
+            </Label>
+            <Input
+              id="emergencyContactEmail"
+              type="email"
+              value={formData.emergencyContact}
+              onChange={(e) =>
+                handleInputChange("emergencyContact", e.target.value)
+              }
+              placeholder="contact@example.com"
+              className="mt-1"
+            />
+          </div>
+        </div>
+
+        {/* Row 7 */}
         <div>
-          <Link href="/employers/dashboard/employee-managment">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Employment
-            </Button>
-          </Link>
+          <Label htmlFor="image">Profile Image URL</Label>
+          <Input
+            id="image"
+            value={formData.image}
+            onChange={(e) => handleInputChange("image", e.target.value)}
+            placeholder="Enter image URL or upload"
+            className="mt-1"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Optional: Provide image URL or leave blank for default avatar
+          </p>
         </div>
-        <div className="min-w-0">
-          <h1 className="text-3xl font-bold text-gray-900">Employee Management</h1>
-          <p className="text-gray-600 mt-1">Manage employee information and records</p>
+
+        {/* Action buttons */}
+        <div className="flex flex-col sm:flex-row gap-2 pt-4">
+          <Button
+            onClick={handleAddEmployee}
+            className="flex-1 bg-black text-white hover:bg-gray-900"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Employee
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsAddDialogOpen(false)}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Employee
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Employee</DialogTitle>
-              <DialogDescription>Fill in the employee details to add them to the system</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder="Enter full name"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email Address *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="Enter email address"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="mobile">Mobile Number</Label>
-                  <Input
-                    id="mobile"
-                    type="tel"
-                    value={formData.mobile}
-                    onChange={(e) => handleInputChange("mobile", e.target.value)}
-                    placeholder="e.g., +1 555-123-4567"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="empId">Employee ID *</Label>
-                  <Input
-                    id="empId"
-                    value={formData.empId}
-                    onChange={(e) => handleInputChange("empId", e.target.value)}
-                    placeholder="e.g., EMP004"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="empType">Employment Type *</Label>
-                  <Select value={formData.empType} onValueChange={(value) => handleInputChange("empType", value)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select employment type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fulltime">Full Time</SelectItem>
-                      <SelectItem value="parttime">Part Time</SelectItem>
-                      <SelectItem value="internship">Internship</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="department">Department *</Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(value) => {
-                      handleInputChange("department", value)
-                      // Reset position when department changes
-                      handleInputChange("position", "")
-                    }}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="position">Position *</Label>
-                  <Select
-                    value={formData.position}
-                    onValueChange={(value) => handleInputChange("position", value)}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select designation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(() => {
-                        const selectedDept = departments.find((d) => d.name === formData.department)
-                        const filtered = selectedDept
-                          ? designations.filter((des) => des.department_id === selectedDept.id)
-                          : []
-                        return filtered.map((des) => (
-                          <SelectItem key={des.id} value={des.name}>{des.name}</SelectItem>
-                        ))
-                      })()}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="salary">Salary *</Label>
-                  <Input
-                    id="salary"
-                    type="number"
-                    value={formData.salary}
-                    onChange={(e) => handleInputChange("salary", e.target.value)}
-                    placeholder="Monthly salary or hourly rate"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="income">Annual Income *</Label>
-                  <Input
-                    id="income"
-                    type="number"
-                    value={formData.income}
-                    onChange={(e) => handleInputChange("income", e.target.value)}
-                    placeholder="Annual income"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="workingHours">Working Hours</Label>
-                  <Input
-                    id="workingHours"
-                    value={formData.workingHours}
-                    onChange={(e) => handleInputChange("workingHours", e.target.value)}
-                    placeholder="e.g., 9:00 AM - 6:00 PM"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="joiningDate">Joining Date *</Label>
-                  <Input
-                    id="joiningDate"
-                    type="date"
-                    value={formData.joiningDate}
-                    onChange={(e) => handleInputChange("joiningDate", e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="emergencyContactName">Emergency Contact Name *</Label>
-                  <Input
-                    id="emergencyContactName"
-                    value={formData.emergencyContactName}
-                    onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
-                    placeholder="Emergency contact name"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="emergencyContactNumber">Emergency Contact Number *</Label>
-                  <Input
-                    id="emergencyContactNumber"
-                    value={formData.emergencyContactNumber}
-                    onChange={(e) => handleInputChange("emergencyContactNumber", e.target.value)}
-                    placeholder="+1-555-0000"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="emergencyContactEmail">Emergency Contact Email</Label>
-                  <Input
-                    id="emergencyContactEmail"
-                    type="email"
-                    value={formData.emergencyContact}
-                    onChange={(e) => handleInputChange("emergencyContact", e.target.value)}
-                    placeholder="contact@example.com"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="image">Profile Image URL</Label>
-                <Input
-                  id="image"
-                  value={formData.image}
-                  onChange={(e) => handleInputChange("image", e.target.value)}
-                  placeholder="Enter image URL or upload"
-                  className="mt-1"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Optional: Provide image URL or leave blank for default avatar
-                </p>
-              </div>
-
-              <div className="flex space-x-2 pt-4">
-                <Button onClick={handleAddEmployee} className="flex-1">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Employee
-                </Button>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="flex-1">
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
+    </DialogContent>
+  </Dialog>
+</div>
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
