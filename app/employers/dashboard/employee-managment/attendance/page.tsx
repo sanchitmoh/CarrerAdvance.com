@@ -28,8 +28,6 @@ import {
   Phone,
   Briefcase,
   Salad as Salary,
-  Menu,
-  X,
 } from "lucide-react"
 import Link from "next/link"
 import { 
@@ -139,7 +137,6 @@ export default function AttendanceManagementPage() {
   const [loading, setLoading] = useState(false)
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Employees from backend (ew_companyemp)
   const [employees, setEmployees] = useState<CompanyEmployee[]>([])
@@ -221,8 +218,9 @@ export default function AttendanceManagementPage() {
   const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<LeaveRequest | null>(null)
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false)
 
-  // UI: Leave requests show more/less
-  const [leaveShowAll, setLeaveShowAll] = useState(false)
+  // UI: Leave requests pagination
+  const [leavePage, setLeavePage] = useState(1)
+  const [leavePerPage] = useState(3)
 
   // UI: Attendance records pagination
   const [attendancePage, setAttendancePage] = useState(1)
@@ -326,8 +324,12 @@ export default function AttendanceManagementPage() {
     onLeave: attendanceRecords.filter((r) => r.status === "leave").length,
   }), [attendanceRecords])
 
-  // Derived: Leave requests displayed (3 by default on mobile)
-  const displayedLeaveRequests = leaveShowAll ? leaveRequests : leaveRequests.slice(0, 3)
+  // Derived: Leave requests pagination
+  const totalLeavePages = Math.ceil(leaveRequests.length / leavePerPage) || 1
+  const paginatedLeaveRequests = leaveRequests.slice(
+    (leavePage - 1) * leavePerPage,
+    leavePage * leavePerPage
+  )
 
   // Derived: Attendance pagination
   const totalAttendancePages = Math.ceil(attendanceRecords.length / attendancePerPage) || 1
@@ -335,6 +337,11 @@ export default function AttendanceManagementPage() {
     (attendancePage - 1) * attendancePerPage,
     attendancePage * attendancePerPage
   )
+
+  // Reset leave pagination when data changes
+  useEffect(() => {
+    setLeavePage(1)
+  }, [leaveRequests.length])
 
   // Reset attendance pagination when filters change
   useEffect(() => {
@@ -431,54 +438,37 @@ export default function AttendanceManagementPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white lg:hidden">
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-1 h-8 w-8 bg-white/20"
-                onClick={() => window.history.back()}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-lg font-bold">Attendance</h1>
-                <p className="text-blue-100 text-xs">Manage employee attendance</p>
-              </div>
-            </div>
+      {/* Mobile Header - Hidden on desktop */}
+      <div className="lg:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+          <Link href="/employers/dashboard/employee-managment">
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              className="p-1 h-8 w-8 bg-white/20"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto"
             >
-              {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Employment
             </Button>
-          </div>
+          </Link>
           
-          {isMobileMenuOpen && (
-            <div className="mt-4 space-y-2">
-              <Button variant="secondary" className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30 justify-start">
-                <Download className="h-4 w-4 mr-2" />
-                Export Report
-              </Button>
-              <Link href="/employers/dashboard/employee-managment" className="block">
-                <Button variant="secondary" className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30 justify-start">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Employment
-                </Button>
-              </Link>
-            </div>
-          )}
+          <div className="min-w-0 text-center sm:text-left flex-1">
+            <h1 className="text-xl font-bold">Attendance Management</h1>
+            <p className="text-blue-100 text-sm">
+              Manage employee attendance and records
+            </p>
+          </div>
+
+          <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto">
+            <Download className="h-4 w-4 mr-2" />
+            Export Report
+          </Button>
         </div>
       </div>
 
-      {/* Desktop Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white hidden lg:block mx-4 mt-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+      {/* Desktop Header - Hidden on mobile */}
+      <div className="hidden lg:block mx-4 mt-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl text-white">
           <div className="flex items-center space-x-4">
             <Link href="/employers/dashboard/employee-managment">
               <Button
@@ -495,7 +485,7 @@ export default function AttendanceManagementPage() {
               <p className="text-blue-100">Track employee attendance, manage leave requests, and monitor patterns</p>
             </div>
           </div>
-          <div className="mt-4 md:mt-0 flex space-x-3">
+          <div className="flex space-x-3">
             <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
               <Download className="h-4 w-4 mr-2" />
               Export Report
@@ -650,14 +640,14 @@ export default function AttendanceManagementPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`space-y-3 ${leaveShowAll ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+              <div className="space-y-3">
                 {leaveRequests.length === 0 ? (
                   <div className="text-center py-6 text-gray-500">
                     <Calendar className="h-10 w-10 mx-auto mb-3 text-gray-300" />
                     <p className="text-sm">No leave requests found</p>
                   </div>
                 ) : (
-                  displayedLeaveRequests.filter(Boolean).map((request) => {
+                  paginatedLeaveRequests.filter(Boolean).map((request) => {
                     const employee = employees.find((emp) => emp.name === request.employeeName)
                     const userData: UserData | null = employee ? {
                       emp_id: employee.emp_code || '',
@@ -750,16 +740,49 @@ export default function AttendanceManagementPage() {
                     )
                   })
                 )}
-                {leaveRequests.length > 3 && (
-                  <div className="text-center pt-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setLeaveShowAll(!leaveShowAll)}
-                      className="text-blue-700 hover:text-blue-800 hover:bg-blue-50 text-xs"
-                      size="sm"
-                    >
-                      {leaveShowAll ? 'Show Less' : `Show More (${leaveRequests.length - 3} more)`}
-                    </Button>
+                {/* Leave Requests Pagination */}
+                {leaveRequests.length > leavePerPage && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between px-2 py-3 border-t space-y-2 sm:space-y-0 mt-4">
+                    <div className="text-sm text-gray-700">
+                      Showing {((leavePage - 1) * leavePerPage) + 1} to {Math.min(leavePage * leavePerPage, leaveRequests.length)} of {leaveRequests.length}
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLeavePage(Math.max(1, leavePage - 1))}
+                        disabled={leavePage === 1}
+                        className="text-xs h-8"
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center space-x-1">
+                        {Array.from({ length: Math.min(3, totalLeavePages) }, (_, i) => {
+                          const pageNum = Math.max(1, Math.min(totalLeavePages - 2, leavePage - 1)) + i
+                          if (pageNum > totalLeavePages) return null
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={leavePage === pageNum ? 'default' : 'outline'}
+                              size="sm"
+                              className="w-8 h-8 p-0 text-xs"
+                              onClick={() => setLeavePage(pageNum)}
+                            >
+                              {pageNum}
+                            </Button>
+                          )
+                        })}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLeavePage(Math.min(totalLeavePages, leavePage + 1))}
+                        disabled={leavePage === totalLeavePages}
+                        className="text-xs h-8"
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -909,6 +932,7 @@ export default function AttendanceManagementPage() {
                 </div>
               </>
             )}
+            {/* Attendance Records Pagination */}
             {attendanceRecords.length > attendancePerPage && (
               <div className="flex flex-col sm:flex-row items-center justify-between px-2 py-3 border-t space-y-2 sm:space-y-0 mt-4">
                 <div className="text-sm text-gray-700">

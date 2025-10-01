@@ -1,5 +1,4 @@
-import Link from "next/link"
-import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, Heart, Zap } from "lucide-react"
+import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, Heart, Zap, ArrowRight } from "lucide-react"
 
 export default function Footer() {
   const footerSections = [
@@ -46,69 +45,86 @@ export default function Footer() {
   ]
 
   return (
-    <footer className="relative bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 text-white overflow-hidden">
-      {/* Background */}
+    <footer className="relative bg-black text-white overflow-hidden">
+      {/* Animated gradient background */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-black"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/20 via-transparent to-green-900/20"></div>
-        <div className="absolute top-0 left-1/4 w-32 h-32 sm:w-72 sm:h-72 bg-gradient-to-r from-emerald-600/5 to-teal-600/5 rounded-full blur-xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-32 h-32 sm:w-72 sm:h-72 bg-gradient-to-r from-green-600/5 to-lime-600/5 rounded-full blur-xl"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-emerald-950/30 to-black"></div>
+        
+        {/* Animated orbs */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite]"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-green-500/20 to-lime-500/20 rounded-full blur-3xl animate-[pulse_10s_ease-in-out_infinite_2s]"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-teal-500/10 to-emerald-500/10 rounded-full blur-3xl animate-[pulse_12s_ease-in-out_infinite_4s]"></div>
+        
+        {/* Grid overlay */}
+        <div className="absolute inset-0 opacity-[0.03]" 
+          style={{
+            backgroundImage: `linear-gradient(rgba(16,185,129,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,.5) 1px, transparent 1px)`,
+            backgroundSize: "60px 60px",
+          }}
+        ></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6">
-        {/* Top Section */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          {/* Company Info */}
-          <div className="flex-1 min-w-0 text-center lg:text-left">
-            <Link href="/" className="inline-flex items-center mb-3 group">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 via-green-600 to-teal-500 rounded-lg flex items-center justify-center shadow group-hover:shadow-md transition-all duration-300 group-hover:scale-105 mr-2">
-                <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
+        {/* Main Footer Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 py-16 border-b border-white/10">
+          {/* Brand Section */}
+          <div className="lg:col-span-4 space-y-6">
+            <a href="/" className="inline-flex items-center group">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                <div className="relative w-14 h-14 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                  <Zap className="h-7 w-7 text-white" />
+                </div>
               </div>
-              <div>
-                <div className="text-base sm:text-lg font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              <div className="ml-4">
+                <div className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-emerald-200 to-white bg-clip-text text-transparent">
                   CAREER ADVANCE
                 </div>
-                <div className="text-[10px] sm:text-xs text-gray-400 font-medium tracking-wider">ONLINE LEARNING</div>
+                <div className="text-xs text-emerald-400 font-semibold tracking-widest mt-0.5">ONLINE LEARNING</div>
               </div>
-            </Link>
-            <p className="text-gray-300 mb-3 text-xs sm:text-sm leading-relaxed">
-              Empowering careers through smart technology.
+            </a>
+            
+            <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+              Empowering careers through cutting-edge technology, intelligent job matching, and transformative learning experiences.
             </p>
-            <div className="flex justify-center lg:justify-start gap-1 sm:gap-2">
-              {[Facebook, Twitter, Linkedin, Instagram].map((Icon, idx) => (
+            
+            {/* Social Links */}
+            <div className="flex items-center gap-3">
+              {[
+                { Icon: Facebook, color: "hover:bg-emerald-500/20 hover:text-emerald-400" },
+                { Icon: Twitter, color: "hover:bg-green-500/20 hover:text-green-400" },
+                { Icon: Linkedin, color: "hover:bg-teal-500/20 hover:text-teal-400" },
+                { Icon: Instagram, color: "hover:bg-lime-500/20 hover:text-lime-400" }
+              ].map(({ Icon, color }, idx) => (
                 <a
                   key={idx}
                   href="#"
-                  className={`w-6 h-6 sm:w-8 sm:h-8 bg-white/10 backdrop-blur-sm rounded flex items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-white/20 border border-white/10 hover:border-white/20 ${
-                    Icon === Facebook
-                      ? "hover:text-emerald-400"
-                      : Icon === Twitter
-                      ? "hover:text-green-400"
-                      : Icon === Linkedin
-                      ? "hover:text-teal-500"
-                      : "hover:text-lime-400"
-                  }`}
+                  className={`group relative w-11 h-11 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center transition-all duration-300 ${color} hover:border-white/20 hover:-translate-y-1`}
                 >
-                  <Icon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                  <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Footer Links - More compact grid */}
-          <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {/* Links Grid */}
+          <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-8">
             {footerSections.map((section, idx) => (
-              <div key={idx}>
-                <h3 className="text-xs sm:text-sm font-bold mb-2 text-white">{section.title}</h3>
-                <ul className="space-y-1">
+              <div key={idx} className="space-y-4">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider relative inline-block">
+                  {section.title}
+                  <span className="absolute -bottom-1 left-0 w-8 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500"></span>
+                </h3>
+                <ul className="space-y-2.5">
                   {section.links.map((link, lidx) => (
                     <li key={lidx}>
-                      <Link
+                      <a
                         href={link.href}
-                        className="text-gray-400 hover:text-white transition-colors duration-200 text-[10px] sm:text-xs"
+                        className="text-sm text-gray-400 hover:text-emerald-400 transition-colors duration-200 flex items-center group"
                       >
-                        {link.name}
-                      </Link>
+                        <ArrowRight className="w-3 h-3 mr-1.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+                        <span className="group-hover:translate-x-1 transition-transform duration-200">{link.name}</span>
+                      </a>
                     </li>
                   ))}
                 </ul>
@@ -117,46 +133,54 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Ultra Compact Contact Section */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
-          <h3 className="text-sm font-bold mb-3 text-center">Get in Touch</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+        {/* Contact Bar */}
+        <div className="py-8 border-b border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: Mail, text: "info@careeradvance.ca", gradient: "from-emerald-500 to-green-600" },
-              { icon: Phone, text: "+1 (555) 123-4567", gradient: "from-green-500 to-teal-600" },
-              { icon: MapPin, text: "Toronto, ON", gradient: "from-teal-500 to-lime-600" },
+              { icon: Mail, text: "info@careeradvance.ca", label: "Email Us", gradient: "from-emerald-500 to-green-500" },
+              { icon: Phone, text: "+1 (555) 123-4567", label: "Call Us", gradient: "from-green-500 to-teal-500" },
+              { icon: MapPin, text: "Toronto, ON, Canada", label: "Visit Us", gradient: "from-teal-500 to-lime-500" },
             ].map((contact, idx) => (
-              <div key={idx} className="flex flex-col items-center">
-                <div
-                  className={`w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r ${contact.gradient} rounded flex items-center justify-center mb-1 shadow-sm`}
-                >
-                  <contact.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+              <div key={idx} className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-emerald-500/50 transition-all duration-300 hover:bg-white/10">
+                <div className={`w-12 h-12 bg-gradient-to-br ${contact.gradient} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                  <contact.icon className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-gray-300 text-[10px] sm:text-xs break-all">{contact.text}</span>
+                <div className="min-w-0">
+                  <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">{contact.label}</div>
+                  <div className="text-sm text-white font-medium truncate">{contact.text}</div>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Bottom Section - Ultra Compact */}
-        <div className="border-t border-white/10 pt-3">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-            <div className="text-gray-400 text-[10px] sm:text-xs text-center w-full sm:w-auto">
-              © 2024 Career Advance. Made with ❤️ in Seoulix
+        {/* Bottom Bar */}
+        <div className="py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center md:justify-start text-sm text-gray-500 gap-1">
+              <span>© 2024 Career Advance. Made with</span>
+              <Heart className="w-4 h-4 text-red-500 fill-current animate-pulse mx-1" />
+              <span>in Canada.</span>
+              <span className="hidden sm:inline">Designed & Developed with</span>
+              <Heart className="w-4 h-4 text-red-500 fill-current animate-pulse mx-1 hidden sm:inline" />
+              <span className="hidden sm:inline">by Seoulix Technologies</span>
             </div>
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+            
+            <div className="flex flex-wrap justify-center gap-6">
               {[
-                { name: "Privacy", href: "/privacy" }, 
-                { name: "Terms", href: "/terms" }, 
-                { name: "Cookies", href: "/cookies" }
+                { name: "Privacy", href: "/privacy" },
+                { name: "Terms", href: "/terms" },
+                { name: "Cookies", href: "/cookies" },
+                { name: "Accessibility", href: "/accessibility" }
               ].map((link, idx) => (
-                <Link 
-                  key={idx} 
-                  href={link.href} 
-                  className="text-gray-400 hover:text-white text-[10px] sm:text-xs transition-colors duration-200"
+                <a
+                  key={idx}
+                  href={link.href}
+                  className="text-sm text-gray-500 hover:text-emerald-400 transition-colors duration-200 relative group"
                 >
                   {link.name}
-                </Link>
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
+                </a>
               ))}
             </div>
           </div>

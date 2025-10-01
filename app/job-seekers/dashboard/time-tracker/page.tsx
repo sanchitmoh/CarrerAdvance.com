@@ -72,7 +72,10 @@ export default function JobSeekerTimeTrackerPage() {
   const [isBreakDialogOpen, setIsBreakDialogOpen] = useState(false)
   const [selectedBreakType, setSelectedBreakType] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>(() => dateStrFromDate(new Date()))
-  const breakOptions = ["Lunch", "Coffee"]
+  const breakOptions = [
+    { type: "Lunch", duration: "1 hour" },
+    { type: "Coffee", duration: "15 mins" }
+  ]
   const [leaveReason, setLeaveReason] = useState("")
   const [leaveFrom, setLeaveFrom] = useState<string>("")
   const [leaveTo, setLeaveTo] = useState<string>("")
@@ -102,6 +105,17 @@ export default function JobSeekerTimeTrackerPage() {
       // ignore
     }
   }, [entries, selectedDate])
+
+  // Check if a break type has already been taken today
+  const getTakenBreakTypes = useMemo(() => {
+    const takenBreaks = new Set<string>()
+    entries.forEach(entry => {
+      if (entry.type === "break-start" && entry.breakType) {
+        takenBreaks.add(entry.breakType)
+      }
+    })
+    return takenBreaks
+  }, [entries])
 
   // Tick only when viewing today; past/future dates are static
   const isSelectedToday = isTodayDateStr(selectedDate)
@@ -606,29 +620,51 @@ export default function JobSeekerTimeTrackerPage() {
         </div>
       </section>
 
-      {/* Break Selection Dialog - Improved mobile layout */}
+      {/* Break Selection Dialog - Updated with durations and taken breaks */}
       <Dialog open={isBreakDialogOpen} onOpenChange={setIsBreakDialogOpen}>
         <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Select Break Type</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            {breakOptions.map((opt) => (
-              <label 
-                key={opt} 
-                className="flex items-center gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent transition-colors"
-              >
-                <input
-                  type="radio"
-                  name="break-option"
-                  value={opt}
-                  checked={selectedBreakType === opt}
-                  onChange={() => setSelectedBreakType(opt)}
-                  className="w-4 h-4 text-emerald-600"
-                />
-                <span className="text-sm font-medium">{opt}</span>
-              </label>
-            ))}
+            {breakOptions.map((opt) => {
+              const isTaken = getTakenBreakTypes.has(opt.type)
+              return (
+                <label 
+                  key={opt.type} 
+                  className={`flex items-center gap-3 rounded-lg border p-4 transition-colors ${
+                    isTaken 
+                      ? 'opacity-50 cursor-not-allowed bg-muted/30' 
+                      : 'cursor-pointer hover:bg-accent'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="break-option"
+                    value={opt.type}
+                    checked={selectedBreakType === opt.type}
+                    onChange={() => !isTaken && setSelectedBreakType(opt.type)}
+                    disabled={isTaken}
+                    className="w-4 h-4 text-emerald-600"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-medium ${isTaken ? 'text-muted-foreground' : 'text-foreground'}`}>
+                        {opt.type}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {opt.duration}
+                      </span>
+                    </div>
+                    {isTaken && (
+                      <p className="text-xs text-amber-600 mt-1 font-medium">
+                        Already taken today
+                      </p>
+                    )}
+                  </div>
+                </label>
+              )
+            })}
           </div>
           <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
             <button

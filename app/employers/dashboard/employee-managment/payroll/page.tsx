@@ -34,6 +34,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  MoreHorizontal,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -108,6 +109,9 @@ export default function PayrollManagementPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+
+  // Mobile menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<number | null>(null)
 
   // Derived state
   const derivedCycleStatus = useMemo(() => {
@@ -267,6 +271,7 @@ export default function PayrollManagementPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+    setMobileMenuOpen(null)
   }
 
   // Calculation functions
@@ -290,10 +295,12 @@ export default function PayrollManagementPage() {
     }
     setSelectedPayslip(payslipData)
     setShowPayslipDialog(true)
+    setMobileMenuOpen(null)
   }
 
   const initiateBankTransfer = (employee: any) => {
     alert(`Bank transfer initiated for ${employee.name} - $${employee.netSalary}`)
+    setMobileMenuOpen(null)
   }
 
   // Lightweight inline user info popover
@@ -376,7 +383,7 @@ export default function PayrollManagementPage() {
     )
   }
 
-  // API functions
+  // API functions (keep existing functions, they remain unchanged)
   const handleSavePayrollCycle = async () => {
     if (!cycleForm.startDate || !cycleForm.endDate) {
       alert("Please select start and end dates.")
@@ -707,6 +714,51 @@ export default function PayrollManagementPage() {
     }
     setSelectedPayslip(payslipData as any)
     setShowPayslipDialog(true)
+    setMobileMenuOpen(null)
+  }
+
+  // Mobile Actions Menu Component
+  const MobileActionsMenu = ({ employee, row, index }: { employee?: any, row?: PayrollRow, index: number }) => {
+    const isOpen = mobileMenuOpen === index
+    
+    return (
+      <div className="relative sm:hidden">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 p-0"
+          onClick={() => setMobileMenuOpen(isOpen ? null : index)}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+        
+        {isOpen && (
+          <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+            <button
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2"
+              onClick={() => row ? generatePayslipFromRow(row) : employee ? generatePayslip(employee) : null}
+            >
+              <Eye className="h-4 w-4" />
+              <span>View Payslip</span>
+            </button>
+            <button
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2"
+              onClick={() => row ? generatePayslipFromRow(row) : employee ? generatePayslip(employee) : null}
+            >
+              <Download className="h-4 w-4" />
+              <span>Download</span>
+            </button>
+            <button
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center space-x-2"
+              onClick={() => row ? alert(`Bank transfer for employee ${row.employee_id}`) : employee ? initiateBankTransfer(employee) : null}
+            >
+              <CreditCard className="h-4 w-4" />
+              <span>Bank Transfer</span>
+            </button>
+          </div>
+        )}
+      </div>
+    )
   }
 
   // Pagination Component
@@ -727,7 +779,7 @@ export default function PayrollManagementPage() {
 
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 px-2 py-4">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-gray-600 text-center sm:text-left">
           Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, payroll.length > 0 ? payroll.length : employees.length)} of {payroll.length > 0 ? payroll.length : employees.length} entries
         </div>
         <div className="flex items-center space-x-1">
@@ -768,8 +820,8 @@ export default function PayrollManagementPage() {
           ))}
           
           {/* Mobile page indicator */}
-          <div className="sm:hidden text-sm font-medium">
-            Page {currentPage} of {totalPages}
+          <div className="sm:hidden text-sm font-medium px-3">
+            {currentPage} / {totalPages}
           </div>
           
           {endPage < totalPages && (
@@ -801,38 +853,38 @@ export default function PayrollManagementPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 px-3 sm:px-4 lg:px-6">
-      {/* Header - Responsive */}
+    <div className="max-w-7xl mx-auto space-y-6 px-3 sm:px-4 lg:px-6 py-4">
+      {/* Header - Mobile Responsive */}
       <div className="bg-gradient-to-r from-emerald-600 to-green-600 rounded-2xl p-4 sm:p-6 text-white">
         <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            <Link href="/employers/dashboard/employee-managment">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full">
+            <Link href="/employers/dashboard/employee-managment" className="w-full sm:w-auto">
               <Button
                 variant="secondary"
                 size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto mb-2 sm:mb-0"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 w-full sm:w-auto justify-center sm:justify-start"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Back to Employment</span>
                 <span className="sm:hidden">Back</span>
               </Button>
             </Link>
-            <div>
+            <div className="text-center sm:text-left flex-1">
               <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Payroll Management</h1>
               <p className="text-emerald-100 text-sm sm:text-base">Calculate salaries, generate payslips, and manage tax deductions</p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
             <Button
               variant="secondary"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-sm"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-sm w-full sm:w-auto justify-center"
               onClick={() => setShowCycleDialog(true)}
             >
               <Calendar className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Payroll Cycle</span>
               <span className="sm:hidden">Cycle</span>
             </Button>
-            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-sm">
+            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-sm w-full sm:w-auto justify-center">
               <Download className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Export Report</span>
               <span className="sm:hidden">Export</span>
@@ -842,15 +894,15 @@ export default function PayrollManagementPage() {
       </div>
 
       {/* Quick Stats - Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-green-100">
+                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">${totalGrossPay.toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">${(totalGrossPay / 1000).toFixed(0)}k</p>
                 <p className="text-xs sm:text-sm text-gray-600">Gross Pay</p>
               </div>
             </div>
@@ -859,12 +911,12 @@ export default function PayrollManagementPage() {
 
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Calculator className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-blue-100">
+                <Calculator className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">${totalDeductions.toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">${(totalDeductions / 1000).toFixed(0)}k</p>
                 <p className="text-xs sm:text-sm text-gray-600">Deductions</p>
               </div>
             </div>
@@ -873,12 +925,12 @@ export default function PayrollManagementPage() {
 
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-red-100">
-                <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-red-100">
+                <FileText className="h-4 w-4 sm:h-6 sm:w-6 text-red-600" />
               </div>
               <div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">${totalTax.toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">${(totalTax / 1000).toFixed(0)}k</p>
                 <p className="text-xs sm:text-sm text-gray-600">Tax</p>
               </div>
             </div>
@@ -887,12 +939,12 @@ export default function PayrollManagementPage() {
 
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-emerald-100">
-                <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-100">
+                <CreditCard className="h-4 w-4 sm:h-6 sm:w-6 text-emerald-600" />
               </div>
               <div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900">${totalNetPay.toLocaleString()}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">${(totalNetPay / 1000).toFixed(0)}k</p>
                 <p className="text-xs sm:text-sm text-gray-600">Net Pay</p>
               </div>
             </div>
@@ -902,9 +954,9 @@ export default function PayrollManagementPage() {
 
       <Tabs defaultValue="current" className="space-y-4 sm:space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="current" className="text-xs sm:text-sm">Current Payroll</TabsTrigger>
-          <TabsTrigger value="history" className="text-xs sm:text-sm">Payroll History</TabsTrigger>
-          <TabsTrigger value="settings" className="text-xs sm:text-sm">Salary Settings</TabsTrigger>
+          <TabsTrigger value="current" className="text-xs sm:text-sm">Current</TabsTrigger>
+          <TabsTrigger value="history" className="text-xs sm:text-sm">History</TabsTrigger>
+          <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="current" className="space-y-4 sm:space-y-6">
@@ -913,17 +965,17 @@ export default function PayrollManagementPage() {
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 p-4 sm:p-6">
               <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                 <Users className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-                <span>Employee Payroll - January 2024</span>
+                <span>Employee Payroll</span>
               </CardTitle>
               <div className="flex items-center space-x-2 w-full sm:w-auto">
                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-full sm:w-40">
+                  <SelectTrigger className="w-full sm:w-40 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="2024-01">January 2024</SelectItem>
-                    <SelectItem value="2023-12">December 2023</SelectItem>
-                    <SelectItem value="2023-11">November 2023</SelectItem>
+                    <SelectItem value="2024-01">Jan 2024</SelectItem>
+                    <SelectItem value="2023-12">Dec 2023</SelectItem>
+                    <SelectItem value="2023-11">Nov 2023</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -934,37 +986,41 @@ export default function PayrollManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="min-w-[150px]">Employee</TableHead>
-                        <TableHead className="hidden sm:table-cell">Type</TableHead>
-                        <TableHead className="hidden lg:table-cell">Base Salary</TableHead>
-                        <TableHead className="hidden md:table-cell">Hours</TableHead>
-                        <TableHead className="hidden lg:table-cell">Overtime</TableHead>
-                        <TableHead className="hidden xl:table-cell">Bonus</TableHead>
-                        <TableHead>Gross Pay</TableHead>
-                        <TableHead className="hidden md:table-cell">Deductions</TableHead>
-                        <TableHead className="hidden lg:table-cell">Tax</TableHead>
-                        <TableHead>Net Pay</TableHead>
-                        <TableHead className="min-w-[120px]">Actions</TableHead>
+                        <TableHead className="min-w-[140px] text-xs sm:text-sm">Employee</TableHead>
+                        <TableHead className="hidden sm:table-cell text-xs sm:text-sm">Type</TableHead>
+                        <TableHead className="hidden lg:table-cell text-xs sm:text-sm">Base</TableHead>
+                        <TableHead className="hidden md:table-cell text-xs sm:text-sm">Hours</TableHead>
+                        <TableHead className="hidden lg:table-cell text-xs sm:text-sm">OT</TableHead>
+                        <TableHead className="text-xs sm:text-sm">Gross</TableHead>
+                        <TableHead className="hidden md:table-cell text-xs sm:text-sm">Deductions</TableHead>
+                        <TableHead className="text-xs sm:text-sm">Net</TableHead>
+                        <TableHead className="min-w-[80px] text-xs sm:text-sm">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {payrollLoading ? (
                         <TableRow>
-                          <TableCell colSpan={11} className="text-center text-sm text-gray-600 py-8">Loading payroll data...</TableCell>
+                          <TableCell colSpan={9} className="text-center text-sm text-gray-600 py-8">
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
+                              <span>Loading payroll data...</span>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ) : payroll.length > 0 ? (
                         <>
-                          {currentPayroll.map((row) => (
-                            <TableRow key={row.id}>
+                          {currentPayroll.map((row, index) => (
+                            <TableRow key={row.id} className="text-xs sm:text-sm">
                               <TableCell>
-                                <div className="flex items-center space-x-3">
-                                  <Avatar className="h-8 w-8">
+                                <div className="flex items-center space-x-2 min-w-0">
+                                  <Avatar className="h-8 w-8 flex-shrink-0">
                                     <AvatarImage src={"/placeholder.svg"} alt={row.employee_name || `Employee ${row.employee_id}`} />
                                     <AvatarFallback className="bg-emerald-100 text-emerald-600 text-xs">
-                                      {(row.employee_name || 'Employee')
+                                      {(row.employee_name || 'EE')
                                         .split(" ")
                                         .map((n) => n[0])
-                                        .join("")}
+                                        .join("")
+                                        .slice(0, 2)}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="min-w-0 flex-1">
@@ -978,8 +1034,8 @@ export default function PayrollManagementPage() {
                                       joining_date: '',
                                       salary: row.base_salary,
                                     }}>
-                                      <p className="font-medium hover:text-blue-600 transition-colors cursor-pointer truncate text-sm">
-                                        {row.employee_name || `Employee ${row.employee_id}`}
+                                      <p className="font-medium hover:text-blue-600 transition-colors cursor-pointer truncate">
+                                        {row.employee_name || `Emp ${row.employee_id}`}
                                       </p>
                                     </UserInfoPopover>
                                     <p className="text-xs text-gray-600 truncate">#{row.employee_id}</p>
@@ -997,7 +1053,7 @@ export default function PayrollManagementPage() {
                               <TableCell className="hidden sm:table-cell">
                                 <Badge
                                   variant="outline"
-                                  className={(Number(row.base_salary) > 0) ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}
+                                  className={`text-xs ${(Number(row.base_salary) > 0) ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}`}
                                 >
                                   {Number(row.base_salary) > 0 ? 'monthly' : 'hourly'}
                                 </Badge>
@@ -1005,56 +1061,40 @@ export default function PayrollManagementPage() {
                               <TableCell className="hidden lg:table-cell">${Number(row.base_salary).toLocaleString()}</TableCell>
                               <TableCell className="hidden md:table-cell">{Number(row.total_work_hours)}h</TableCell>
                               <TableCell className="hidden lg:table-cell">{Number(row.overtime_hours)}h</TableCell>
-                              <TableCell className="hidden xl:table-cell">$0</TableCell>
                               <TableCell className="font-medium">
                                 ${Number(row.gross_salary).toLocaleString()}
                               </TableCell>
                               <TableCell className="hidden md:table-cell text-red-600">${Number(row.deductions).toLocaleString()}</TableCell>
-                              <TableCell className="hidden lg:table-cell text-red-600">${Number(row.tax).toLocaleString()}</TableCell>
                               <TableCell className="font-bold text-emerald-600">
                                 ${Number(row.net_salary).toLocaleString()}
                               </TableCell>
                               <TableCell>
                                 <div className="flex space-x-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 bg-transparent"
-                                    onClick={() => generatePayslipFromRow(row)}
-                                    title="View Payslip"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 bg-transparent hidden sm:inline-flex"
-                                    title="Edit Employee"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 bg-transparent"
-                                    onClick={() => {
-                                      if (!row.id) return
-                                      const url = `${API_BASE_URL}/employee-payroll/download?payroll_id=${row.id}`
-                                      window.open(url, '_blank')
-                                    }}
-                                    title="Download Payslip"
-                                  >
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 bg-transparent text-green-600 hover:text-green-700"
-                                    onClick={() => alert(`Bank transfer initiated for employee ${row.employee_id} - $${Number(row.net_salary).toLocaleString()}`)}
-                                    title="Bank Transfer"
-                                  >
-                                    <CreditCard className="h-4 w-4" />
-                                  </Button>
+                                  <div className="hidden sm:flex space-x-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 w-7 p-0 bg-transparent"
+                                      onClick={() => generatePayslipFromRow(row)}
+                                      title="View Payslip"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 w-7 p-0 bg-transparent"
+                                      onClick={() => {
+                                        if (!row.id) return
+                                        const url = `${API_BASE_URL}/employee-payroll/download?payroll_id=${row.id}`
+                                        window.open(url, '_blank')
+                                      }}
+                                      title="Download Payslip"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  <MobileActionsMenu row={row} index={index} />
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1062,22 +1102,23 @@ export default function PayrollManagementPage() {
                         </>
                       ) : (
                         <>
-                          {currentEmployees.map((employee) => (
-                            <TableRow key={employee.id}>
+                          {currentEmployees.map((employee, index) => (
+                            <TableRow key={employee.id} className="text-xs sm:text-sm">
                               <TableCell>
-                                <div className="flex items-center space-x-3">
-                                  <Avatar className="h-8 w-8">
+                                <div className="flex items-center space-x-2 min-w-0">
+                                  <Avatar className="h-8 w-8 flex-shrink-0">
                                     <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={employee.name} />
                                     <AvatarFallback className="bg-emerald-100 text-emerald-600 text-xs">
                                       {employee.name
                                         .split(" ")
                                         .map((n) => n[0])
-                                        .join("")}
+                                        .join("")
+                                        .slice(0, 2)}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="min-w-0 flex-1">
                                     <UserInfoPopover employee={employee}>
-                                      <p className="font-medium hover:text-blue-600 transition-colors cursor-pointer truncate text-sm">
+                                      <p className="font-medium hover:text-blue-600 transition-colors cursor-pointer truncate">
                                         {employee.name}
                                       </p>
                                     </UserInfoPopover>
@@ -1096,7 +1137,7 @@ export default function PayrollManagementPage() {
                               <TableCell className="hidden sm:table-cell">
                                 <Badge
                                   variant="outline"
-                                  className={employee.salaryType === "monthly" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}
+                                  className={`text-xs ${employee.salaryType === "monthly" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}`}
                                 >
                                   {employee.salaryType}
                                 </Badge>
@@ -1104,52 +1145,36 @@ export default function PayrollManagementPage() {
                               <TableCell className="hidden lg:table-cell">${employee.baseSalary.toLocaleString()}</TableCell>
                               <TableCell className="hidden md:table-cell">{employee.hoursWorked}h</TableCell>
                               <TableCell className="hidden lg:table-cell">{employee.overtime}h</TableCell>
-                              <TableCell className="hidden xl:table-cell">${employee.bonus}</TableCell>
                               <TableCell className="font-medium">
                                 ${calculateGrossSalary(employee).toLocaleString()}
                               </TableCell>
                               <TableCell className="hidden md:table-cell text-red-600">${employee.deductions}</TableCell>
-                              <TableCell className="hidden lg:table-cell text-red-600">${employee.tax}</TableCell>
                               <TableCell className="font-bold text-emerald-600">
                                 ${employee.netSalary.toLocaleString()}
                               </TableCell>
                               <TableCell>
                                 <div className="flex space-x-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 bg-transparent"
-                                    onClick={() => generatePayslip(employee)}
-                                    title="View Payslip"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 bg-transparent hidden sm:inline-flex"
-                                    title="Edit Employee"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 bg-transparent"
-                                    onClick={() => generatePayslip(employee)}
-                                    title="Download Payslip"
-                                  >
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 w-8 p-0 bg-transparent text-green-600 hover:text-green-700"
-                                    onClick={() => initiateBankTransfer(employee)}
-                                    title="Bank Transfer"
-                                  >
-                                    <CreditCard className="h-4 w-4" />
-                                  </Button>
+                                  <div className="hidden sm:flex space-x-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 w-7 p-0 bg-transparent"
+                                      onClick={() => generatePayslip(employee)}
+                                      title="View Payslip"
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 w-7 p-0 bg-transparent"
+                                      onClick={() => generatePayslip(employee)}
+                                      title="Download Payslip"
+                                    >
+                                      <Download className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  <MobileActionsMenu employee={employee} index={index} />
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1166,7 +1191,7 @@ export default function PayrollManagementPage() {
         </TabsContent>
 
         <TabsContent value="history" className="space-y-4 sm:space-y-6">
-          {/* Payroll History - Responsive Cards */}
+          {/* Payroll History - Mobile Responsive Cards */}
           <Card>
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
@@ -1179,47 +1204,48 @@ export default function PayrollManagementPage() {
                 {payrollHistory.map((record) => (
                   <div key={record.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg space-y-3 sm:space-y-0">
                     <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
-                      <div className="p-2 sm:p-3 bg-emerald-100 rounded-lg">
-                        <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+                      <div className="p-2 sm:p-3 bg-emerald-100 rounded-lg flex-shrink-0">
+                        <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-gray-900 text-sm sm:text-base">
                           {new Date(record.month + "-01").toLocaleDateString("en-US", {
-                            month: "long",
+                            month: "short",
                             year: "numeric",
                           })}
                         </p>
                         <p className="text-xs sm:text-sm text-gray-600">{record.totalEmployees} employees</p>
-                        <p className="text-xs text-gray-500 sm:hidden">
-                          Processed: {new Date(record.processedDate).toLocaleDateString()}
-                        </p>
+                        <div className="sm:hidden mt-2 space-y-1">
+                          <p className="text-xs text-gray-600">Gross: ${(record.totalGrossPay / 1000).toFixed(0)}k</p>
+                          <p className="text-xs text-gray-600">Net: ${(record.totalNetPay / 1000).toFixed(0)}k</p>
+                        </div>
                       </div>
                     </div>
                     <div className="w-full sm:w-auto">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-sm space-y-2 sm:space-y-0">
-                          <div className="grid grid-cols-2 gap-2 sm:block">
-                            <p className="text-gray-600">Gross: ${record.totalGrossPay.toLocaleString()}</p>
-                            <p className="text-gray-600">Deductions: ${record.totalDeductions.toLocaleString()}</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 sm:block">
-                            <p className="text-gray-600">Tax: ${record.totalTax.toLocaleString()}</p>
-                            <p className="font-medium text-emerald-600">Net: ${record.totalNetPay.toLocaleString()}</p>
-                          </div>
+                      <div className="hidden sm:flex sm:items-center sm:space-x-4 text-sm">
+                        <div className="space-y-1">
+                          <p className="text-gray-600">Gross: ${(record.totalGrossPay / 1000).toFixed(0)}k</p>
+                          <p className="text-gray-600">Deductions: ${(record.totalDeductions / 1000).toFixed(0)}k</p>
                         </div>
-                        <div className="flex items-center justify-between sm:justify-end space-x-2 mt-2 sm:mt-1">
-                          <Badge
-                            variant="outline"
-                            className={record.status === "processed" ? "bg-green-50 text-green-700 text-xs" : "bg-yellow-50 text-yellow-700 text-xs"}
-                          >
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            {record.status}
-                          </Badge>
-                          <Button size="sm" variant="outline" className="text-xs h-7">
-                            <Download className="h-3 w-3 mr-1" />
-                            Export
-                          </Button>
+                        <div className="space-y-1">
+                          <p className="text-gray-600">Tax: ${(record.totalTax / 1000).toFixed(0)}k</p>
+                          <p className="font-medium text-emerald-600">Net: ${(record.totalNetPay / 1000).toFixed(0)}k</p>
                         </div>
                       </div>
+                      <div className="flex items-center justify-between sm:justify-end space-x-2 mt-2 sm:mt-1">
+                        <Badge
+                          variant="outline"
+                          className={record.status === "processed" ? "bg-green-50 text-green-700 text-xs" : "bg-yellow-50 text-yellow-700 text-xs"}
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          {record.status}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="text-xs h-7">
+                          <Download className="h-3 w-3 mr-1" />
+                          <span className="hidden sm:inline">Export</span>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1228,10 +1254,10 @@ export default function PayrollManagementPage() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4 sm:space-y-6">
-          {/* Salary Settings - Responsive Grid */}
+          {/* Salary Settings - Mobile Responsive Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <Card>
-              <CardHeader className="p-4 sm:p-6">
+              <CardHeader className="p-4 sm:p-6 pb-3">
                 <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                   <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
                   <span>Tax Settings</span>
@@ -1240,9 +1266,9 @@ export default function PayrollManagementPage() {
               <CardContent className="p-4 sm:p-6 space-y-4">
                 {baseTaxes.length === 0 ? (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <Label htmlFor="federal-tax" className="text-sm">Federal Tax Rate (%)</Label>
+                        <Label htmlFor="federal-tax" className="text-xs sm:text-sm">Federal Tax (%)</Label>
                         <Input
                           id="federal-tax"
                           type="number"
@@ -1250,11 +1276,11 @@ export default function PayrollManagementPage() {
                           placeholder="15"
                           value={baseTaxForm.federal_rate}
                           onChange={(e) => setBaseTaxForm((p) => ({ ...p, federal_rate: e.target.value }))}
-                          className="text-sm"
+                          className="text-sm h-9"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="state-tax" className="text-sm">State Tax Rate (%)</Label>
+                        <Label htmlFor="state-tax" className="text-xs sm:text-sm">State Tax (%)</Label>
                         <Input
                           id="state-tax"
                           type="number"
@@ -1262,11 +1288,11 @@ export default function PayrollManagementPage() {
                           placeholder="5"
                           value={baseTaxForm.state_rate}
                           onChange={(e) => setBaseTaxForm((p) => ({ ...p, state_rate: e.target.value }))}
-                          className="text-sm"
+                          className="text-sm h-9"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="social-security" className="text-sm">Social Security (%)</Label>
+                        <Label htmlFor="social-security" className="text-xs sm:text-sm">Social Security (%)</Label>
                         <Input
                           id="social-security"
                           type="number"
@@ -1274,11 +1300,11 @@ export default function PayrollManagementPage() {
                           placeholder="6.2"
                           value={baseTaxForm.social_security_rate}
                           onChange={(e) => setBaseTaxForm((p) => ({ ...p, social_security_rate: e.target.value }))}
-                          className="text-sm"
+                          className="text-sm h-9"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="medicare" className="text-sm">Medicare (%)</Label>
+                        <Label htmlFor="medicare" className="text-xs sm:text-sm">Medicare (%)</Label>
                         <Input
                           id="medicare"
                           type="number"
@@ -1286,28 +1312,28 @@ export default function PayrollManagementPage() {
                           placeholder="1.45"
                           value={baseTaxForm.medicare_rate}
                           onChange={(e) => setBaseTaxForm((p) => ({ ...p, medicare_rate: e.target.value }))}
-                          className="text-sm"
+                          className="text-sm h-9"
                         />
                       </div>
-                      <div className="md:col-span-2">
-                        <Label htmlFor="effective-from" className="text-sm">Effective From</Label>
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="effective-from" className="text-xs sm:text-sm">Effective From</Label>
                         <Input
                           id="effective-from"
                           type="date"
                           value={baseTaxForm.effective_from}
                           onChange={(e) => setBaseTaxForm((p) => ({ ...p, effective_from: e.target.value }))}
-                          className="text-sm"
+                          className="text-sm h-9"
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Button className="w-full text-sm" onClick={handleSaveBaseTax} disabled={isSavingBaseTax}>
-                        {isSavingBaseTax ? "Saving..." : "Save Base Tax Settings"}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Button className="w-full text-sm h-9" onClick={handleSaveBaseTax} disabled={isSavingBaseTax}>
+                        {isSavingBaseTax ? "Saving..." : "Save Base Tax"}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
-                        className="w-full bg-transparent text-sm"
+                        className="w-full bg-transparent text-sm h-9"
                         onClick={() => setShowCustomTaxDialog(true)}
                       >
                         Add Custom Tax
@@ -1317,40 +1343,40 @@ export default function PayrollManagementPage() {
                 ) : (
                   <>
                     <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
                         <div>
                           <span className="text-gray-600 text-xs">Federal</span>
-                          <div className="font-medium">{Number(baseTaxes[0].federal_rate).toFixed(2)}%</div>
+                          <div className="font-medium text-sm">{Number(baseTaxes[0].federal_rate).toFixed(1)}%</div>
                         </div>
                         <div>
                           <span className="text-gray-600 text-xs">State</span>
-                          <div className="font-medium">{Number(baseTaxes[0].state_rate).toFixed(2)}%</div>
+                          <div className="font-medium text-sm">{Number(baseTaxes[0].state_rate).toFixed(1)}%</div>
                         </div>
                         <div>
                           <span className="text-gray-600 text-xs">Social Sec.</span>
-                          <div className="font-medium">{Number(baseTaxes[0].social_security_rate).toFixed(2)}%</div>
+                          <div className="font-medium text-sm">{Number(baseTaxes[0].social_security_rate).toFixed(1)}%</div>
                         </div>
                         <div>
                           <span className="text-gray-600 text-xs">Medicare</span>
-                          <div className="font-medium">{Number(baseTaxes[0].medicare_rate).toFixed(2)}%</div>
+                          <div className="font-medium text-sm">{Number(baseTaxes[0].medicare_rate).toFixed(1)}%</div>
                         </div>
                         <div>
                           <span className="text-gray-600 text-xs">Effective</span>
-                          <div className="font-medium">{baseTaxes[0].effective_from}</div>
+                          <div className="font-medium text-sm">{baseTaxes[0].effective_from}</div>
                         </div>
                       </div>
                       <div className="mt-3">
-                        <Button size="sm" variant="outline" className="bg-transparent text-xs" onClick={() => setEditBaseTax(baseTaxes[0])}>
-                          <Edit className="h-3 w-3 mr-1" /> Edit Base Tax
+                        <Button size="sm" variant="outline" className="bg-transparent text-xs h-8" onClick={() => setEditBaseTax(baseTaxes[0])}>
+                          <Edit className="h-3 w-3 mr-1" /> Edit
                         </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <span />
                       <Button
                         type="button"
                         variant="outline"
-                        className="w-full bg-transparent text-sm"
+                        className="w-full bg-transparent text-sm h-9"
                         onClick={() => setShowCustomTaxDialog(true)}
                       >
                         Add Custom Tax
@@ -1363,7 +1389,7 @@ export default function PayrollManagementPage() {
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-gray-900 text-sm sm:text-base">Custom Taxes</h4>
-                    <Button variant="outline" size="sm" className="bg-transparent text-xs" onClick={fetchCurrentTaxes}>
+                    <Button variant="outline" size="sm" className="bg-transparent text-xs h-8" onClick={fetchCurrentTaxes}>
                       Refresh
                     </Button>
                   </div>
@@ -1376,8 +1402,8 @@ export default function PayrollManagementPage() {
                       customTaxes.map((t) => (
                         <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg space-y-2 sm:space-y-0">
                           <div className="min-w-0">
-                            <p className="font-medium text-gray-900 text-sm truncate">{t.tax_name} <span className="text-gray-600">({Number(t.tax_rate).toFixed(2)}%)</span></p>
-                            <p className="text-xs text-gray-500">Effective from {t.effective_from}</p>
+                            <p className="font-medium text-gray-900 text-sm truncate">{t.tax_name}</p>
+                            <p className="text-xs text-gray-500">{Number(t.tax_rate).toFixed(2)}% • Effective {t.effective_from}</p>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Button size="sm" variant="outline" className="bg-transparent text-xs h-7" onClick={() => setEditCustomTax(t)}>
@@ -1396,7 +1422,7 @@ export default function PayrollManagementPage() {
             </Card>
 
             <Card>
-              <CardHeader className="p-4 sm:p-6">
+              <CardHeader className="p-4 sm:p-6 pb-3">
                 <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                   <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
                   <span>Overtime Settings</span>
@@ -1405,85 +1431,82 @@ export default function PayrollManagementPage() {
               <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg space-y-3 sm:space-y-0">
                   <div className="min-w-0">
-                    <Label htmlFor="overtime-mode" className="text-sm font-medium">
-                      Overtime Configuration Mode
+                    <Label htmlFor="overtime-mode" className="text-xs sm:text-sm font-medium">
+                      Overtime Mode
                     </Label>
-                    <p className="text-xs sm:text-sm text-gray-600">
-                      Global settings or individual settings per employee
+                    <p className="text-xs text-gray-600">
+                      Global or individual settings
                     </p>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <span className={`text-sm ${overtimeSettings === "global" ? "font-medium" : "text-gray-500"}`}>
+                    <span className={`text-xs sm:text-sm ${overtimeSettings === "global" ? "font-medium" : "text-gray-500"}`}>
                       Global
                     </span>
                     <Switch
                       checked={overtimeSettings === "individual"}
                       onCheckedChange={(checked) => setOvertimeSettings(checked ? "individual" : "global")}
                     />
-                    <span className={`text-sm ${overtimeSettings === "individual" ? "font-medium" : "text-gray-500"}`}>
+                    <span className={`text-xs sm:text-sm ${overtimeSettings === "individual" ? "font-medium" : "text-gray-500"}`}>
                       Individual
                     </span>
                   </div>
                 </div>
 
                 {overtimeSettings === "global" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="overtime-threshold" className="text-sm">Overtime Threshold (hours/week)</Label>
-                      <Input id="overtime-threshold" type="number" placeholder="40" className="text-sm" />
+                      <Label htmlFor="overtime-threshold" className="text-xs sm:text-sm">OT Threshold (hrs/wk)</Label>
+                      <Input id="overtime-threshold" type="number" placeholder="40" className="text-sm h-9" />
                     </div>
                     <div>
-                      <Label htmlFor="overtime-rate" className="text-sm">Overtime Rate Multiplier</Label>
-                      <Input id="overtime-rate" type="number" step="0.1" placeholder="1.5" className="text-sm" />
+                      <Label htmlFor="overtime-rate" className="text-xs sm:text-sm">OT Rate Multiplier</Label>
+                      <Input id="overtime-rate" type="number" step="0.1" placeholder="1.5" className="text-sm h-9" />
                     </div>
                     <div>
-                      <Label htmlFor="weekend-rate" className="text-sm">Weekend Rate Multiplier</Label>
-                      <Input id="weekend-rate" type="number" step="0.1" placeholder="2.0" className="text-sm" />
+                      <Label htmlFor="weekend-rate" className="text-xs sm:text-sm">Weekend Multiplier</Label>
+                      <Input id="weekend-rate" type="number" step="0.1" placeholder="2.0" className="text-sm h-9" />
                     </div>
                     <div>
-                      <Label htmlFor="holiday-rate" className="text-sm">Holiday Rate Multiplier</Label>
-                      <Input id="holiday-rate" type="number" step="0.1" placeholder="2.5" className="text-sm" />
+                      <Label htmlFor="holiday-rate" className="text-xs sm:text-sm">Holiday Multiplier</Label>
+                      <Input id="holiday-rate" type="number" step="0.1" placeholder="2.5" className="text-sm h-9" />
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3 sm:space-y-4">
-                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">Individual Employee Overtime Settings</h4>
-                    <div className="space-y-3">
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">Individual Settings</h4>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
                       {employees.map((employee) => (
                         <div key={employee.id} className="p-3 border rounded-lg">
-                          <div className="flex items-center space-x-3 mb-3">
-                            <Avatar className="h-8 w-8">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Avatar className="h-6 w-6">
                               <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={employee.name} />
                               <AvatarFallback className="bg-emerald-100 text-emerald-600 text-xs">
-                                {employee.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
+                                {employee.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="font-medium text-sm truncate">{employee.name}</p>
                               <p className="text-xs text-gray-600 truncate">{employee.position}</p>
                             </div>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <Label htmlFor={`threshold-${employee.id}`} className="text-xs">Overtime Threshold (hrs/week)</Label>
+                              <Label htmlFor={`threshold-${employee.id}`} className="text-xs">OT Threshold</Label>
                               <Input
                                 id={`threshold-${employee.id}`}
                                 type="number"
                                 defaultValue={employee.individualOvertimeThreshold}
-                                className="text-sm"
+                                className="text-sm h-7"
                               />
                             </div>
                             <div>
-                              <Label htmlFor={`rate-${employee.id}`} className="text-xs">Overtime Rate Multiplier</Label>
+                              <Label htmlFor={`rate-${employee.id}`} className="text-xs">OT Multiplier</Label>
                               <Input
                                 id={`rate-${employee.id}`}
                                 type="number"
                                 step="0.1"
                                 defaultValue={employee.individualOvertimeRate}
-                                className="text-sm"
+                                className="text-sm h-7"
                               />
                             </div>
                           </div>
@@ -1493,36 +1516,36 @@ export default function PayrollManagementPage() {
                   </div>
                 )}
 
-                <Button className="w-full text-sm">Update Overtime Settings</Button>
+                <Button className="w-full text-sm h-9">Update Settings</Button>
               </CardContent>
             </Card>
 
             {/* Bank Transfer Settings */}
             <Card className="lg:col-span-2">
-              <CardHeader className="p-4 sm:p-6">
+              <CardHeader className="p-4 sm:p-6 pb-3">
                 <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
                   <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
                   <span>Bank Transfer Settings</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="bank-name" className="text-sm">Bank Name</Label>
-                    <Input id="bank-name" placeholder="Enter bank name" className="text-sm" />
+                    <Label htmlFor="bank-name" className="text-xs sm:text-sm">Bank Name</Label>
+                    <Input id="bank-name" placeholder="Bank name" className="text-sm h-9" />
                   </div>
                   <div>
-                    <Label htmlFor="routing-number" className="text-sm">Routing Number</Label>
-                    <Input id="routing-number" placeholder="Enter routing number" className="text-sm" />
+                    <Label htmlFor="routing-number" className="text-xs sm:text-sm">Routing Number</Label>
+                    <Input id="routing-number" placeholder="Routing number" className="text-sm h-9" />
                   </div>
                   <div>
-                    <Label htmlFor="account-number" className="text-sm">Company Account Number</Label>
-                    <Input id="account-number" placeholder="Enter account number" className="text-sm" />
+                    <Label htmlFor="account-number" className="text-xs sm:text-sm">Account Number</Label>
+                    <Input id="account-number" placeholder="Account number" className="text-sm h-9" />
                   </div>
                   <div>
-                    <Label htmlFor="transfer-day" className="text-sm">Transfer Day</Label>
+                    <Label htmlFor="transfer-day" className="text-xs sm:text-sm">Transfer Day</Label>
                     <Select>
-                      <SelectTrigger className="text-sm">
+                      <SelectTrigger className="text-sm h-9">
                         <SelectValue placeholder="Select day" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1535,23 +1558,23 @@ export default function PayrollManagementPage() {
                 </div>
                 <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
                   <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs sm:text-sm text-blue-800">
-                    Bank transfer integration requires additional verification and setup with your financial institution.
+                  <p className="text-xs text-blue-800">
+                    Bank transfer integration requires additional verification with your financial institution.
                   </p>
                 </div>
-                <Button className="w-full text-sm">Save Bank Settings</Button>
+                <Button className="w-full text-sm h-9">Save Bank Settings</Button>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* All dialogs */}
+      {/* All dialogs remain the same but with responsive classes */}
       <Dialog open={showCustomTaxDialog} onOpenChange={setShowCustomTaxDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+        <DialogContent className="max-w-[95vw] sm:max-w-md rounded-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-              <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
+            <DialogTitle className="flex items-center space-x-2 text-lg">
+              <Calculator className="h-4 w-4 text-emerald-600" />
               <span>Add Custom Tax</span>
             </DialogTitle>
           </DialogHeader>
@@ -1566,7 +1589,7 @@ export default function PayrollManagementPage() {
                 className="text-sm"
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="custom-tax-rate" className="text-sm">Tax Rate (%)</Label>
                 <Input
@@ -1592,7 +1615,7 @@ export default function PayrollManagementPage() {
             </div>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
               <Button className="flex-1 text-sm" onClick={handleAddCustomTax} disabled={isSavingCustomTax}>
-                {isSavingCustomTax ? "Saving..." : "Save Custom Tax"}
+                {isSavingCustomTax ? "Saving..." : "Save Tax"}
               </Button>
               <Button
                 variant="outline"
@@ -1608,18 +1631,18 @@ export default function PayrollManagementPage() {
 
       {/* Edit Base Tax Dialog */}
       <Dialog open={!!editBaseTax} onOpenChange={(open) => !open && setEditBaseTax(null)}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+        <DialogContent className="max-w-[95vw] sm:max-w-md rounded-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-              <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
+            <DialogTitle className="flex items-center space-x-2 text-lg">
+              <Calculator className="h-4 w-4 text-emerald-600" />
               <span>Edit Base Tax</span>
             </DialogTitle>
           </DialogHeader>
           {editBaseTax && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="edit-base-federal" className="text-sm">Federal Tax Rate (%)</Label>
+                  <Label htmlFor="edit-base-federal" className="text-sm">Federal (%)</Label>
                   <Input
                     id="edit-base-federal"
                     type="number"
@@ -1630,7 +1653,7 @@ export default function PayrollManagementPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-base-state" className="text-sm">State Tax Rate (%)</Label>
+                  <Label htmlFor="edit-base-state" className="text-sm">State (%)</Label>
                   <Input
                     id="edit-base-state"
                     type="number"
@@ -1662,7 +1685,7 @@ export default function PayrollManagementPage() {
                     className="text-sm"
                   />
                 </div>
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <Label htmlFor="edit-base-effective" className="text-sm">Effective From</Label>
                   <Input
                     id="edit-base-effective"
@@ -1688,10 +1711,10 @@ export default function PayrollManagementPage() {
 
       {/* Edit Custom Tax Dialog */}
       <Dialog open={!!editCustomTax} onOpenChange={(open) => !open && setEditCustomTax(null)}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+        <DialogContent className="max-w-[95vw] sm:max-w-md rounded-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-              <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
+            <DialogTitle className="flex items-center space-x-2 text-lg">
+              <Calculator className="h-4 w-4 text-emerald-600" />
               <span>Edit Custom Tax</span>
             </DialogTitle>
           </DialogHeader>
@@ -1706,7 +1729,7 @@ export default function PayrollManagementPage() {
                   className="text-sm"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="edit-tax-rate" className="text-sm">Tax Rate (%)</Label>
                   <Input
@@ -1744,16 +1767,16 @@ export default function PayrollManagementPage() {
 
       {/* Payroll Cycle Settings Dialog */}
       <Dialog open={showCycleDialog} onOpenChange={setShowCycleDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg">
+        <DialogContent className="max-w-[95vw] sm:max-w-md rounded-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-              <span>Payroll Cycle Settings</span>
+            <DialogTitle className="flex items-center space-x-2 text-lg">
+              <Calendar className="h-4 w-4 text-emerald-600" />
+              <span>Payroll Cycle</span>
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="cycle-start-date" className="text-sm">Start Date</Label>
                 <Input
@@ -1779,7 +1802,7 @@ export default function PayrollManagementPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg space-y-2 sm:space-y-0">
               <div>
                 <Label className="text-sm font-medium">Status</Label>
-                <p className="text-xs text-gray-600">Derived from the selected dates</p>
+                <p className="text-xs text-gray-600">Based on dates</p>
               </div>
               <Badge
                 variant="outline"
@@ -1789,11 +1812,11 @@ export default function PayrollManagementPage() {
               </Badge>
             </div>
 
-            {/* Preview existing cycles */}
+            {/* Recent cycles */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900 text-sm sm:text-base">Recent Cycles</h4>
-                <Button variant="outline" size="sm" className="bg-transparent text-xs" onClick={fetchPayrollCycles}>
+                <h4 className="font-medium text-gray-900 text-sm">Recent Cycles</h4>
+                <Button variant="outline" size="sm" className="bg-transparent text-xs h-7" onClick={fetchPayrollCycles}>
                   Refresh
                 </Button>
               </div>
@@ -1802,17 +1825,14 @@ export default function PayrollManagementPage() {
               ) : cycles.length === 0 ? (
                 <p className="text-sm text-gray-600">No cycles found.</p>
               ) : (
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {cycles.slice(0, 10).map((c) => (
-                    <div key={c.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="text-xs sm:text-sm min-w-0">
-                        <p className="font-medium text-gray-900 truncate">
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {cycles.slice(0, 5).map((c) => (
+                    <div key={c.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate text-xs">
                           {new Date(c.start_date).toLocaleDateString()} - {new Date(c.end_date).toLocaleDateString()}
                         </p>
                         <p className="text-xs text-gray-600">Status: {c.status}</p>
-                        {c.processed_on && (
-                          <p className="text-xs text-gray-500">Processed on {new Date(c.processed_on).toLocaleString()}</p>
-                        )}
                       </div>
                       <Badge
                         variant="outline"
@@ -1848,7 +1868,7 @@ export default function PayrollManagementPage() {
 
       {/* Payslip Generation Dialog */}
       <Dialog open={showPayslipDialog} onOpenChange={setShowPayslipDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto rounded-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2 text-lg sm:text-xl">
               <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
@@ -1866,94 +1886,44 @@ export default function PayrollManagementPage() {
               </div>
 
               {/* Employee & Pay Period Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2">
                   <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Employee Information</h3>
                   <div className="space-y-1 text-xs sm:text-sm">
-                    <p>
-                      <span className="font-medium">Name:</span> {selectedPayslip.name}
-                    </p>
-                    <p>
-                      <span className="font-medium">Employee ID:</span> {selectedPayslip.employeeId}
-                    </p>
-                    <p>
-                      <span className="font-medium">Department:</span> {selectedPayslip.department}
-                    </p>
-                    <p>
-                      <span className="font-medium">Position:</span> {selectedPayslip.position}
-                    </p>
-                    <p>
-                      <span className="font-medium">Email:</span> {selectedPayslip.email}
-                    </p>
+                    <p><span className="font-medium">Name:</span> {selectedPayslip.name}</p>
+                    <p><span className="font-medium">Employee ID:</span> {selectedPayslip.employeeId}</p>
+                    <p><span className="font-medium">Department:</span> {selectedPayslip.department}</p>
+                    <p><span className="font-medium">Position:</span> {selectedPayslip.position}</p>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Pay Period Information</h3>
+                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Pay Period</h3>
                   <div className="space-y-1 text-xs sm:text-sm">
-                    <p>
-                      <span>Pay Period:</span>{" "}
-                      {new Date(selectedPayslip.payPeriod + "-01").toLocaleDateString("en-US", {
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </p>
-                    <p>
-                      <span>Generated Date:</span> {new Date(selectedPayslip.generatedDate).toLocaleDateString()}
-                    </p>
-                    <p>
-                      <span>Salary Type:</span> {selectedPayslip.salaryType}
-                    </p>
-                    <p>
-                      <span>Bank Account:</span> {selectedPayslip.bankAccount}
-                    </p>
+                    <p><span>Period:</span> {new Date(selectedPayslip.payPeriod + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+                    <p><span>Generated:</span> {new Date(selectedPayslip.generatedDate).toLocaleDateString()}</p>
+                    <p><span>Salary Type:</span> {selectedPayslip.salaryType}</p>
                   </div>
                 </div>
               </div>
 
               {/* Earnings & Deductions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2 sm:space-y-3">
                   <h3 className="font-semibold text-gray-900 border-b pb-1 text-sm sm:text-base">Earnings</h3>
                   <div className="space-y-1 text-xs sm:text-sm">
-                    <div className="flex justify-between">
-                      <span>Base Salary:</span>
-                      <span>${selectedPayslip.baseSalary.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Hours Worked ({selectedPayslip.hoursWorked}h):</span>
-                      <span>${(selectedPayslip.hoursWorked * selectedPayslip.hourlyRate).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Overtime ({selectedPayslip.overtime}h):</span>
-                      <span>${(selectedPayslip.overtime * selectedPayslip.hourlyRate * 1.5).toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Bonus:</span>
-                      <span>${selectedPayslip.bonus.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold border-t pt-2">
-                      <span>Gross Pay:</span>
-                      <span>${selectedPayslip.grossSalary.toLocaleString()}</span>
-                    </div>
+                    <div className="flex justify-between"><span>Base Salary:</span><span>${selectedPayslip.baseSalary.toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span>Hours Worked:</span><span>${(selectedPayslip.hoursWorked * selectedPayslip.hourlyRate).toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span>Overtime:</span><span>${(selectedPayslip.overtime * selectedPayslip.hourlyRate * 1.5).toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span>Bonus:</span><span>${selectedPayslip.bonus.toLocaleString()}</span></div>
+                    <div className="flex justify-between font-semibold border-t pt-2"><span>Gross Pay:</span><span>${selectedPayslip.grossSalary.toLocaleString()}</span></div>
                   </div>
                 </div>
                 <div className="space-y-2 sm:space-y-3">
                   <h3 className="font-semibold text-gray-900 border-b pb-1 text-sm sm:text-base">Deductions</h3>
                   <div className="space-y-1 text-xs sm:text-sm">
-                    <div className="flex justify-between">
-                      <span>Tax Deductions:</span>
-                      <span className="text-red-600">-${selectedPayslip.tax.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Other Deductions:</span>
-                      <span className="text-red-600">-${selectedPayslip.deductions.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold border-t pt-2">
-                      <span>Total Deductions:</span>
-                      <span className="text-red-600">
-                        -${(selectedPayslip.tax + selectedPayslip.deductions).toLocaleString()}
-                      </span>
-                    </div>
+                    <div className="flex justify-between"><span>Tax Deductions:</span><span className="text-red-600">-${selectedPayslip.tax.toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span>Other Deductions:</span><span className="text-red-600">-${selectedPayslip.deductions.toLocaleString()}</span></div>
+                    <div className="flex justify-between font-semibold border-t pt-2"><span>Total Deductions:</span><span className="text-red-600">-${(selectedPayslip.tax + selectedPayslip.deductions).toLocaleString()}</span></div>
                   </div>
                 </div>
               </div>
@@ -1970,17 +1940,17 @@ export default function PayrollManagementPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-3 sm:pt-4 border-t">
-                <Button className="flex-1 text-sm" onClick={() => window.print()}>
+                <Button className="flex-1 text-sm h-9" onClick={() => window.print()}>
                   <Printer className="h-4 w-4 mr-2" />
-                  Print Payslip
+                  Print
                 </Button>
-                <Button variant="outline" className="flex-1 bg-transparent text-sm">
+                <Button variant="outline" className="flex-1 bg-transparent text-sm h-9">
                   <Download className="h-4 w-4 mr-2" />
-                  Download PDF
+                  Download
                 </Button>
-                <Button variant="outline" className="flex-1 bg-transparent text-sm">
+                <Button variant="outline" className="flex-1 bg-transparent text-sm h-9">
                   <Mail className="h-4 w-4 mr-2" />
-                  Email to Employee
+                  Email
                 </Button>
               </div>
             </div>
