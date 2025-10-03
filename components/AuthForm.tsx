@@ -245,7 +245,11 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
         const data = await res.json()
         if (data.success) {
           toast({ title: 'Success!', description: data.message || successMsg })
-                      if (type === 'login' && data.token) {
+          if (type === 'register') {
+            router.push('/job-seekers/login')
+            return
+          }
+          if (type === 'login' && data.token) {
               localStorage.setItem('jobseeker_jwt', data.token)
               // Also set cookie for middleware access
               document.cookie = `jobseeker_jwt=${data.token}; path=/; max-age=86400; SameSite=Strict`
@@ -313,6 +317,10 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
         const data = await res.json()
         if (data.success) {
           toast({ title: 'Success!', description: data.message || successMsg })
+          if (type === 'register') {
+            router.push('/employers/login')
+            return
+          }
           if (type === 'login' && data.token) {
             localStorage.setItem('employer_jwt', data.token)
             // Also set cookie for middleware access
