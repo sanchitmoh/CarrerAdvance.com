@@ -150,13 +150,12 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
       } else if (type === "login") {
         if (!showTwoFactor) {
           // First step: validate credentials and send OTP
-          const response = await fetch(getBaseUrl('admin/auth/login'), {
+          const response = await fetch('/api/admin/admin/auth/login', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            credentials: 'include',
             body: JSON.stringify({
               username: formData.email,
               password: formData.password,
@@ -207,13 +206,12 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
             return
           }
 
-          const response = await fetch(getBaseUrl('admin/auth/verify_otp'), {
+          const response = await fetch('/api/admin/admin/auth/verify_otp', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            credentials: 'include',
             body: JSON.stringify({
               admin_id: pendingAdminId,
               otp,

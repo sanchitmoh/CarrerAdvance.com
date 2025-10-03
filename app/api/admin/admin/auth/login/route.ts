@@ -18,6 +18,17 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
     
     if (response.ok) {
+      // If backend indicates direct success without OTP, set admin cookie
+      if (data && data.success && !data.requires_otp) {
+        const res = NextResponse.json(data)
+        res.cookies.set('admin_jwt', '1', {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60,
+        })
+        return res
+      }
       return NextResponse.json(data)
     } else {
       return NextResponse.json(
