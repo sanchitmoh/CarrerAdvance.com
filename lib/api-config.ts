@@ -1,6 +1,7 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/index.php/api';
 export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080/index.php';
 export const PUBLIC_URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:8080/';
+export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 const MEET_BASE_RAW = process.env.NEXT_PUBLIC_MEET_URL || 'http://localhost:8080/index.php/googlecalendar';
 export const MEET_BASE_URL = MEET_BASE_RAW.replace(/\/+$/, '');
 
@@ -19,5 +20,14 @@ export const getAssetUrl = (path: string): string => {
   
   // For uploads, use the base URL without index.php
   return `${PUBLIC_URL}${path.replace(/^\//, '')}`;
+}
+
+export const getBackendUrl = (path: string = ''): string => {
+  if (!path) return BACKEND_URL;
+  if (/^https?:\/\//i.test(path)) return path;
+  
+  // Ensure path starts with /
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${BACKEND_URL}${cleanPath}`;
 }
 

@@ -27,9 +27,11 @@ interface Job {
 
 interface JobCardProps {
   job: Job
+  onApply?: () => void
+  onViewDetails?: () => void
 }
 
-export default function JobCard({ job }: JobCardProps) {
+export default function JobCard({ job, onApply, onViewDetails }: JobCardProps) {
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Recently posted';
     
@@ -117,11 +119,11 @@ export default function JobCard({ job }: JobCardProps) {
         </div>
         
         <div className="flex flex-col gap-3 lg:ml-6 mt-4 lg:mt-0 lg:min-w-[200px]">
-          <Button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 shadow-lg hover:shadow-emerald-200 transition-all duration-300 transform hover:scale-105 rounded-xl"> {/* Changed to emerald */}
+          <Button type="button" onClick={onApply} className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 shadow-lg hover:shadow-emerald-200 transition-all duration-300 transform hover:scale-105 rounded-xl"> {/* Changed to emerald */}
             <Briefcase className="w-4 h-4 mr-2" />
             Apply Now
           </Button>
-          <Button variant="outline" className="border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 font-medium rounded-xl"> {/* Changed to emerald */}
+          <Button type="button" onClick={onViewDetails} variant="outline" className="border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 font-medium rounded-xl"> {/* Changed to emerald */}
             View Details
           </Button>
         </div>

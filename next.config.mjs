@@ -8,6 +8,21 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: process.env.NEXT_PUBLIC_BACKEND_URL?.startsWith('https') ? 'https' : 'http',
+        hostname: process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/^https?:\/\//, '').split(':')[0] || 'localhost',
+        port: process.env.NEXT_PUBLIC_BACKEND_URL?.includes(':') ? process.env.NEXT_PUBLIC_BACKEND_URL.split(':')[2]?.split('/')[0] : '8080',
+        pathname: '/**',
+      },
+      // Fallback for localhost
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/api/**',
+      },
+    ],
   },
   // Add webpack configuration to handle chunk loading issues
   webpack: (config, { isServer }) => {

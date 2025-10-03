@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ const locations = ['All Locations', 'San Francisco', 'New York', 'Los Angeles', 
 
 export default function JobsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -19,22 +20,56 @@ export default function JobsPage() {
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [type, setType] = useState('All Jobs');
+  const [sortBy, setSortBy] = useState('Most Recent');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const jobsPerPage = 10;
 
   // Fetch jobs from backend
-  const fetchJobs = async (searchTitle = '', searchLocation = '', searchType = 'All Jobs') => {
+  const fetchJobs = async (searchTitle = '', searchLocation = '', searchType = 'All Jobs', page = 1, sort = 'Most Recent') => {
     setLoading(true);
     setError('');
     try {
-      const params: any = {};
+      const params: any = {
+        page: page,
+        limit: jobsPerPage
+      };
       if (searchTitle) params.title = searchTitle;
       if (searchLocation) params.location = searchLocation;
-      if (searchType && searchType !== 'All Jobs') params.type = searchType;
+      if (searchType && searchType !== 'All Jobs') params.job_type = searchType;
+      
+      // Add sort parameter
+      switch (sort) {
+        case 'Most Recent':
+          params.sort = 'posted_date';
+          params.order = 'desc';
+          break;
+        case 'Salary: High to Low':
+          params.sort = 'salary_max';
+          params.order = 'desc';
+          break;
+        case 'Salary: Low to High':
+          params.sort = 'salary_min';
+          params.order = 'asc';
+          break;
+        case 'Most Relevant':
+          params.sort = 'title';
+          params.order = 'asc';
+          break;
+        default:
+          params.sort = 'posted_date';
+          params.order = 'desc';
+      }
       
       const data = await jobsApiService.getJobs(params);
       if (data.success) {
         setJobs(data.data.jobs || []);
         setTotal(data.data.total || 0);
+        setTotalPages(data.data.total_pages || 1);
+        setCurrentPage(page);
       } else {
         setError('Failed to fetch jobs.');
       }
@@ -67,7 +102,8 @@ export default function JobsPage() {
   // Handlers
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchJobs(title, location, type);
+    setCurrentPage(1);
+    fetchJobs(title, location, type, 1, sortBy);
     
     // Update active filters
     const filters = [];
@@ -81,8 +117,10 @@ export default function JobsPage() {
     setTitle('');
     setLocation('');
     setType('All Jobs');
+    setSortBy('Most Recent');
     setActiveFilters([]);
-    fetchJobs();
+    setCurrentPage(1);
+    fetchJobs('', '', 'All Jobs', 1, 'Most Recent');
   };
 
   const removeFilter = (filterToRemove: string) => {
@@ -97,8 +135,52 @@ export default function JobsPage() {
     setTitle(newTitle);
     setLocation(newLocation);
     setType(newType);
+    setCurrentPage(1);
     
-    fetchJobs(newTitle, newLocation, newType);
+    fetchJobs(newTitle, newLocation, newType, 1, sortBy);
+  };
+
+  // Actions
+  const handleApplyJob = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      router.push('/job-seekers/login');
+    } catch (_) {
+      // Fallback in case router navigation is blocked
+      window.location.href = '/job-seekers/login';
+    }
+  };
+
+  const handleViewDetails = (job: Job, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedJob(job);
+    setIsDialogOpen(true);
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    fetchJobs(title, location, type, page, sortBy);
+  };
+
+  // Job type filter handler
+  const handleJobTypeChange = (jobType: string) => {
+    setType(jobType);
+    setCurrentPage(1);
+    fetchJobs(title, location, jobType, 1, sortBy);
+    
+    // Update active filters
+    const filters = [];
+    if (title) filters.push(`Title: ${title}`);
+    if (location) filters.push(`Location: ${location}`);
+    if (jobType && jobType !== 'All Jobs') filters.push(`Type: ${jobType}`);
+    setActiveFilters(filters);
+  };
+
+  // Sort handler
+  const handleSortChange = (sortValue: string) => {
+    setSortBy(sortValue);
+    setCurrentPage(1);
+    fetchJobs(title, location, type, 1, sortValue);
   };
 
   return (
@@ -204,7 +286,7 @@ export default function JobsPage() {
                         ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg'
                         : 'border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
                     }`}
-                    onClick={() => setType(jt)}
+                    onClick={() => handleJobTypeChange(jt)}
                   >
                     {jt}
                   </Button>
@@ -236,11 +318,16 @@ export default function JobsPage() {
           
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-600">Sort by:</span>
-            <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" aria-label="Sort jobs">
-              <option>Most Recent</option>
-              <option>Salary: High to Low</option>
-              <option>Salary: Low to High</option>
-              <option>Most Relevant</option>
+            <select 
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+              aria-label="Sort jobs"
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value)}
+            >
+              <option value="Most Recent">Most Recent</option>
+              <option value="Salary: High to Low">Salary: High to Low</option>
+              <option value="Salary: Low to High">Salary: Low to High</option>
+              <option value="Most Relevant">Most Relevant</option>
             </select>
           </div>
         </div>
@@ -260,16 +347,58 @@ export default function JobsPage() {
               <p className="text-gray-600">No jobs found matching your criteria.</p>
             </div>
           ) : (
-            jobs.map((job: any) => <JobCard key={job.id} job={job} />)
+            jobs.map((job: any) => (
+              <div key={job.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                <JobCard job={job} onApply={(e?: any) => handleApplyJob()} onViewDetails={() => handleViewDetails(job)} />
+              </div>
+            ))
           )}
         </div>
 
-        {/* Load More (not implemented) */}
-        <div className="text-center">
-          <Button size="lg" variant="outline" className="px-8 py-3 text-lg font-semibold border-2 border-gray-300 hover:border-emerald-500 hover:bg-emerald-50 rounded-xl" disabled>
-            Load More Jobs
-          </Button>
-        </div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center space-x-2 mb-8">
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2"
+            >
+              Previous
+            </Button>
+            
+            <div className="flex space-x-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const pageNum = Math.max(1, currentPage - 2) + i;
+                if (pageNum > totalPages) return null;
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === currentPage ? "default" : "outline"}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-2 ${
+                      pageNum === currentPage 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'hover:bg-emerald-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2"
+            >
+              Next
+            </Button>
+          </div>
+        )}
 
         {/* Test API Connection */}
         <div className="text-center mt-8">
@@ -289,6 +418,142 @@ export default function JobsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Job Details Dialog */}
+      {isDialogOpen && selectedJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsDialogOpen(false)}></div>
+          <div className="relative z-10 w-full max-w-4xl max-h-[90vh] rounded-3xl bg-white shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold">{selectedJob.title || 'Job Details'}</h3>
+                  <p className="text-emerald-100 mt-1">{selectedJob.company_name}</p>
+                </div>
+                <button 
+                  onClick={() => setIsDialogOpen(false)} 
+                  className="text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Scrollable Content */}
+            <div className="max-h-[60vh] overflow-y-auto">
+              <div className="p-6 space-y-6">
+                {/* Job Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedJob.location && (
+                    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
+                      <MapPin className="h-5 w-5 text-emerald-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Location</p>
+                        <p className="font-semibold text-gray-900">{selectedJob.location}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedJob.job_type && (
+                    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
+                      <Briefcase className="h-5 w-5 text-emerald-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Job Type</p>
+                        <p className="font-semibold text-gray-900">{selectedJob.job_type}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedJob.experience_level && (
+                    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
+                      <TrendingUp className="h-5 w-5 text-emerald-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Experience</p>
+                        <p className="font-semibold text-gray-900">{selectedJob.experience_level}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(selectedJob.salary_min || selectedJob.salary_max) && (
+                    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-xl">
+                      <DollarSign className="h-5 w-5 text-emerald-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">Salary</p>
+                        <p className="font-semibold text-gray-900">
+                          {selectedJob.salary_min && selectedJob.salary_max 
+                            ? `$${selectedJob.salary_min}k - $${selectedJob.salary_max}k`
+                            : selectedJob.salary_min 
+                            ? `$${selectedJob.salary_min}k+`
+                            : `Up to $${selectedJob.salary_max}k`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Description */}
+                {selectedJob.description && (
+                  <div className="space-y-3">
+                    <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <Lightbulb className="h-5 w-5 text-emerald-600 mr-2" />
+                      Job Description
+                    </h4>
+                    <div className="prose prose-gray max-w-none">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-line">{selectedJob.description}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Requirements */}
+                {selectedJob.requirements && (
+                  <div className="space-y-3">
+                    <h4 className="text-lg font-semibold text-gray-900">Requirements</h4>
+                    <div className="prose prose-gray max-w-none">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-line">{selectedJob.requirements}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Benefits */}
+                {selectedJob.benefits && (
+                  <div className="space-y-3">
+                    <h4 className="text-lg font-semibold text-gray-900">Benefits</h4>
+                    <div className="prose prose-gray max-w-none">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-line">{selectedJob.benefits}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Posted {selectedJob.posted_date ? new Date(selectedJob.posted_date).toLocaleDateString() : 'Recently'}
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)} 
+                  className="border-2 border-gray-300 hover:border-gray-400"
+                >
+                  Close
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={() => handleApplyJob()} 
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6"
+                >
+                  Apply Now
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

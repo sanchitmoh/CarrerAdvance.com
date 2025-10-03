@@ -2,14 +2,24 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, User, Clock, Eye, ArrowRight } from 'lucide-react'
+import { useState } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface Blog {
   id: number
   title: string
   excerpt?: string
   description?: string
+  content?: string
   image?: string
   image_default?: string
+  image_url?: string
   author?: string
   date?: string
   created_date?: string
@@ -24,6 +34,8 @@ interface BlogCardProps {
 }
 
 export default function BlogCard({ blog }: BlogCardProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Recently';
     try {
@@ -37,11 +49,28 @@ export default function BlogCard({ blog }: BlogCardProps) {
     }
   }
 
+  const getImageSrc = () => {
+    // Debug: log the image values
+    console.log('Blog image data:', {
+      image: blog.image,
+      image_default: blog.image_default,
+      image_url: blog.image_url,
+      id: blog.id,
+      title: blog.title
+    });
+    
+    // Use the normalized image_url field first, then fallback to individual fields
+    if (blog.image_url && blog.image_url !== '') return blog.image_url;
+    if (blog.image && blog.image !== '') return blog.image;
+    if (blog.image_default && blog.image_default !== '') return blog.image_default;
+    return "/placeholder.svg?height=250&width=400&text=Blog+Image";
+  }
+
   return (
     <article className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100">
       <div className="relative overflow-hidden">
         <Image
-          src={blog.image || blog.image_default || "/placeholder.svg"}
+          src={getImageSrc()}
           alt={blog.title}
           width={400}
           height={250}
@@ -90,11 +119,80 @@ export default function BlogCard({ blog }: BlogCardProps) {
             </div>
           </div>
           
-          <Button variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-full group-hover:translate-x-1 transition-all duration-300"> {/* Changed to emerald */}
+          <Button 
+            variant="ghost" 
+            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-full group-hover:translate-x-1 transition-all duration-300"
+            onClick={() => setIsDialogOpen(true)}
+          >
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
+
+      {/* Blog Detail Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">{blog.title}</DialogTitle>
+            <DialogDescription>
+              {blog.excerpt || blog.description || 'Read the full article below.'}
+            </DialogDescription>
+            {blog.category && (
+              <Badge className="bg-emerald-500 text-white font-semibold px-3 py-1 mt-2 w-fit">
+                {blog.category}
+              </Badge>
+            )}
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Blog Image */}
+            {getImageSrc() && (
+              <div className="relative overflow-hidden rounded-lg">
+                <Image
+                  src={getImageSrc()}
+                  alt={blog.title}
+                  width={800}
+                  height={400}
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+            )}
+            
+            {/* Blog Meta */}
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-1" />
+                  <span>{blog.author || 'Author'}</span>
+                </div>
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-1" />
+                  <span>{formatDate(blog.date || blog.created_date)}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span>{blog.readTime || blog.read_time || '5 min'}</span>
+                </div>
+                <div className="flex items-center">
+                  <Eye className="h-4 w-4 mr-1" />
+                  <span>{(blog.views || 0).toLocaleString()} views</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Blog Content */}
+            <div className="prose prose-gray max-w-none">
+              {blog.content ? (
+                <div dangerouslySetInnerHTML={{ __html: blog.content }} />
+              ) : (
+                <p className="text-gray-700 leading-relaxed">
+                  {blog.excerpt || blog.description || 'No content available.'}
+                </p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </article>
   )
 }

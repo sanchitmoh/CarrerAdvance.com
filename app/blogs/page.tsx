@@ -4,9 +4,9 @@ import BlogCard from '@/components/BlogCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, TrendingUp, Clock, Eye, Newspaper } from 'lucide-react'
-import { getBaseUrl } from '@/lib/api-config'
+import { getApiUrl } from '@/lib/api-config'
 
-const categories = ['All', 'Career Tips', 'Technology', 'Networking', 'Interview Tips', 'Career Growth', 'Skills Development']
+const defaultCategories = ['All', 'Career Tips', 'Technology', 'Networking', 'Interview Tips', 'Career Growth', 'Skills Development']
 
 export default function BlogsPage() {
   const [blogs, setBlogs] = useState([]);
@@ -15,26 +15,47 @@ export default function BlogsPage() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [categories, setCategories] = useState(defaultCategories);
+  const blogsPerPage = 10;
 
   // Fetch blogs from backend
-  const fetchBlogs = async (search = '') => {
+  const fetchBlogs = async (search = '', category = 'All', page = 1) => {
     setLoading(true);
     setError('');
     try {
+      // Build query parameters
       const params = new URLSearchParams();
       if (search) params.append('search', search);
-      
-      const res = await fetch(getBaseUrl(`blog/api_list?${params.toString()}`));
+      if (category && category !== 'All') params.append('category', category);
+      params.append('page', page.toString());
+      params.append('limit', blogsPerPage.toString());
+
+      const res = await fetch(getApiUrl(`blogs?${params.toString()}`));
       const data = await res.json();
-      
-      if (data.success) {
-        const posts = data.posts || [];
-        setBlogs(posts);
+
+      if (data?.success) {
+        const posts = data.data || [];
         
-        // Set first post as featured if available
-        if (posts.length > 0) {
-          setFeaturedPost(posts[0]);
-        }
+        // Normalize posts array
+        const normalizedPosts = posts.map((p: any) => ({
+          ...p,
+          image: p.image || p.image_default,
+          image_url: p.image_url,
+          author: p.author_name || p.author,
+          category: p.category_name || p.category,
+          created_date: p.created_at || p.created_date,
+          views: p.views_count || p.views,
+        }));
+
+        setBlogs(normalizedPosts);
+        setTotal(data.total || 0);
+        setTotalPages(data.total_pages || 1);
+        setCurrentPage(page);
+
+        if (normalizedPosts.length > 0) setFeaturedPost(normalizedPosts[0]);
       } else {
         setError('Failed to fetch blogs.');
       }
@@ -45,15 +66,44 @@ export default function BlogsPage() {
     }
   };
 
-  // Load initial blogs
+  // Fetch categories from backend
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(getApiUrl('blogs/categories'));
+      const data = await res.json();
+      
+      if (data?.success && data.data) {
+        const categoryNames = ['All', ...data.data.map((cat: any) => cat.name)];
+        setCategories(categoryNames);
+      }
+    } catch (err) {
+      console.log('Failed to fetch categories, using defaults');
+    }
+  };
+
+  // Load initial blogs and categories
   useEffect(() => {
+    fetchCategories();
     fetchBlogs();
   }, []);
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchBlogs(searchQuery);
+    setCurrentPage(1);
+    fetchBlogs(searchQuery, selectedCategory, 1);
+  };
+
+  // Handle category filter
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+    fetchBlogs(searchQuery, category, 1);
+  };
+
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    fetchBlogs(searchQuery, selectedCategory, page);
   };
 
   return (
@@ -184,7 +234,7 @@ export default function BlogsPage() {
                   ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg'
                   : 'border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
               }`}
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => handleCategoryChange(category)}
             >
               {category}
             </Button>
@@ -214,16 +264,54 @@ export default function BlogsPage() {
           </div>
         )}
 
-        {/* Load More */}
-        <div className="text-center">
-          <Button 
-            size="lg" 
-            variant="outline" 
-            className="px-8 py-3 text-lg font-semibold border-2 border-gray-300 hover:border-emerald-500 hover:bg-emerald-50 rounded-xl"
-            disabled={loading}
-          >
-            Load More Articles
-          </Button>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center space-x-2 mb-8">
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2"
+            >
+              Previous
+            </Button>
+            
+            <div className="flex space-x-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const pageNum = Math.max(1, currentPage - 2) + i;
+                if (pageNum > totalPages) return null;
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === currentPage ? "default" : "outline"}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-2 ${
+                      pageNum === currentPage 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'hover:bg-emerald-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2"
+            >
+              Next
+            </Button>
+          </div>
+        )}
+
+        {/* Results Info */}
+        <div className="text-center text-gray-600 mb-8">
+          Showing {blogs.length} of {total} articles
         </div>
       </div>
     </div>

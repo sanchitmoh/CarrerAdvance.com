@@ -12,13 +12,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Menu, X, ChevronDown, Zap, Shield, Sparkles } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useToast } from '@/hooks/use-toast'
 
 const userRoles = [
   { name: 'Teachers', path: '/teachers', icon: '🎓', color: 'from-emerald-500 to-emerald-600' },
   { name: 'Students', path: '/students', icon: '📚', color: 'from-green-500 to-green-600' },
-  { name: 'Drivers', path: '/drivers', icon: '🚗', color: 'from-teal-500 to-teal-600' },
-  { name: 'Employers', path: '/employers', icon: '💼', color: 'from-lime-500 to-lime-600' },
-  { name: 'Companies', path: '/companies', icon: '🏢', color: 'from-cyan-500 to-cyan-600' },
+  //{ name: 'Drivers', path: '/drivers', icon: '🚗', color: 'from-teal-500 to-teal-600' },
+  { name: 'Companies', path: '/employers', icon: '💼', color: 'from-lime-500 to-lime-600' },
+  //{ name: 'Companies', path: '/companies', icon: '🏢', color: 'from-cyan-500 to-cyan-600' },
   { name: 'Job Seekers', path: '/job-seekers', icon: '🔍', color: 'from-emerald-700 to-green-700' },
   { name: 'Admin', path: '/admin', icon: '⚡', color: 'from-green-700 to-teal-700' },
 ]
@@ -29,6 +30,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [homeOpen, setHomeOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const { toast } = useToast()
 
   const links = ['Home', 'Courses', 'Blogs', 'Jobs']
 
@@ -86,6 +88,18 @@ export default function Navbar() {
     if (mounted) {
       setHomeOpen(false)
     }
+  }
+
+  const handleRoleNav = (e: React.MouseEvent, roleName: string, href: string) => {
+    if (roleName === 'Students' || roleName === 'Teachers') {
+      e.preventDefault()
+      toast({
+        title: 'Coming soon',
+        description: `${roleName} portal is launching shortly. Stay tuned! ✨`,
+      })
+      return
+    }
+    // allow default navigation for other roles
   }
 
   // Hide homepage Navbar on admin pages except the admin login page
@@ -168,7 +182,7 @@ export default function Navbar() {
                 <div className="grid grid-cols-1 gap-2">
                   {userRoles.map((role) => (
                     <DropdownMenuItem key={role.name} asChild>
-                      <Link href={`${role.path}/login`} className="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 transition-all duration-300 group"> {/* Changed to emerald/green */}
+                      <Link href={role.name === 'Students' || role.name === 'Teachers' ? '#' : `${role.path}/login`} onClick={(e) => handleRoleNav(e, role.name, `${role.path}/login`)} className="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 transition-all duration-300 group"> {/* Changed to emerald/green */}
                         <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${role.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                           <span className="text-lg">{role.icon}</span>
                         </div>
@@ -225,8 +239,8 @@ export default function Navbar() {
                     {userRoles.map((role) => (
                       <Link
                         key={role.name}
-                        href={`${role.path}/login`}
-                        onClick={handlePopoverClick}
+                        href={role.name === 'Students' || role.name === 'Teachers' ? '#' : `${role.path}/login`}
+                        onClick={(e) => { handleRoleNav(e, role.name, `${role.path}/login`); handlePopoverClick(); }}
                         className="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         aria-label={`${role.name} login`}
                       >
