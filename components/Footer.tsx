@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, Heart, Zap, ArrowRight } from "lucide-react"
+import Link from "next/link"
 
 export default function Footer() {
   const footerSections = [
@@ -158,12 +159,14 @@ export default function Footer() {
         <div className="py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-wrap items-center justify-center md:justify-start text-sm text-gray-500 gap-1">
-              <span>© 2024 Career Advance. Made with</span>
-              <Heart className="w-4 h-4 text-red-500 fill-current animate-pulse mx-1" />
-              <span>in Canada.</span>
-              <span className="hidden sm:inline">Designed & Developed with</span>
+              
+              <span className="hidden sm:inline text-white">Designed & Developed with</span>
               <Heart className="w-4 h-4 text-red-500 fill-current animate-pulse mx-1 hidden sm:inline" />
-              <span className="hidden sm:inline">by Seoulix Technologies</span>
+              <span className="hidden sm:inline text-white">by 
+                <Link className=" ml-2 text-emerald-200" href="https://seoulix.com">
+                 Seoulix Technologies
+                </Link>
+                 </span>
             </div>
             
             <div className="flex flex-wrap justify-center gap-6">

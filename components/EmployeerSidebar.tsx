@@ -1,7 +1,6 @@
 ﻿"use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -11,13 +10,12 @@ import {
   Users,
   FileText,
   Lock,
-  LogOut,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useEmployerLogout } from "@/components/AuthForm"
+// removed logout from sidebar
 import { getApiUrl, getAssetUrl } from "@/lib/api-config"
 
 const menuItems = [
@@ -39,8 +37,6 @@ interface EmployerSidebarProps {
 export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onClose }: EmployerSidebarProps = {}) {
   const [isMobile, setIsMobile] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
-  const { logout } = useEmployerLogout()
   const [user, setUser] = useState({
     name: "John Doe",
     title: "HR Manager",
@@ -84,15 +80,10 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
     })()
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    router.push("/employers/login")
-  }
-
   return (
     <TooltipProvider>
-      {/* Desktop sidebar */}
-      <div className="hidden lg:flex fixed left-0 top-0 h-full w-20 bg-white border-r border-gray-200 flex-col items-center py-4 z-40">
+      {/* Desktop/Tablet sidebar */}
+      <div className="hidden md:flex fixed left-0 top-0 h-full w-20 bg-white border-r border-gray-200 flex-col items-center py-4 z-40">
         {/* Logo */}
         <div className="mb-8">
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -113,33 +104,22 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
                   group relative flex items-center justify-center w-12 h-12 rounded-lg transition-colors
                   ${isActive ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
                 `}
-                title={item.label}
               >
                 <Icon className="w-5 h-5" />
-                <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                <div className="absolute left-full ml-2 px-1.5 py-0.5 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
                   {item.label}
                 </div>
               </Link>
             )
           })}
-          {/* Logout button */}
-          <button
-            onClick={handleLogout}
-            className="group relative flex items-center justify-center w-12 h-12 rounded-lg transition-colors text-red-600 hover:bg-red-50"
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
-              Logout
-            </div>
-          </button>
+          
         </nav>
       </div>
 
       {/* Mobile drawer */}
       <div
         className={`
-        lg:hidden fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out
+        md:hidden fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out
         ${(typeof isMobileMenuOpen === 'boolean' ? isMobileMenuOpen : !!open) ? 'translate-x-0' : '-translate-x-full'}
       `}
       >
@@ -174,17 +154,7 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
               </Link>
             )
           })}
-          <button
-            onClick={() => {
-              handleLogout()
-              if (onClose) onClose()
-              if (onToggle) onToggle()
-            }}
-            className="w-full flex items-center space-x-3 px-3 py-3 text-red-600 hover:bg-red-50 rounded-lg"
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="font-medium">Logout</span>
-          </button>
+          
         </nav>
       </div>
     </TooltipProvider>

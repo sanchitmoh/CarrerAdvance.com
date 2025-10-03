@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
+import { getBaseUrl } from "@/lib/api-config"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -68,9 +69,15 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
   const { toast } = useToast()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    if (name === 'twoFactorCode') {
+      const digitsOnly = value.replace(/\D/g, '').slice(0, 6)
+      setFormData({ ...formData, twoFactorCode: digitsOnly })
+      return
+    }
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     })
   }
 
@@ -106,12 +113,14 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
         }
 
 
-        // Call registration API
-        const response = await fetch('/api/admin/auth/register', {
+        // Call registration API (backend)
+        const response = await fetch(getBaseUrl('admin/auth/register'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({
             username: formData.email,
             email: formData.email,
@@ -141,11 +150,13 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
       } else if (type === "login") {
         if (!showTwoFactor) {
           // First step: validate credentials and send OTP
-          const response = await fetch('/api/admin/auth/login', {
+          const response = await fetch(getBaseUrl('admin/auth/login'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Accept': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({
               username: formData.email,
               password: formData.password,
@@ -175,40 +186,66 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
           }
         } else {
           // Second step: verify OTP
-          const response = await fetch('/api/admin/auth/verify_otp', {
+          const otp = (formData.twoFactorCode || '').replace(/\D/g, '').slice(0, 6)
+          if (!/^[0-9]{6}$/.test(otp)) {
+            toast({
+              title: 'Invalid Code',
+              description: 'Please enter the 6-digit code sent to your email.',
+              variant: 'destructive',
+            })
+            setIsLoading(false)
+            return
+          }
+          if (!pendingAdminId) {
+            toast({
+              title: 'Missing session',
+              description: 'Please login again to receive a new OTP.',
+              variant: 'destructive',
+            })
+            setShowTwoFactor(false)
+            setIsLoading(false)
+            return
+          }
+
+          const response = await fetch(getBaseUrl('admin/auth/verify_otp'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Accept': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({
               admin_id: pendingAdminId,
-              otp: formData.twoFactorCode,
+              otp,
             }),
           })
 
-          if (response.ok) {
+          let data: any = null
+          try { data = await response.json() } catch (_) {}
+
+          if (response.ok && data?.success) {
             toast({
-              title: "Success!",
-              description: "2FA verification successful. Logging you in...",
+              title: 'Success!',
+              description: '2FA verification successful. Logging you in...',
             })
-            // Redirect to admin dashboard
-            window.location.href = "/admin/dashboard"
+            window.location.href = '/admin/dashboard'
           } else {
-            const error = await response.json()
             toast({
-              title: "Verification Failed",
-              description: error.message || "Invalid OTP",
-              variant: "destructive",
-          })
+              title: 'Verification Failed',
+              description: (data && (data.message || data.error)) || 'Invalid OTP',
+              variant: 'destructive',
+            })
           }
         }
       } else if (type === "forgot-password") {
         // Handle forgot password
-        const response = await fetch('/api/admin/auth/forgot_password', {
+        const response = await fetch(getBaseUrl('admin/auth/forgot_password'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({
             email: formData.email,
           }),
@@ -363,7 +400,9 @@ export default function AdminAuthForm({ type, title, subtitle }: AdminAuthFormPr
                       <Input
                         id="twoFactorCode"
                         name="twoFactorCode"
-                        type="text"
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         maxLength={6}
                         required
                         value={formData.twoFactorCode}

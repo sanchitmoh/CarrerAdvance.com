@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { getApiUrl } from "@/lib/api-config"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,6 +45,16 @@ interface Job {
   requirements?: string[]
   benefits?: string[]
   contactEmail?: string
+}
+
+type IconType = React.ComponentType<{ className?: string }>
+
+interface DashboardStat {
+  title: string
+  value: string
+  icon: IconType
+  color: string
+  bgColor: string
 }
 
 // Helper function to validate and normalize job data
@@ -260,18 +271,45 @@ export default function JobsPage() {
       }
     ]
 
-    try {
-      const savedJobs = JSON.parse(localStorage.getItem("adminJobs") || "[]")
-      // Normalize all jobs to ensure proper structure
-      const validatedJobs = savedJobs.length > 0 
-        ? savedJobs.map(normalizeJob)
-        : sampleJobs
-      
-      setJobs(validatedJobs)
-    } catch (error) {
-      console.error("Error loading jobs:", error)
-      setJobs(sampleJobs)
-    }
+    const controller = new AbortController()
+    const url = getApiUrl('jobs/list')
+    fetch(url, { signal: controller.signal, credentials: 'include' })
+      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
+      .then(json => {
+        const arr = Array.isArray(json?.data) ? json.data : []
+        if (arr.length === 0) {
+          setJobs(sampleJobs)
+          return
+        }
+        const mapped = arr.map((j: any) => normalizeJob({
+          id: j.id,
+          title: j.title ?? j.job_title,
+          company: j.company ?? j.company_name,
+          location: j.location ?? j.city ?? 'Remote',
+          type: j.type ?? j.job_type ?? 'Full-time',
+          salary: j.salary ?? '$0 - $0',
+          status: j.status ?? 'Active',
+          applications: j.applications ?? j.app_count ?? 0,
+          datePosted: j.datePosted ?? j.created_at,
+          description: j.description,
+          requirements: j.requirements,
+          benefits: j.benefits,
+          contactEmail: j.contactEmail
+        }))
+        setJobs(mapped)
+      })
+      .catch(() => {
+        try {
+          const savedJobs = JSON.parse(localStorage.getItem("adminJobs") || "[]")
+          const validatedJobs = savedJobs.length > 0 
+            ? savedJobs.map(normalizeJob)
+            : sampleJobs
+          setJobs(validatedJobs)
+        } catch (_) {
+          setJobs(sampleJobs)
+        }
+      })
+    return () => controller.abort()
   }, [])
 
   // Pagination calculations
@@ -295,7 +333,7 @@ export default function JobsPage() {
         )
       : 0
 
-  const stats = [
+  const stats: DashboardStat[] = [
     { title: "Total Jobs", value: jobs.length.toString(), icon: Briefcase, color: "text-blue-600", bgColor: "bg-blue-50" },
     { title: "Active Jobs", value: activeJobs.length.toString(), icon: TrendingUp, color: "text-green-600", bgColor: "bg-green-50" },
     { title: "Total Applications", value: totalApplications.toString(), icon: Users, color: "text-purple-600", bgColor: "bg-purple-50" },
@@ -433,8 +471,8 @@ export default function JobsPage() {
                   className="pl-10"
                 />
               </div>
-              <Select value={selectedFilter} onValueChange={setSelectedFilter} className="w-full sm:w-[180px]">
-                <SelectTrigger>
+              <Select value={selectedFilter} onValueChange={setSelectedFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Filter" />
                 </SelectTrigger>
@@ -786,3 +824,4 @@ export default function JobsPage() {
     </div>
   )
 }
+

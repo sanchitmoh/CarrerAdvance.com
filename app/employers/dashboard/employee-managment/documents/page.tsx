@@ -493,10 +493,11 @@ export default function DocumentManagement() {
     <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 p-3 sm:p-6">
       {/* Header */}
      {/* Header */}
-<div className="bg-gradient-to-r from-emerald-600 to-green-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
+     <div className="bg-gradient-to-r from-purple-500 to-purple-700
+ rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
     {/* Left side - Back button and Title */}
-    <div className="flex flex-col gap-3 sm:gap-4 sm:flex-1">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 sm:flex-1">
       {/* Back button */}
       <div className="w-full sm:w-auto">
         <Link href="/employers/dashboard/employee-managment">
@@ -512,7 +513,7 @@ export default function DocumentManagement() {
       </div>
 
       {/* Title and description */}
-      <div className="text-center sm:text-left">
+      <div className="text-center sm:text-left sm:ml-2">
         <h1 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Document Management</h1>
         <p className="text-emerald-100 text-sm sm:text-base">Manage employee documents and verification</p>
       </div>

@@ -855,7 +855,7 @@ export default function PayrollManagementPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-3 sm:px-4 lg:px-6 py-4">
       {/* Header - Mobile Responsive */}
-      <div className="bg-gradient-to-r from-emerald-600 to-green-600 rounded-2xl p-4 sm:p-6 text-white">
+      <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-2xl p-4 sm:p-6 text-white">
         <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full">
             <Link href="/employers/dashboard/employee-managment" className="w-full sm:w-auto">

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { getApiUrl } from "@/lib/api-config"
 import { Search, Filter, Plus, MoreHorizontal, Eye, Trash2, CheckCircle, XCircle, Clock, Check, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,7 +32,7 @@ export default function CoursesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const coursesPerPage = 10
 
-  const [courses] = useState<Course[]>([
+  const [courses, setCourses] = useState<Course[]>([
     {
       id: "1",
       title: "Complete Web Development Bootcamp",
@@ -191,6 +192,31 @@ export default function CoursesPage() {
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm, selectedFilter])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const url = getApiUrl('courses/list')
+    fetch(url, { signal: controller.signal, credentials: 'include' })
+      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
+      .then(json => {
+        const data = Array.isArray(json?.data) ? json.data : []
+        if (data.length === 0) return
+        const mapped: Course[] = data.map((c: any) => ({
+          id: String(c.id ?? c.course_id ?? ''),
+          title: String(c.title ?? c.name ?? 'Untitled Course'),
+          instructor: String(c.instructor ?? c.teacher ?? 'Unknown Instructor'),
+          category: String(c.category ?? 'General'),
+          status: (String(c.status ?? 'Published') as Course['status']),
+          students: Number(c.students ?? c.enrolled ?? 0),
+          rating: Number(c.rating ?? 0),
+          revenue: Number(c.revenue ?? 0),
+          thumbnail: String(c.thumbnail ?? '/course.png')
+        }))
+        setCourses(mapped)
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
 
   const totalCourses = courses.length
   const publishedCount = courses.filter(c => c.status === "Published").length

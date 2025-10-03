@@ -33,7 +33,36 @@ export default function Navbar() {
   const links = ['Home', 'Courses', 'Blogs', 'Jobs']
 
   const isHome = pathname === '/'
-  const showPopoverBehavior = isHome || pathname?.includes('/login')
+  const showPopoverBehavior =
+    isHome ||
+    pathname?.includes('/login') ||
+    [
+      '/jobs',
+      '/blogs',
+      '/courses',
+      '/certifications',
+      '/assessments',
+      '/learning-paths',
+      '/webinars',
+      '/about',
+      '/team',
+      '/careers',
+      '/press',
+      '/contact',
+      '/post-job',
+      '/candidates',
+      '/employer-dashboard',
+      '/pricing',
+      '/success-stories',
+      '/register',
+      '/resume-builder',
+      '/career-advice',
+      '/salary-guide',
+      '/privacy',
+      '/terms',
+      '/cookies',
+      '/accessibility',
+    ].some((prefix) => pathname?.startsWith(prefix))
 
   useEffect(() => {
     const handleScroll = () => {
@@ -162,12 +191,16 @@ export default function Navbar() {
               className="flex items-center space-x-3 opacity-0 scale-80 animate-fade-in"
               style={{ animationDelay: '0.6s' }}
             >
-              <Button className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg hover:shadow-emerald-200 transition-all duration-300 transform hover:scale-105 rounded-xl px-6 py-2.5 font-semibold"> {/* Changed to emerald/green */}
-                Post Job
-              </Button>
-              <Button variant="outline" className="border-2 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-300 font-semibold rounded-xl px-6 py-2.5"> {/* Changed to emerald */}
-                Find Jobs
-              </Button>
+              <Link href='/employers/login'>
+                <Button className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg hover:shadow-emerald-200 transition-all duration-300 transform hover:scale-105 rounded-xl px-6 py-2.5 font-semibold"> {/* Changed to emerald/green */}
+                  Post Job
+                </Button>
+              </Link>
+              <Link href='/jobs'>
+                <Button variant="outline" className="border-2 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-300 font-semibold rounded-xl px-6 py-2.5"> {/* Changed to emerald */}
+                  Find Jobs
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -267,15 +300,19 @@ export default function Navbar() {
                 </div>
 
                 <div className="space-y-3 opacity-0 animate-fade-in" style={{ animationDelay: '0.8s' }}>
+                 <Link href='/employers/login'>
                   <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl py-3 font-semibold">
-                    Post a Job
+                   Post a Job
                   </Button>
+                 </Link>
+                 <Link href='/jobs'>
                   <Button
                     variant="outline"
                     className="w-full border-2 border-emerald-200 text-emerald-600 rounded-xl py-3 font-semibold"
-                  >
+                    >
                     Find Jobs
                   </Button>
+                    </Link>
                 </div>
               </nav>
             </div>

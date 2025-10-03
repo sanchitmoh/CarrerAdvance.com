@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, TrendingUp, Users, Award, Zap, Play, ArrowRight, Sparkles, Star, Briefcase, BookOpen } from 'lucide-react'
+import { getApiUrl } from '@/lib/api-config'
 
 const popularKeywords = ['React Developer', 'AI/ML Engineer', 'Product Manager', 'Digital Marketing', 'Data Scientist', 'Cybersecurity Analyst']
 
@@ -15,7 +16,9 @@ const floatingElements = [
   { icon: Zap, position: 'bottom-20 right-10', delay: 1.5, color: 'text-lime-500' },     // Changed to lime
 ]
 
-const stats = [
+type HeroStat = { value: string; label: string }
+
+const initialStats: HeroStat[] = [
   { value: '50K+', label: 'Active Users' },
   { value: '15K+', label: 'Jobs Posted' },
   { value: '500+', label: 'Companies' },
@@ -26,6 +29,31 @@ export default function Hero() {
   const router = useRouter()
   const [jobSearch, setJobSearch] = useState('')
   const [location, setLocation] = useState('')
+  const [stats, setStats] = useState<HeroStat[]>(initialStats)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const url = getApiUrl('stats')
+
+    const formatCompact = (n: number) => {
+      if (n >= 1000000) return `${Math.round(n / 1000000)}M+`
+      if (n >= 1000) return `${Math.round(n / 1000)}K+`
+      return `${n}+`
+    }
+
+    fetch(url, { signal: controller.signal, credentials: 'include' })
+      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
+      .then(json => {
+        const data = json?.data || {}
+        const next = [...initialStats]
+        if (typeof data.activeProfessionals === 'number') next[0].value = formatCompact(data.activeProfessionals)
+        if (typeof data.dreamJobsPosted === 'number') next[1].value = formatCompact(data.dreamJobsPosted)
+        if (typeof data.topCompanies === 'number') next[2].value = formatCompact(data.topCompanies)
+        setStats(next)
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -134,7 +162,7 @@ export default function Hero() {
             <div
               className="transition-transform duration-300 hover:scale-105 hover:translate-y-[-2px] active:scale-95"
             >
-              <Button size="lg" className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-10 py-4 text-lg font-bold shadow-2xl hover:shadow-emerald-300 transition-all duration-300 rounded-2xl group"> {/* Changed to emerald/green */}
+              <Button onClick={() => router.push('/jobs')} size="lg" className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-10 py-4 text-lg font-bold shadow-2xl hover:shadow-emerald-300 transition-all duration-300 rounded-2xl group"> {/* Changed to emerald/green */}
                 <Briefcase className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
                 Find Your Dream Job
                 <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
@@ -143,7 +171,7 @@ export default function Hero() {
             <div
               className="transition-transform duration-300 hover:scale-105 hover:translate-y-[-2px] active:scale-95"
             >
-              <Button size="lg" variant="outline" className="border-2 border-emerald-400 text-emerald-200 hover:bg-emerald-500/10 hover:text-white hover:border-emerald-300 px-10 py-4 text-lg font-bold transition-all duration-300 rounded-2xl group backdrop-blur-sm"> {/* Changed to emerald */}
+              <Button onClick={() => router.push('/courses')} size="lg" variant="outline" className="border-2 border-emerald-400 text-emerald-200 hover:bg-emerald-500/10 hover:text-white hover:border-emerald-300 px-10 py-4 text-lg font-bold transition-all duration-300 rounded-2xl group backdrop-blur-sm"> {/* Changed to emerald */}
                 <BookOpen className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
                 Explore Courses
               </Button>

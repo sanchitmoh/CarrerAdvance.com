@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { getApiUrl } from "@/lib/api-config"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -29,28 +30,9 @@ import {
 } from "lucide-react"
 
 // Sample stats and users data (same as your original)
-const stats = [
-  { title: "Total Users", value: "4", icon: Users, color: "text-blue-600", bgColor: "bg-blue-50" },
-  { title: "Active Students", value: "1", icon: GraduationCap, color: "text-green-600", bgColor: "bg-green-50" },
-  { title: "Active Teachers", value: "0", icon: UserCheck, color: "text-purple-600", bgColor: "bg-purple-50" },
-  { title: "Suspended Users", value: "0", icon: UserX, color: "text-red-600", bgColor: "bg-red-50" },
-]
+  const stats: any[] = []
 
-const users = [
-  { id: 1, name: "Karan Kamble", email: "karankamble@gmail.com", role: "Student", status: "Active", joinDate: "8/23/2025", lastActive: "8/23/2025", stats: "0 enrolled\n0 completed", avatar: "K" },
-  { id: 2, name: "Admin User", email: "admin@careeradvance.com", role: "Admin", status: "Active", joinDate: "8/23/2025", lastActive: "8/23/2025", stats: "", avatar: "A" },
-  { id: 3, name: "John Employer", email: "john@company.com", role: "Employer", status: "Active", joinDate: "8/20/2025", lastActive: "8/22/2025", stats: "3 jobs posted\n12 applications", avatar: "J" },
-  { id: 4, name: "Sarah Seeker", email: "sarah@email.com", role: "Job-Seeker", status: "Active", joinDate: "8/18/2025", lastActive: "8/23/2025", stats: "5 applications\n2 interviews", avatar: "S" },
-  // Adding more sample data to demonstrate pagination
-  { id: 5, name: "Mike Johnson", email: "mike@email.com", role: "Student", status: "Active", joinDate: "8/17/2025", lastActive: "8/22/2025", stats: "2 enrolled\n1 completed", avatar: "M" },
-  { id: 6, name: "Emily Davis", email: "emily@email.com", role: "Employer", status: "Active", joinDate: "8/16/2025", lastActive: "8/21/2025", stats: "5 jobs posted\n20 applications", avatar: "E" },
-  { id: 7, name: "Chris Wilson", email: "chris@email.com", role: "Job-Seeker", status: "Active", joinDate: "8/15/2025", lastActive: "8/20/2025", stats: "3 applications\n1 interview", avatar: "C" },
-  { id: 8, name: "Lisa Brown", email: "lisa@email.com", role: "Student", status: "Active", joinDate: "8/14/2025", lastActive: "8/19/2025", stats: "1 enrolled\n0 completed", avatar: "L" },
-  { id: 9, name: "David Miller", email: "david@email.com", role: "Employer", status: "Active", joinDate: "8/13/2025", lastActive: "8/18/2025", stats: "2 jobs posted\n8 applications", avatar: "D" },
-  { id: 10, name: "Anna Taylor", email: "anna@email.com", role: "Job-Seeker", status: "Active", joinDate: "8/12/2025", lastActive: "8/17/2025", stats: "4 applications\n0 interviews", avatar: "A" },
-  { id: 11, name: "Robert Clark", email: "robert@email.com", role: "Student", status: "Active", joinDate: "8/11/2025", lastActive: "8/16/2025", stats: "0 enrolled\n0 completed", avatar: "R" },
-  { id: 12, name: "Maria Garcia", email: "maria@email.com", role: "Employer", status: "Active", joinDate: "8/10/2025", lastActive: "8/15/2025", stats: "7 jobs posted\n25 applications", avatar: "M" },
-]
+const mockUsers: any[] = []
 
 // Badge colors
 const getStatusColor = (status: string) => {
@@ -78,7 +60,7 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<(typeof users)[0] | null>(null)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
-  const [usersData, setUsersData] = useState(users)
+  const [usersData, setUsersData] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const usersPerPage = 10
 
@@ -100,6 +82,29 @@ export default function UsersPage() {
     return matchesSearch
   })
 
+  useEffect(() => {
+    const controller = new AbortController()
+    const url = getApiUrl('admin/users/all')
+    fetch(url, { signal: controller.signal, credentials: 'include', headers: { 'Accept': 'application/json' } })
+      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
+      .then(json => {
+        const data = Array.isArray(json?.data) ? json.data : []
+        if (data.length === 0) return
+        const mapped = data.map((u: any, idx: number) => ({
+          id: Number(u.id ?? idx + 1),
+          name: String(u.name ?? u.fullname ?? u.username ?? 'Unknown User'),
+          email: String(u.email ?? 'unknown@example.com'),
+          role: String(u.role ?? u.user_type ?? 'User'),
+          status: (u.is_active === 0 || u.status === 'Inactive') ? 'Suspended' : 'Active',
+          joinDate: String(u.created_at ?? ''),
+          avatar: (String(u.name ?? 'U').charAt(0) || 'U').toUpperCase()
+        }))
+        setUsersData(mapped)
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
+
   // Calculate pagination
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
   const indexOfLastUser = currentPage * usersPerPage
@@ -109,6 +114,26 @@ export default function UsersPage() {
   const handleViewProfile = (user: (typeof users)[0]) => { setSelectedUser(user); setIsProfileDialogOpen(true) }
   const handleSuspendUser = (userId: number) => { setUsersData((prev) => prev.filter((user) => user.id !== userId)) }
   const handleUserLogin = (user: (typeof users)[0]) => { setSelectedUser(user); setIsLoginDialogOpen(true) }
+
+  const impersonateSelectedUser = async () => {
+    if (!selectedUser) return
+    const role = (selectedUser.role || '').toLowerCase()
+    const type = role === 'employer' ? 'employer' : (role === 'student' ? 'student' : 'jobseeker')
+    try {
+      const redirect = window.location.origin
+      const res = await fetch(getApiUrl('admin/users/impersonate'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ type, id: selectedUser.id, redirect })
+      })
+      const json = await res.json().catch(() => null)
+      if (res.ok && json && json.link) {
+        try { window.location.assign(json.link) } catch (_) { window.location.href = json.link }
+        setTimeout(() => { try { window.location.href = json.link } catch (_) {} }, 50)
+      }
+    } catch (_) {}
+  }
 
   // Pagination handlers
   const handleNextPage = () => {
@@ -267,8 +292,7 @@ export default function UsersPage() {
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden lg:table-cell">Join Date</TableHead>
-                <TableHead className="hidden lg:table-cell">Last Active</TableHead>
-                <TableHead className="hidden xl:table-cell">Stats</TableHead>
+                
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -289,8 +313,7 @@ export default function UsersPage() {
                   <TableCell><Badge className={getRoleColor(user.role)}>{user.role}</Badge></TableCell>
                   <TableCell><Badge className={getStatusColor(user.status)}>{user.status}</Badge></TableCell>
                   <TableCell className="hidden lg:table-cell">{user.joinDate}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{user.lastActive}</TableCell>
-                  <TableCell className="hidden xl:table-cell">{user.stats && <div className="whitespace-pre-line">{user.stats}</div>}</TableCell>
+                  
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -405,7 +428,7 @@ export default function UsersPage() {
               </div>
               <p className="font-semibold text-gray-900">Login to {selectedUser.name} Account</p>
               <p className="text-gray-600 text-sm">You are about to login as {selectedUser.name} ({selectedUser.role})</p>
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700"><LogIn className="h-4 w-4 mr-2"/> Login</Button>
+              <Button onClick={impersonateSelectedUser} className="w-full bg-emerald-600 hover:bg-emerald-700"><LogIn className="h-4 w-4 mr-2"/> Login</Button>
             </div>
           )}
         </DialogContent>

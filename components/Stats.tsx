@@ -2,8 +2,18 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Users, Briefcase, GraduationCap, Building, TrendingUp, Award, CheckCircle } from 'lucide-react'
+import { getApiUrl } from '@/lib/api-config'
 
-const stats = [
+type StatItem = {
+  icon: any
+  value: number
+  label: string
+  suffix?: string
+  color: string
+  description: string
+}
+
+const initialStats: StatItem[] = [
   {
     icon: Users,
     value: 75000,
@@ -68,6 +78,24 @@ function CountUp({ end, duration = 2000, inView }: { end: number; duration?: num
 export default function Stats() {
   const ref = useRef<HTMLDivElement>(null)
   const [isInView, setIsInView] = useState(false)
+  const [stats, setStats] = useState<StatItem[]>(initialStats)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const url = getApiUrl('stats')
+    fetch(url, { signal: controller.signal, credentials: 'include' })
+      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
+      .then(json => {
+        const data = json?.data || {}
+        const next = [...initialStats]
+        if (typeof data.activeProfessionals === 'number') next[0].value = data.activeProfessionals
+        if (typeof data.dreamJobsPosted === 'number') next[1].value = data.dreamJobsPosted
+        if (typeof data.topCompanies === 'number') next[2].value = data.topCompanies
+        setStats(next)
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
