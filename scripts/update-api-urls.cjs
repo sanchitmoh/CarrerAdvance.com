@@ -57,7 +57,8 @@ function processDirectory(directory) {
 }
 
 // Start processing from the API directory (resolve relative to project root)
-const projectRoot = path.join(__dirname, '..');
+// Use process.cwd() to avoid reliance on __dirname in edge-like environments
+const projectRoot = process.cwd();
 const apiDirectory = path.join(projectRoot, 'app', 'api');
 processDirectory(apiDirectory);
 
