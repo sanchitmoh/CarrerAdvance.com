@@ -56,8 +56,11 @@ function processDirectory(directory) {
   }
 }
 
-// Start processing from the API directory
-const apiDirectory = path.join(__dirname, 'app', 'api');
+// Start processing from the API directory (resolve relative to project root)
+const projectRoot = path.join(__dirname, '..');
+const apiDirectory = path.join(projectRoot, 'app', 'api');
 processDirectory(apiDirectory);
 
 console.log('API URL update completed!');
+
+
