@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getApiUrl } from "@/lib/api-config"
+import { getApiUrl, getBackendUrl } from "@/lib/api-config"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import BackButton from "@/components/back-button"
 import Link from "next/link"
 import {
-  Plus,
   Search,
   Filter,
   MoreHorizontal,
@@ -84,238 +83,81 @@ export default function JobsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [totalJobs, setTotalJobs] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const jobsPerPage = 10
 
   useEffect(() => {
-    // Sample data with guaranteed array structure
-    const sampleJobs: Job[] = [
-      {
-        id: 1,
-        title: "Frontend Developer",
-        company: "Tech Corp",
-        location: "San Francisco, CA",
-        type: "Full-time",
-        salary: "$90,000 - $120,000",
-        status: "Active",
-        applications: 24,
-        datePosted: "2024-01-15",
-        description: "We are looking for a skilled Frontend Developer to join our team. You will be responsible for building user interfaces and implementing design systems.",
-        requirements: ["React", "TypeScript", "CSS", "5+ years experience"],
-        benefits: ["Health insurance", "Remote work", "Flexible hours"],
-        contactEmail: "careers@techcorp.com"
-      },
-      {
-        id: 2,
-        title: "Backend Engineer",
-        company: "Data Systems",
-        location: "New York, NY",
-        type: "Full-time",
-        salary: "$110,000 - $140,000",
-        status: "Pending",
-        applications: 18,
-        datePosted: "2024-01-20",
-        description: "Join our backend team to build scalable systems and APIs.",
-        requirements: ["Node.js", "Python", "SQL", "AWS"],
-        benefits: ["Stock options", "Unlimited PTO", "Learning budget"],
-        contactEmail: "hiring@datasystems.com"
-      },
-      {
-        id: 3,
-        title: "UX Designer",
-        company: "Creative Labs",
-        location: "Remote",
-        type: "Contract",
-        salary: "$75,000 - $95,000",
-        status: "Active",
-        applications: 32,
-        datePosted: "2024-01-10",
-        description: "Design amazing user experiences for our products and conduct user research.",
-        requirements: ["Figma", "User Research", "Prototyping"],
-        benefits: ["Remote first", "Creative freedom", "Team retreats"],
-        contactEmail: "design@creativelabs.com"
-      },
-      {
-        id: 4,
-        title: "Data Scientist",
-        company: "AI Innovations",
-        location: "Boston, MA",
-        type: "Full-time",
-        salary: "$100,000 - $130,000",
-        status: "Expired",
-        applications: 45,
-        datePosted: "2023-12-01",
-        description: "Work with large datasets to drive business insights and build machine learning models.",
-        requirements: ["Python", "Machine Learning", "SQL", "Statistics"],
-        benefits: ["Research budget", "Conference attendance", "Flexible schedule"],
-        contactEmail: "jobs@aiinnovations.com"
-      },
-      {
-        id: 5,
-        title: "DevOps Engineer",
-        company: "Cloud Systems",
-        location: "Austin, TX",
-        type: "Full-time",
-        salary: "$95,000 - $125,000",
-        status: "Active",
-        applications: 15,
-        datePosted: "2024-01-18",
-        description: "Manage and optimize our cloud infrastructure and CI/CD pipelines.",
-        requirements: ["Docker", "Kubernetes", "AWS", "CI/CD"],
-        benefits: ["Remote work", "Equipment budget", "Health benefits"],
-        contactEmail: "ops@cloudsystems.com"
-      },
-      {
-        id: 6,
-        title: "Product Manager",
-        company: "Product Pro",
-        location: "Chicago, IL",
-        type: "Full-time",
-        salary: "$85,000 - $115,000",
-        status: "Pending",
-        applications: 28,
-        datePosted: "2024-01-22",
-        description: "Lead product development from concept to launch and work with cross-functional teams.",
-        requirements: ["Product Strategy", "Agile", "User Stories", "Analytics"],
-        benefits: ["Bonus structure", "Professional development", "Health insurance"],
-        contactEmail: "pm@productpro.com"
-      },
-      {
-        id: 7,
-        title: "Mobile Developer",
-        company: "App Masters",
-        location: "Remote",
-        type: "Contract",
-        salary: "$80,000 - $110,000",
-        status: "Active",
-        applications: 22,
-        datePosted: "2024-01-14",
-        description: "Build amazing mobile experiences for iOS and Android platforms.",
-        requirements: ["React Native", "Swift", "Kotlin", "REST APIs"],
-        benefits: ["Remote work", "Flexible hours", "App store credits"],
-        contactEmail: "dev@appmasters.com"
-      },
-      {
-        id: 8,
-        title: "QA Engineer",
-        company: "Quality First",
-        location: "Denver, CO",
-        type: "Full-time",
-        salary: "$70,000 - $90,000",
-        status: "Active",
-        applications: 19,
-        datePosted: "2024-01-16",
-        description: "Ensure the quality of our software products through manual and automated testing.",
-        requirements: ["Testing", "Automation", "Selenium", "JIRA"],
-        benefits: ["Health insurance", "Paid time off", "Training budget"],
-        contactEmail: "qa@qualityfirst.com"
-      },
-      {
-        id: 9,
-        title: "System Administrator",
-        company: "IT Solutions",
-        location: "Miami, FL",
-        type: "Full-time",
-        salary: "$65,000 - $85,000",
-        status: "Expired",
-        applications: 12,
-        datePosted: "2023-12-15",
-        description: "Maintain and optimize our IT infrastructure and ensure system security.",
-        requirements: ["Windows Server", "Linux", "Networking", "Security"],
-        benefits: ["On-call bonus", "Certification support", "Health benefits"],
-        contactEmail: "it@itsolutions.com"
-      },
-      {
-        id: 10,
-        title: "Marketing Specialist",
-        company: "Growth Hackers",
-        location: "Seattle, WA",
-        type: "Full-time",
-        salary: "$60,000 - $80,000",
-        status: "Active",
-        applications: 35,
-        datePosted: "2024-01-12",
-        description: "Drive marketing campaigns and user acquisition through digital channels.",
-        requirements: ["Digital Marketing", "SEO", "Social Media", "Analytics"],
-        benefits: ["Performance bonus", "Remote options", "Conference budget"],
-        contactEmail: "marketing@growthhackers.com"
-      },
-      {
-        id: 11,
-        title: "Senior Software Engineer",
-        company: "Enterprise Tech",
-        location: "Remote",
-        type: "Full-time",
-        salary: "$120,000 - $150,000",
-        status: "Pending",
-        applications: 26,
-        datePosted: "2024-01-24",
-        description: "Lead technical projects and mentor junior developers in our growing team.",
-        requirements: ["Java", "Spring Boot", "Microservices", "8+ years experience"],
-        benefits: ["Stock options", "Unlimited PTO", "Home office budget"],
-        contactEmail: "senior@enterprisetech.com"
-      },
-      {
-        id: 12,
-        title: "Content Writer",
-        company: "Content Creators",
-        location: "Portland, OR",
-        type: "Part-time",
-        salary: "$45,000 - $60,000",
-        status: "Active",
-        applications: 41,
-        datePosted: "2024-01-19",
-        description: "Create engaging content for our digital platforms and marketing materials.",
-        requirements: ["Writing", "SEO", "Content Strategy", "Blogging"],
-        benefits: ["Flexible schedule", "Remote work", "Creative control"],
-        contactEmail: "content@contentcreators.com"
+    const fetchJobs = async () => {
+      setLoading(true)
+      setError(null)
+      
+      try {
+        const controller = new AbortController()
+        const url = `${getBackendUrl()}/api/jobs/list?page=${currentPage}&limit=${jobsPerPage}`
+        const response = await fetch(url, { 
+          signal: controller.signal, 
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const json = await response.json()
+        
+        if (json.success && Array.isArray(json.data?.jobs)) {
+          const mappedJobs = json.data.jobs.map((j: any) => {
+            // Build location string from city_name and country_name
+            const locationParts = []
+            if (j.city_name) locationParts.push(j.city_name)
+            if (j.country_name) locationParts.push(j.country_name)
+            const location = locationParts.length > 0 ? locationParts.join(', ') : 'Remote'
+            
+            return normalizeJob({
+              id: j.id,
+              title: j.title ?? j.job_title,
+              company: j.company ?? j.company_name,
+              location: j.location ?? location,
+              type: j.type ?? j.job_type ?? 'Full-time',
+              salary: j.salary ?? '$0 - $0',
+              status: j.status ?? 'Active',
+              applications: j.applications ?? j.app_count ?? j.applied_count ?? j.total_applications ?? 0,
+              datePosted: j.datePosted ?? j.created_at,
+              description: j.description,
+              requirements: j.requirements,
+              benefits: j.benefits,
+              contactEmail: j.contactEmail
+            })
+          })
+          setJobs(mappedJobs)
+          setTotalJobs(json.data?.total || mappedJobs.length)
+          setTotalPages(json.data?.total_pages || Math.ceil(mappedJobs.length / jobsPerPage))
+        } else {
+          setJobs([])
+          setTotalJobs(0)
+          setTotalPages(0)
+        }
+      } catch (err) {
+        console.error('Error fetching jobs:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch jobs')
+        setJobs([])
+      } finally {
+        setLoading(false)
       }
-    ]
+    }
 
-    const controller = new AbortController()
-    const url = getApiUrl('jobs/list')
-    fetch(url, { signal: controller.signal, credentials: 'include' })
-      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
-      .then(json => {
-        const arr = Array.isArray(json?.data) ? json.data : []
-        if (arr.length === 0) {
-          setJobs(sampleJobs)
-          return
-        }
-        const mapped = arr.map((j: any) => normalizeJob({
-          id: j.id,
-          title: j.title ?? j.job_title,
-          company: j.company ?? j.company_name,
-          location: j.location ?? j.city ?? 'Remote',
-          type: j.type ?? j.job_type ?? 'Full-time',
-          salary: j.salary ?? '$0 - $0',
-          status: j.status ?? 'Active',
-          applications: j.applications ?? j.app_count ?? 0,
-          datePosted: j.datePosted ?? j.created_at,
-          description: j.description,
-          requirements: j.requirements,
-          benefits: j.benefits,
-          contactEmail: j.contactEmail
-        }))
-        setJobs(mapped)
-      })
-      .catch(() => {
-        try {
-          const savedJobs = JSON.parse(localStorage.getItem("adminJobs") || "[]")
-          const validatedJobs = savedJobs.length > 0 
-            ? savedJobs.map(normalizeJob)
-            : sampleJobs
-          setJobs(validatedJobs)
-        } catch (_) {
-          setJobs(sampleJobs)
-        }
-      })
-    return () => controller.abort()
-  }, [])
+    fetchJobs()
+  }, [currentPage])
 
-  // Pagination calculations
-  const totalPages = Math.ceil(jobs.length / jobsPerPage)
+  // Pagination calculations - now from backend metadata
   const indexOfLastJob = currentPage * jobsPerPage
-  const indexOfFirstJob = indexOfLastJob - jobsPerPage
+  const indexOfFirstJob = indexOfLastJob - jobsPerPage + 1
 
   const activeJobs = jobs.filter((job) => job.status === "Active")
   const totalApplications = jobs.reduce((sum, job) => sum + job.applications, 0)
@@ -347,16 +189,8 @@ export default function JobsPage() {
     { id: "expired", label: "Expired", count: jobs.filter((job) => job.status === "Expired").length },
   ]
 
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesTab = activeTab === "all" || job.status.toLowerCase() === activeTab
-    return matchesSearch && matchesTab
-  })
-
-  // Get current jobs for pagination
-  const currentJobs = filteredJobs.slice(indexOfFirstJob, indexOfLastJob)
+  // For backend pagination, we work directly with the fetched jobs
+  const currentJobs = jobs
 
   // Reset to first page when search or filter changes
   useEffect(() => {
@@ -400,10 +234,98 @@ export default function JobsPage() {
   }
 
   // Handle delete job
-  const handleDeleteJob = (jobId: number) => {
-    const updatedJobs = jobs.filter(job => job.id !== jobId)
-    setJobs(updatedJobs)
-    localStorage.setItem("adminJobs", JSON.stringify(updatedJobs))
+  const handleDeleteJob = async (jobId: number) => {
+    if (!confirm(`Are you sure you want to delete this job?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080/index.php/api/jobs/delete/${jobId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Remove job from local state
+        const updatedJobs = jobs.filter(job => job.id !== jobId)
+        setJobs(updatedJobs)
+        
+        // Refresh the jobs list by refetching
+        const fetchJobs = async () => {
+          setLoading(true)
+          setError(null)
+          
+          try {
+            const controller = new AbortController()
+            const url = `${getBackendUrl()}/api/jobs/list?page=${currentPage}&limit=${jobsPerPage}`
+            const response = await fetch(url, { 
+              signal: controller.signal, 
+              credentials: 'include',
+              headers: {
+              'Content-Type': 'application/json',
+              }
+            })
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+            }
+            
+            const json = await response.json()
+            
+            if (json.success && Array.isArray(json.data?.jobs)) {
+              const mappedJobs = json.data.jobs.map((j: any) => {
+                // Build location string from city_name and country_name
+                const locationParts = []
+                if (j.city_name) locationParts.push(j.city_name)
+                if (j.country_name) locationParts.push(j.country_name)
+                const location = locationParts.length > 0 ? locationParts.join(', ') : 'Remote'
+                
+                return normalizeJob({
+                  id: j.id,
+                  title: j.title ?? j.job_title,
+                  company: j.company ?? j.company_name,
+                  location: j.location ?? location,
+                  type: j.type ?? j.job_type ?? 'Full-time',
+                  salary: j.salary ?? '$0 - $0',
+                  status: j.status ?? 'Active',
+                  applications: j.applications ?? j.app_count ?? j.applied_count ?? j.total_applications ?? 0,
+                  datePosted: j.datePosted ?? j.created_at,
+                  description: j.description,
+                  requirements: j.requirements,
+                  benefits: j.benefits,
+                  contactEmail: j.contactEmail
+                })
+              })
+              setJobs(mappedJobs)
+              setTotalJobs(json.data?.total || mappedJobs.length)
+              setTotalPages(json.data?.total_pages || Math.ceil(mappedJobs.length / jobsPerPage))
+            } else {
+              setJobs([])
+              setTotalJobs(0)
+              setTotalPages(0)
+            }
+          } catch (err) {
+            console.error('Error fetching jobs:', err)
+            setError(err instanceof Error ? err.message : 'Failed to fetch jobs')
+            setJobs([])
+          } finally {
+            setLoading(false)
+          }
+        }
+
+        fetchJobs()
+      } else {
+        alert(`Failed to delete job: ${data.message}`)
+      }
+    } catch (error) {
+      console.error('Error deleting job:', error)
+      alert('Error deleting job. Please try again.')
+    }
   }
 
   // Safe access to arrays with fallbacks
@@ -430,11 +352,6 @@ export default function JobsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Job Management</h1>
             <p className="text-gray-600">Manage job postings and applications</p>
           </div>
-          <Link href="/admin/jobs/add" className="self-stretch sm:self-auto">
-            <Button className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto flex items-center justify-center">
-              <Plus className="h-4 w-4 mr-2" /> Add Job
-            </Button>
-          </Link>
         </div>
       </div>
 
@@ -503,15 +420,43 @@ export default function JobsPage() {
               ))}
             </div>
 
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                <p className="mt-2 text-gray-600">Loading jobs...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="text-center py-8">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-600 font-medium">Error loading jobs</p>
+                  <p className="text-red-500 text-sm mt-1">{error}</p>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-2 bg-red-600 hover:bg-red-700"
+                    size="sm"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Results count */}
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                Showing {indexOfFirstJob + 1}-{Math.min(indexOfLastJob, filteredJobs.length)} of {filteredJobs.length} jobs
-              </p>
-            </div>
+            {!loading && !error && (
+              <div className="mb-4">
+                <p className="text-sm text-gray-600">
+                  Showing {indexOfFirstJob}-{Math.min(indexOfLastJob, totalJobs)} of {totalJobs} jobs
+                </p>
+              </div>
+            )}
 
             {/* Jobs Table - visible on md+ */}
-            <div className="hidden md:block border rounded-lg overflow-x-auto">
+            {!loading && !error && (
+              <div className="hidden md:block border rounded-lg overflow-x-auto">
               <table className="min-w-full">
                 <thead className="bg-gray-100">
                   <tr>
@@ -555,11 +500,6 @@ export default function JobsPage() {
                               <DropdownMenuItem onClick={() => handleViewJob(job)}>
                                 <Eye className="h-4 w-4 mr-2" /> View
                               </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link href={`/admin/jobs/edit/${job.id}`}>
-                                  <Edit className="h-4 w-4 mr-2" /> Edit
-                                </Link>
-                              </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="text-red-600"
                                 onClick={() => handleDeleteJob(job.id)}
@@ -574,10 +514,12 @@ export default function JobsPage() {
                   )}
                 </tbody>
               </table>
-            </div>
+              </div>
+            )}
 
             {/* Mobile / tablet cards */}
-            <div className="md:hidden space-y-4">
+            {!loading && !error && (
+              <div className="md:hidden space-y-4">
               {currentJobs.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">No jobs found</div>
               ) : (
@@ -609,11 +551,6 @@ export default function JobsPage() {
                               <DropdownMenuItem onClick={() => handleViewJob(job)}>
                                 <Eye className="h-4 w-4 mr-2" /> View
                               </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link href={`/admin/jobs/edit/${job.id}`}>
-                                  <Edit className="h-4 w-4 mr-2" /> Edit
-                                </Link>
-                              </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="text-red-600"
                                 onClick={() => handleDeleteJob(job.id)}
@@ -635,10 +572,11 @@ export default function JobsPage() {
                   </Card>
                 ))
               )}
-            </div>
+              </div>
+            )}
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {!loading && !error && totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
                 <div className="text-sm text-gray-600">
                   Page {currentPage} of {totalPages}
@@ -809,12 +747,6 @@ export default function JobsPage() {
                   className="flex-1"
                 >
                   Close
-                </Button>
-                <Button asChild className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-                  <Link href={`/admin/jobs/edit/${selectedJob.id}`}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Job
-                  </Link>
                 </Button>
               </div>
             </div>

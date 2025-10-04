@@ -122,6 +122,16 @@ export default function Languages() {
     const optionsMap = new Map(languageOptions.map(o => [String(o.lang_id), o.lang_name]))
     const languageName = optionsMap.get(String(newLanguageId)) || String(newLanguageId)
 
+    // Check if this language already exists
+    const languageAlreadyExists = languages.some(lang => 
+      lang.languageId === Number(newLanguageId) || lang.name === languageName
+    )
+    
+    if (languageAlreadyExists) {
+      alert(`The language "${languageName}" has already been added. Each language can only be added once.`)
+      return
+    }
+
     const res = await fetch('/api/seeker/profile/add_language', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -211,16 +221,40 @@ export default function Languages() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="newLanguageSelect">Language</Label>
-                      <Select value={newLanguageId} onValueChange={setNewLanguageId}>
+                      <Select 
+                        value={newLanguageId} 
+                        onValueChange={(value) => {
+                          // Don't allow selection of already-added languages
+                          const isAlreadyAdded = languages.some(lang => 
+                            lang.languageId === Number(value) || 
+                            languageOptions.find(opt => String(opt.lang_id) === value)?.lang_name === lang.name
+                          )
+                          if (!isAlreadyAdded) {
+                            setNewLanguageId(value)
+                          }
+                        }}
+                      >
                         <SelectTrigger id="newLanguageSelect" className="border-emerald-300 focus:border-emerald-500">
                           <SelectValue placeholder="Select a language" />
                         </SelectTrigger>
                         <SelectContent>
-                          {languageOptions.map(opt => (
-                            <SelectItem key={String(opt.lang_id)} value={String(opt.lang_id)}>
-                              {opt.lang_name}
-                            </SelectItem>
-                          ))}
+                          {languageOptions.map(opt => {
+                            // Check if this language is already added
+                            const isAlreadyAdded = languages.some(lang => 
+                              lang.languageId === Number(opt.lang_id) || lang.name === opt.lang_name
+                            )
+                            
+                            return (
+                              <SelectItem 
+                                key={String(opt.lang_id)} 
+                                value={String(opt.lang_id)}
+                                disabled={isAlreadyAdded}
+                                className={isAlreadyAdded ? "text-gray-400 opacity-50" : ""}
+                              >
+                                {opt.lang_name}{isAlreadyAdded ? " (Already added)" : ""}
+                              </SelectItem>
+                            )
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
