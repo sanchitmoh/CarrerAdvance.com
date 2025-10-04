@@ -192,7 +192,8 @@ export default function PersonalInformation() {
             variant={isEditing ? "destructive" : "outline"}
             size="sm"
             onClick={isEditing ? handleCancel : () => setIsEditing(true)}
-            className={isEditing ? "border-red-200 text-red-600 hover:bg-red-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}
+            className={isEditing ? "border-red-300 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700" : "border-emerald-300 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700"
+}
           >
             {isEditing ? <X className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
             {isEditing ? 'Cancel' : 'Edit'}

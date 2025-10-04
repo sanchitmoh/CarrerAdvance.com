@@ -120,19 +120,19 @@ export default function JobsPage() {
             const location = locationParts.length > 0 ? locationParts.join(', ') : 'Remote'
             
             return normalizeJob({
-              id: j.id,
-              title: j.title ?? j.job_title,
-              company: j.company ?? j.company_name,
+          id: j.id,
+          title: j.title ?? j.job_title,
+          company: j.company ?? j.company_name,
               location: j.location ?? location,
-              type: j.type ?? j.job_type ?? 'Full-time',
-              salary: j.salary ?? '$0 - $0',
-              status: j.status ?? 'Active',
+          type: j.type ?? j.job_type ?? 'Full-time',
+          salary: j.salary ?? '$0 - $0',
+          status: j.status ?? 'Active',
               applications: j.applications ?? j.app_count ?? j.applied_count ?? j.total_applications ?? 0,
-              datePosted: j.datePosted ?? j.created_at,
-              description: j.description,
-              requirements: j.requirements,
-              benefits: j.benefits,
-              contactEmail: j.contactEmail
+          datePosted: j.datePosted ?? j.created_at,
+          description: j.description,
+          requirements: j.requirements,
+          benefits: j.benefits,
+          contactEmail: j.contactEmail
             })
           })
           setJobs(mappedJobs)
@@ -252,8 +252,8 @@ export default function JobsPage() {
 
       if (data.success) {
         // Remove job from local state
-        const updatedJobs = jobs.filter(job => job.id !== jobId)
-        setJobs(updatedJobs)
+    const updatedJobs = jobs.filter(job => job.id !== jobId)
+    setJobs(updatedJobs)
         
         // Refresh the jobs list by refetching
         const fetchJobs = async () => {
@@ -447,16 +447,16 @@ export default function JobsPage() {
 
             {/* Results count */}
             {!loading && !error && (
-              <div className="mb-4">
-                <p className="text-sm text-gray-600">
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
                   Showing {indexOfFirstJob}-{Math.min(indexOfLastJob, totalJobs)} of {totalJobs} jobs
-                </p>
-              </div>
+              </p>
+            </div>
             )}
 
             {/* Jobs Table - visible on md+ */}
             {!loading && !error && (
-              <div className="hidden md:block border rounded-lg overflow-x-auto">
+            <div className="hidden md:block border rounded-lg overflow-x-auto">
               <table className="min-w-full">
                 <thead className="bg-gray-100">
                   <tr>
@@ -514,12 +514,12 @@ export default function JobsPage() {
                   )}
                 </tbody>
               </table>
-              </div>
+            </div>
             )}
 
             {/* Mobile / tablet cards */}
             {!loading && !error && (
-              <div className="md:hidden space-y-4">
+            <div className="md:hidden space-y-4">
               {currentJobs.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">No jobs found</div>
               ) : (
@@ -572,7 +572,7 @@ export default function JobsPage() {
                   </Card>
                 ))
               )}
-              </div>
+            </div>
             )}
 
             {/* Pagination */}
