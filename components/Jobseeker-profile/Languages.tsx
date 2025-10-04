@@ -17,29 +17,47 @@ interface LanguageRow {
   id: number
   languageId: number
   name: string
-  proficiencyLevel: 1 | 2 | 3
+  proficiencyLevel: 1 | 2 | 3 | 4 | 5 | 6
 }
 
-type UILanguageLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 'Native'
+type UILanguageLevel = 'Beginner' | 'Elementary' | 'Intermediate' | 'Upper Intermediate' | 'Advanced' | 'Native'
 
-const uiLevelToBackend = (level: UILanguageLevel): 1 | 2 | 3 => {
+const uiLevelToBackend = (level: UILanguageLevel): 1 | 2 | 3 | 4 | 5 | 6 => {
   switch (level) {
     case 'Beginner':
       return 1
-    case 'Intermediate':
+    case 'Elementary':
       return 2
-    case 'Advanced':
-    case 'Native':
+    case 'Intermediate':
       return 3
+    case 'Upper Intermediate':
+      return 4
+    case 'Advanced':
+      return 5
+    case 'Native':
+      return 6
     default:
       return 1
   }
 }
 
 const backendLevelToUi = (level: number): UILanguageLevel => {
-  if (level === 1) return 'Beginner'
-  if (level === 2) return 'Intermediate'
-  return 'Advanced'
+  switch (level) {
+    case 1:
+      return 'Beginner'
+    case 2:
+      return 'Elementary'
+    case 3:
+      return 'Intermediate'
+    case 4:
+      return 'Upper Intermediate'
+    case 5:
+      return 'Advanced'
+    case 6:
+      return 'Native'
+    default:
+      return 'Beginner'
+  }
 }
 
 export default function Languages() {
@@ -48,12 +66,14 @@ export default function Languages() {
   const [languageOptions, setLanguageOptions] = useState<BackendLanguageOption[]>([])
   const [newLanguageId, setNewLanguageId] = useState<string>('')
   const [newLanguageLevel, setNewLanguageLevel] = useState<UILanguageLevel>('Beginner')
-  const [proficiencyLevels, setProficiencyLevels] = useState<UILanguageLevel[]>(['Beginner', 'Intermediate', 'Advanced', 'Native'])
+  const [proficiencyLevels, setProficiencyLevels] = useState<UILanguageLevel[]>(['Beginner', 'Elementary', 'Intermediate', 'Upper Intermediate', 'Advanced', 'Native'])
 
   const proficiencyColors = useMemo(
     () => ({
       Beginner: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      Elementary: 'bg-orange-100 text-orange-700 border-orange-200',
       Intermediate: 'bg-blue-100 text-blue-700 border-blue-200',
+      'Upper Intermediate': 'bg-indigo-100 text-indigo-700 border-indigo-200',
       Advanced: 'bg-green-100 text-green-700 border-green-200',
       Native: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     }),

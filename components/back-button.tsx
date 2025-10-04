@@ -2,12 +2,18 @@
 
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 
 export function BackButton() {
   const router = useRouter()
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleBack = () => {
-    if (window.history.length > 1) {
+    if (isClient && window.history.length > 1) {
       router.back()
     } else {
       router.push("/")

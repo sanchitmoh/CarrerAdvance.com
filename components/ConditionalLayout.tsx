@@ -18,17 +18,26 @@ export default function ConditionalLayout({ children }: ConditionalLayoutProps) 
   const isEmployerAuthPage = pathname?.startsWith('/employers') && (
     pathname.includes('/login') || pathname.includes('/register') || pathname.includes('/forgot-password')
   )
+  const isAdminAuthPage = pathname?.startsWith('/admin') && (
+    pathname.includes('/login') || pathname.includes('/register') || pathname.includes('/forgot-password')
+  )
 
   const isJobSeekerDashboard = pathname?.startsWith('/job-seekers') && !isJobSeekerAuthPage
   const isEmployerDashboard = pathname?.startsWith('/employers') && !isEmployerAuthPage
-  const isDashboardRoute = isJobSeekerDashboard || isEmployerDashboard
+  const isAdminDashboard = pathname?.startsWith('/admin') && !isAdminAuthPage
+  const isDashboardRoute = isJobSeekerDashboard || isEmployerDashboard || isAdminDashboard
   
-  // Only render the main navbar and footer for non-dashboard routes
+  // Show navbar for non-dashboard routes and admin auth pages
+  const shouldShowNavbar = !isDashboardRoute || isAdminAuthPage
+  
+  // Show footer for non-dashboard routes and ALL admin pages (including dashboard)
+  const shouldShowFooter = !isDashboardRoute || pathname?.startsWith('/admin')
+  
   return (
     <>
-      {!isDashboardRoute && <ClientNavbarWrapper />}
+      {shouldShowNavbar && <ClientNavbarWrapper />}
       {children}
-      {!isDashboardRoute && <Footer />}
+      {shouldShowFooter && <Footer />}
     </>
   )
 }

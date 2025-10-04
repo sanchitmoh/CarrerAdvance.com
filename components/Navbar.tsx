@@ -64,6 +64,7 @@ export default function Navbar() {
       '/terms',
       '/cookies',
       '/accessibility',
+      '/admin/register'
     ].some((prefix) => pathname?.startsWith(prefix))
 
   useEffect(() => {
@@ -102,9 +103,9 @@ export default function Navbar() {
     // allow default navigation for other roles
   }
 
-  // Hide homepage Navbar on admin pages except the admin login page
+  // Hide homepage Navbar on admin pages except the admin login and register pages
   if (
-    (pathname?.startsWith('/admin') && pathname !== '/admin/login') ||
+    (pathname?.startsWith('/admin') && pathname !== '/admin/login' && pathname !== '/admin/register') ||
     (pathname?.startsWith('/job-seekers') &&
       !pathname?.includes('/login') &&
       !pathname?.includes('/register') &&
@@ -119,34 +120,34 @@ export default function Navbar() {
 
   return (
     <nav 
-      className={`fixed w-full z-50 transition-all duration-500 ${
+      className={`fixed w-full z-[9998] transition-all duration-500 ${
         scrolled 
           ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200/50' 
           : 'bg-white/80 backdrop-blur-sm'
       } animate-slide-down`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+        <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 group">
+          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group">
             <div 
               className="relative transition-transform duration-300 hover:scale-105 active:scale-95"
             >
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-emerald-200 transition-all duration-300 relative overflow-hidden"> {/* Changed to emerald/green/teal */}
-                <Zap className="h-6 w-6 text-white z-10" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-emerald-200 transition-all duration-300 relative overflow-hidden"> {/* Changed to emerald/green/teal */}
+                <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-white z-10" />
                 <div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite_linear]"
                 />
               </div>
               <div 
-                className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center animate-pulse-slow"
+                className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center animate-pulse-slow"
               >
-                <Sparkles className="h-2 w-2 text-white" />
+                <Sparkles className="h-1.5 w-1.5 sm:h-2 sm:w-2 text-white" />
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-gray-900 text-xl leading-none tracking-tight">CareerAdvance</span>
-              <span className="text-xs bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent font-semibold">Next-Gen Career Platform</span> {/* Changed to emerald/green */}
+              <span className="font-bold text-gray-900 text-lg sm:text-xl leading-none tracking-tight">CareerAdvance</span>
+              <span className="text-[10px] sm:text-xs bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent font-semibold">Next-Gen Career Platform</span> {/* Changed to emerald/green */}
             </div>
           </Link>
 
@@ -219,21 +220,21 @@ export default function Navbar() {
           </div>
 
           {/* Mobile menu button / popover */}
-          <div className="lg:hidden">
+          <div className="lg:hidden flex items-center">
             {showPopoverBehavior ? (
               <Popover open={mounted ? homeOpen : false} onOpenChange={handlePopoverOpenChange}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" aria-label="Open navigation menu" className="relative z-50 rounded-xl">
-                    <Menu className="h-6 w-6" />
+                  <Button variant="ghost" size="sm" aria-label="Open navigation menu" className="relative z-[9999] rounded-xl p-2 sm:p-3 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] touch-manipulation">
+                    <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
                   align="end"
                   sideOffset={8}
-                  className="w-64 rounded-xl border-4 border-gray-800 bg-white p-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-4 ring-gray-600/20 z-[9999]"
+                  className="w-56 sm:w-64 rounded-xl border-2 sm:border-4 border-gray-800 bg-white p-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-2 sm:ring-4 ring-gray-600/20 z-[9999]"
                 >
                   <div className="px-2 pb-2 pt-1">
-                    <p className="text-sm font-medium text-foreground">Navigate to:</p>
+                    <p className="text-xs sm:text-sm font-medium text-foreground">Navigate to:</p>
                   </div>
                   <nav className="flex flex-col">
                     {userRoles.map((role) => (
@@ -241,14 +242,14 @@ export default function Navbar() {
                         key={role.name}
                         href={role.name === 'Students' || role.name === 'Teachers' ? '#' : `${role.path}/login`}
                         onClick={(e) => { handleRoleNav(e, role.name, `${role.path}/login`); handlePopoverClick(); }}
-                        className="flex items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex items-center gap-2 sm:gap-3 rounded-md px-2 py-2 text-xs sm:text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         aria-label={`${role.name} login`}
                       >
                         <span
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r ${role.color} text-white shadow`}
+                          className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-to-r ${role.color} text-white shadow`}
                           aria-hidden="true"
                         >
-                          <span className="text-base leading-none">{role.icon}</span>
+                          <span className="text-sm sm:text-base leading-none">{role.icon}</span>
                         </span>
                         <span className="font-medium text-foreground">{role.name}</span>
                       </Link>
@@ -262,9 +263,9 @@ export default function Navbar() {
                 size="sm"
                 aria-label="Toggle menu"
                 onClick={() => setIsOpen((v) => !v)}
-                className="relative z-50 rounded-xl"
+                className="relative z-[9999] rounded-xl p-2 sm:p-3 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] touch-manipulation"
               >
-                {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                {isOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
               </Button>
             )}
           </div>
@@ -272,16 +273,16 @@ export default function Navbar() {
 
         {/* Mobile Navigation overlay (for non-popover behavior) */}
         {isOpen && !showPopoverBehavior && (
-          <div className="fixed inset-0 z-[900] bg-white/95 backdrop-blur-xl lg:hidden" role="dialog" aria-modal="true">
-            <div className="min-h-screen pt-20 px-4 sm:px-6 pb-24 overflow-y-auto overscroll-contain">
-              <nav aria-label="Mobile" className="space-y-6">
-                <div className="space-y-2">
+          <div className="fixed inset-0 z-[9999] bg-white/95 backdrop-blur-xl lg:hidden" role="dialog" aria-modal="true">
+            <div className="min-h-screen pt-16 sm:pt-20 px-3 sm:px-4 lg:px-6 pb-24 overflow-y-auto overscroll-contain">
+              <nav aria-label="Mobile" className="space-y-4 sm:space-y-6">
+                <div className="space-y-1 sm:space-y-2">
                   {links.map((item, index) => (
                     <div key={item} className="opacity-0 translate-x-[-20px] animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                       <Link
                         href={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
                         onClick={() => setIsOpen(false)}
-                        className="block py-3 text-lg font-semibold text-gray-700 transition-colors hover:text-emerald-600"
+                        className="block py-2.5 sm:py-3 text-base sm:text-lg font-semibold text-gray-700 transition-colors hover:text-emerald-600"
                       >
                         {item}
                       </Link>
@@ -289,40 +290,40 @@ export default function Navbar() {
                   ))}
                 </div>
 
-                <div className="space-y-3 border-t border-gray-200 pt-6">
-                  <p className="mb-2 text-sm font-bold text-gray-900">Choose Your Role:</p>
-                  <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-2 sm:space-y-3 border-t border-gray-200 pt-4 sm:pt-6">
+                  <p className="mb-2 text-xs sm:text-sm font-bold text-gray-900">Choose Your Role:</p>
+                  <div className="grid grid-cols-1 gap-2 sm:gap-3">
                     {userRoles.map((role, index) => (
                       <div key={role.name} className="opacity-0 translate-y-[20px] animate-fade-in-up" style={{ animationDelay: `${0.4 + index * 0.05}s` }}>
                         <Link
                           href={`${role.path}/login`}
                           onClick={() => setIsOpen(false)}
-                          className="group flex items-center gap-4 rounded-xl p-4 transition-colors hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50"
+                          className="group flex items-center gap-3 sm:gap-4 rounded-xl p-3 sm:p-4 transition-colors hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50"
                         >
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r ${role.color} text-white shadow-lg`}>
-                            <span className="text-lg">{role.icon}</span>
+                          <div className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-r ${role.color} text-white shadow-lg`}>
+                            <span className="text-base sm:text-lg">{role.icon}</span>
                           </div>
                           <div className="flex-1">
-                            <div className="font-semibold text-gray-900">{role.name}</div>
-                            <div className="text-xs text-gray-500">Access dashboard</div>
+                            <div className="font-semibold text-gray-900 text-sm sm:text-base">{role.name}</div>
+                            <div className="text-[10px] sm:text-xs text-gray-500">Access dashboard</div>
                           </div>
-                          {role.name === 'Admin' && <Shield className="h-4 w-4 text-orange-500" />}
+                          {role.name === 'Admin' && <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />}
                         </Link>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="space-y-3 opacity-0 animate-fade-in" style={{ animationDelay: '0.8s' }}>
+                <div className="space-y-2 sm:space-y-3 opacity-0 animate-fade-in" style={{ animationDelay: '0.8s' }}>
                  <Link href='/employers/login'>
-                  <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl py-3 font-semibold">
+                  <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl py-2.5 sm:py-3 font-semibold text-sm sm:text-base">
                    Post a Job
                   </Button>
                  </Link>
                  <Link href='/jobs'>
                   <Button
                     variant="outline"
-                    className="w-full border-2 border-emerald-200 text-emerald-600 rounded-xl py-3 font-semibold"
+                    className="w-full border-2 border-emerald-200 text-emerald-600 rounded-xl py-2.5 sm:py-3 font-semibold text-sm sm:text-base"
                     >
                     Find Jobs
                   </Button>
