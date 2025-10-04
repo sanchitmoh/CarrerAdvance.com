@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import JobSeekerSidebar from '@/components/JobseekerSidebar'
 import JobSeekerNavbar from '@/components/JobseekerNavbar'
 import { Toaster } from '@/components/ui/toaster'
@@ -13,6 +14,12 @@ export default function JobSeekerDashboardLayout({
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const pathname = usePathname()
+
+  // Check if current page is an auth page (login, register, forgot-password)
+  const isAuthPage = pathname?.includes('/login') || 
+                    pathname?.includes('/register') || 
+                    pathname?.includes('/forgot-password')
 
   // Handle responsive behavior
   useEffect(() => {
@@ -28,6 +35,17 @@ export default function JobSeekerDashboardLayout({
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
+  // For auth pages, render without sidebar and navbar
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen">
+        {children}
+        <Toaster />
+      </div>
+    )
+  }
+
+  // For dashboard pages, render with sidebar and navbar
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-green-50/20">
       {/* Job Seeker Navbar */}
