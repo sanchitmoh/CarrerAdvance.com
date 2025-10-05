@@ -60,9 +60,9 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
           const lastName = p.lastname || ''
           const name = `${firstName} ${lastName}`.trim() || 'Job Seeker'
           const email = p.email || ''
-          const avatarPath = p.profile_picture || p.profile_pic || p.avatar || ''
+          const avatarPath = p.profile_picture || ''
           const avatar = avatarPath
-            ? (/^https?:\/\//i.test(avatarPath) ? avatarPath : `http://localhost:8080/${avatarPath}`)
+            ? (/^https?:\/\//i.test(avatarPath) ? avatarPath : `http://localhost:8080/${avatarPath.replace(/^\//, '')}`)
             : ''
           setUser({ name, email, avatar })
         }
@@ -178,7 +178,7 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
                 <DropdownMenuItem asChild>
                   <Link href="/job-seekers/dashboard/change-password" className="flex items-center space-x-3 px-3 py-2 rounded-xl hover:bg-emerald-50 transition-colors">
                     <Settings className="h-4 w-4 text-emerald-600" />
-                    <span>Settings</span>
+                    <span>Password Reset </span>
                   </Link>
                 </DropdownMenuItem>
                 

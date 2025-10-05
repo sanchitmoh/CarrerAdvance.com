@@ -6,7 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { User, FileText, GraduationCap, Briefcase, Globe, Upload, Edit, CheckCircle, AlertCircle } from 'lucide-react'
+import { User, FileText, GraduationCap, Briefcase, Globe, Upload, Edit, CheckCircle, AlertCircle, Camera } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 import PersonalInformation from '@/components/Jobseeker-profile/PersonalInformation'
 import Experience from '@/components/Jobseeker-profile/Experience'
@@ -16,8 +19,14 @@ import Languages from '@/components/Jobseeker-profile/Languages'
 import ResumeUpload from '@/components/Jobseeker-profile/ResumeUpload'
 
 export default function ProfilePage() {
+  const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || ''
   const [profileCompletion, setProfileCompletion] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null)
 
   // Load profile completion on component mount
   useEffect(() => {
@@ -38,6 +47,12 @@ export default function ProfilePage() {
         if (data.success && data.data) {
           setProfileCompletion(data.data);
         }
+
+        // Try to load existing profile photo URL if stored by your app
+        const storedPhotoUrl = localStorage.getItem('jobseeker_profile_photo_url');
+        if (storedPhotoUrl) {
+          setProfilePhotoUrl(storedPhotoUrl);
+        }
       } catch (error) {
         console.error('Error loading profile completion:', error);
       } finally {
@@ -47,6 +62,80 @@ export default function ProfilePage() {
 
     loadProfileCompletion();
   }, []);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadMessage(null)
+    const file = event.target.files?.[0] || null
+    setSelectedFile(file)
+    if (file) {
+      // Validate image size (<= 2MB) and type (jpeg/png/webp)
+      const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+      const isValidSize = file.size <= 2 * 1024 * 1024
+      if (!isValidType) {
+        setSelectedFile(null)
+        setPreviewUrl(null)
+        setUploadMessage('Invalid file type. Please upload JPG, PNG, or WEBP.')
+        return
+      }
+      if (!isValidSize) {
+        setSelectedFile(null)
+        setPreviewUrl(null)
+        setUploadMessage('File too large. Max size is 2MB.')
+        return
+      }
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setPreviewUrl(reader.result)
+        }
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setPreviewUrl(null)
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!selectedFile) return
+    setIsUploading(true)
+    setUploadMessage(null)
+    try {
+      const jobseekerId = localStorage.getItem('jobseeker_id')
+      if (!jobseekerId) {
+        setUploadMessage('Please login again to upload your photo.')
+        return
+      }
+      const formData = new FormData()
+      formData.append('jobseeker_id', jobseekerId)
+      formData.append('profile_photo', selectedFile)
+
+      // Adjust this endpoint to match your backend
+      const response = await fetch('/api/Seeker_api/upload_profile_photo', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setUploadMessage(result?.message || 'Upload failed. Please try again.')
+        return
+      }
+
+      // Prefer URL from backend; otherwise use preview as optimistic update
+      const newUrl: string | null = result?.data?.url || previewUrl
+      if (newUrl) {
+        setProfilePhotoUrl(newUrl)
+        localStorage.setItem('jobseeker_profile_photo_url', newUrl)
+      }
+      setSelectedFile(null)
+      setPreviewUrl(null)
+      setUploadMessage('Profile photo updated successfully.')
+    } catch (e) {
+      setUploadMessage('Unexpected error during upload.')
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -114,6 +203,8 @@ export default function ProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
+          {/* Profile Photo handled inside PersonalInformation component */}
+          
           <Tabs defaultValue="personal" className="space-y-6">
             <TabsList className="grid w-full grid-cols-6 bg-gray-100 p-1 rounded-xl">
               <TabsTrigger value="personal" className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:text-emerald-600">

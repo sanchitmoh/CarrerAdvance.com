@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, Shield } from 'lucide-react'
+import { getApiUrl } from '@/lib/api-config'
 
 interface PasswordStrength {
   score: number
@@ -124,7 +125,7 @@ export default function ChangePasswordPage() {
       formData.append('confirm_password', confirmPassword)
 
       // Make API call
-      const response = await fetch('http://localhost:8080/api/seeker/profile/change_password', {
+      const response = await fetch(getApiUrl('seeker/profile/change_password'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

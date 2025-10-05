@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Proxy the request to the PHP backend
     const response = await fetch(
-      getApiUrl('profile/update_personal_info'),
+      getApiUrl('Seeker_api/update_personal_info'),
       {
         method: 'POST',
         headers: {

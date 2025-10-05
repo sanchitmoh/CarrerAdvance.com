@@ -57,9 +57,9 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
           const lastName = p.lastname || ''
           const name = `${firstName} ${lastName}`.trim() || 'Job Seeker'
           const email = p.email || ''
-          const avatarPath = p.profile_picture || p.profile_pic || p.avatar || ''
+          const avatarPath = p.profile_picture || ''
           const avatar = avatarPath
-            ? (/^https?:\/\//i.test(avatarPath) ? avatarPath : `${PUBLIC_URL}/${avatarPath}`)
+            ? (/^https?:\/\//i.test(avatarPath) ? avatarPath : `${PUBLIC_URL}${avatarPath.replace(/^\//, '')}`)
             : ''
           setUser({ name, email, avatar })
         }

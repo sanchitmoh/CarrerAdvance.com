@@ -76,8 +76,11 @@ const experienceLevels = [
 ]
 
 export default function PersonalInformation() {
+  const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || ''
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [avatarMessage, setAvatarMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -172,6 +175,69 @@ export default function PersonalInformation() {
       console.error(error)
     }
   }
+  
+  const onClickAvatarButton = () => {
+    setAvatarMessage(null)
+    const input = document.getElementById('avatar_upload') as HTMLInputElement | null
+    input?.click()
+  }
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAvatarMessage(null)
+    const file = e.target.files?.[0]
+    if (!file) return
+    const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+    const isValidSize = file.size <= 2 * 1024 * 1024
+    if (!isValidType) {
+      setAvatarMessage('Invalid file type. Upload JPG, PNG, or WEBP.')
+      return
+    }
+    if (!isValidSize) {
+      setAvatarMessage('File too large. Max 2MB.')
+      return
+    }
+
+    // Optimistic preview
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setFormData(prev => ({ ...prev, avatar: reader.result as string }))
+      }
+    }
+    reader.readAsDataURL(file)
+
+    // Upload
+    try {
+      setIsUploadingAvatar(true)
+      const jobseekerId = localStorage.getItem('jobseeker_id')
+      if (!jobseekerId) {
+        setAvatarMessage('Please login again to upload your photo.')
+        return
+      }
+      const form = new FormData()
+      form.append('jobseeker_id', jobseekerId)
+      form.append('profile_photo', file)
+      const res = await fetch('/api/seeker/profile/upload_photo', { method: 'POST', body: form })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) {
+        setAvatarMessage(json?.message || 'Upload failed. Please try again.')
+        return
+      }
+      const url: string | null = json?.data?.url || null
+      if (url) {
+        setFormData(prev => ({ ...prev, avatar: url }))
+        localStorage.setItem('jobseeker_profile_photo_url', url)
+        setAvatarMessage('Profile photo updated successfully.')
+      }
+    } catch (err) {
+      setAvatarMessage('Unexpected error during upload.')
+    } finally {
+      setIsUploadingAvatar(false)
+      // Reset the input value to allow re-selecting the same file
+      const input = document.getElementById('avatar_upload') as HTMLInputElement | null
+      if (input) input.value = ''
+    }
+  }
 
   const handleCancel = () => setIsEditing(false)
 
@@ -213,11 +279,14 @@ export default function PersonalInformation() {
             {isEditing && (
               <Button
                 size="sm"
-                className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-emerald-600 hover:bg-emerald-700 p-0"
+                onClick={onClickAvatarButton}
+                disabled={isUploadingAvatar}
+                className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-emerald-600 hover:bg-emerald-700 p-0 disabled:opacity-70"
               >
                 <Camera className="h-4 w-4" />
               </Button>
             )}
+            <input id="avatar_upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} aria-label="Upload profile photo" title="Upload profile photo" />
           </div>
           <div className="text-center md:text-left">
             <h3 className="text-lg md:text-xl font-semibold text-gray-900">
@@ -228,6 +297,9 @@ export default function PersonalInformation() {
               <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">{formData.jobCategory}</Badge>
               <Badge variant="outline" className="border-emerald-200 text-emerald-700">{formData.yourTitle}</Badge>
             </div>
+            {avatarMessage && (
+              <p className={`text-sm mt-2 ${avatarMessage.includes('successfully') ? 'text-emerald-600' : 'text-red-600'}`}>{avatarMessage}</p>
+            )}
           </div>
         </div>
 
