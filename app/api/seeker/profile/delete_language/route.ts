@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
 
     // Connect to backend API for ew_seeker_languages table
     const backendRes = await fetch(
-      `http://localhost:8080/index.php/api/seeker/profile/delete_language?id=${encodeURIComponent(id)}`,
+      getApiUrl(`seeker/profile/delete_language?id=${encodeURIComponent(id)}`),
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },

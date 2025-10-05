@@ -40,7 +40,7 @@ import {
   FileText,
 } from "lucide-react"
 import { employerApiService, Job, AddJobRequest } from "@/lib/employer-api"
-import { getAssetUrl, getBaseUrl } from "@/lib/api-config"
+import { getAssetUrl, getBaseUrl, getMeetUrl } from "@/lib/api-config"
 import { jobsApiService } from "@/lib/jobs-api"
 
 interface Candidate {
@@ -968,7 +968,7 @@ interface Candidate {
                         if (!selectedJob || !selectedCandidate) return
                         const interviewerEmail = (await employerApiService.getProfile()).data?.employer?.email || ''
                         const formUrl = `${window.location.origin}/employers/interview-form?job_id=${encodeURIComponent(selectedJob.id)}&job_title=${encodeURIComponent(selectedJob.title || '')}&candidate_email=${encodeURIComponent(selectedCandidate.email || '')}&candidate_name=${encodeURIComponent(selectedCandidate.name || '')}&employer_email=${encodeURIComponent(interviewerEmail)}`
-                        const loginUrl = `http://localhost:8080/index.php/googlecalendar/login?job_id=${encodeURIComponent(selectedJob.id)}&redirect=${encodeURIComponent(formUrl)}`
+                        const loginUrl = `${getMeetUrl('/login')}?job_id=${encodeURIComponent(selectedJob.id)}&redirect=${encodeURIComponent(formUrl)}`
                         window.open(loginUrl, '_blank')
                         // move to interviewed and switch to Contacted tab
                         await moveCandidateToStatus(selectedCandidate.id, 'interviewed')

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Zap, Sparkles, User, Settings, LogOut, Home, Briefcase, Menu } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
-import { getApiUrl } from '@/lib/api-config'
+import { getApiUrl, getAssetUrl } from '@/lib/api-config'
 
 interface JobSeekerNavbarProps {
   onMenuToggle?: () => void
@@ -61,9 +61,7 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
           const name = `${firstName} ${lastName}`.trim() || 'Job Seeker'
           const email = p.email || ''
           const avatarPath = p.profile_picture || ''
-          const avatar = avatarPath
-            ? (/^https?:\/\//i.test(avatarPath) ? avatarPath : `http://localhost:8080/${avatarPath.replace(/^\//, '')}`)
-            : ''
+          const avatar = avatarPath ? getAssetUrl(avatarPath) : ''
           setUser({ name, email, avatar })
         }
       } catch (_e) {

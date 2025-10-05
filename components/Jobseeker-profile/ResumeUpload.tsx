@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Upload, FileText, Download, Eye, CheckCircle, AlertCircle } from 'lucide-react'
+import { getAssetUrl } from '@/lib/api-config'
 
 interface ResumeFile {
   id: string
@@ -31,7 +32,7 @@ export default function ResumeUpload() {
       if (payload?.success && payload?.data?.resume) {
         const resumePath: string = payload.data.resume
         const name = resumePath.split('/').pop() || 'resume.pdf'
-        const url = `http://localhost:8080${resumePath.startsWith('/') ? '' : '/'}${resumePath}`
+        const url = getAssetUrl(resumePath)
         const ext = name.split('.').pop()?.toLowerCase() as 'pdf' | 'doc' | 'docx' | undefined
         setResumes([
           {
@@ -70,7 +71,7 @@ export default function ResumeUpload() {
       if (payload?.success) {
         const name = file.name
         const ext = name.split('.').pop()?.toLowerCase() as 'pdf' | 'doc' | 'docx' | undefined
-        const url = payload.data ? `http://localhost:8080${String(payload.data)}` : undefined
+        const url = payload.data ? getAssetUrl(String(payload.data)) : undefined
         setResumes([
           {
             id: Date.now().toString(),

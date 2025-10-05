@@ -240,7 +240,7 @@ export default function JobsPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8080/index.php/api/jobs/delete/${jobId}`, {
+      const response = await fetch(getApiUrl(`jobs/delete/${jobId}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

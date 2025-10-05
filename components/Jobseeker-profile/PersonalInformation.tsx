@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { User, Mail, Phone, Calendar, Edit, Save, X, Camera } from 'lucide-react'
+import { getAssetUrl } from '@/lib/api-config'
 
 // Location data
 const locationData = {
@@ -124,7 +125,7 @@ export default function PersonalInformation() {
             yourTitle: data.data.your_title || '',
             experience: data.data.experience_level || 'Entry Level (0-2 years)',
             bio: data.data.bio || '',
-            avatar: data.data.avatar || '/placeholder.svg?height=100&width=100'
+            avatar: data.data.avatar ? getAssetUrl(data.data.avatar) : '/placeholder.svg?height=100&width=100'
           })
         }
       } catch (error) {

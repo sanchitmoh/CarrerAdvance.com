@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { User, FileText, PenTool, CheckCircle, Briefcase, Target, Heart, Lock, LogOut, Menu, X, FileIcon, Clock } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
-import { getApiUrl , PUBLIC_URL } from '@/lib/api-config'
+import { getApiUrl , getAssetUrl } from '@/lib/api-config'
 
 
 interface SidebarProps {
@@ -58,9 +58,7 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
           const name = `${firstName} ${lastName}`.trim() || 'Job Seeker'
           const email = p.email || ''
           const avatarPath = p.profile_picture || ''
-          const avatar = avatarPath
-            ? (/^https?:\/\//i.test(avatarPath) ? avatarPath : `${PUBLIC_URL}${avatarPath.replace(/^\//, '')}`)
-            : ''
+          const avatar = getAssetUrl(avatarPath)
           setUser({ name, email, avatar })
         }
       } catch (_e) {

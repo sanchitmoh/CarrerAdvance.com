@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getApiUrl } from '@/lib/api-config'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     // Proxy the request to the PHP backend
     const response = await fetch(
-      `http://localhost:8080/index.php/api/seeker/profile/get_education?jobseeker_id=${jobseekerId}`,
+      getApiUrl(`seeker/profile/get_education?jobseeker_id=${jobseekerId}`),
       {
         method: 'GET',
         headers: {
