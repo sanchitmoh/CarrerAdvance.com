@@ -69,6 +69,9 @@ export default function MatchingJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
 
   // Filters + UI state
   const [searchTerm, setSearchTerm] = useState("")
@@ -76,6 +79,23 @@ export default function MatchingJobsPage() {
   const [industryFilter, setIndustryFilter] = useState("all")
   const [experienceFilter, setExperienceFilter] = useState("all")
   const [remoteOnly, setRemoteOnly] = useState(false)
+
+  // Debounced search term
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 500) // 500ms delay
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [locationFilter, industryFilter, experienceFilter, remoteOnly, debouncedSearchTerm])
 
   // Details dialog
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
@@ -127,17 +147,20 @@ export default function MatchingJobsPage() {
 
         const params = new URLSearchParams()
         params.set("jobseeker_id", jobseekerId)
+        params.set("page", currentPage.toString())
+        params.set("limit", "5")
 
-        // only include filters that are not "all"
+        // Send all filters to backend
         if (locationFilter && locationFilter !== "all")
           params.set("location", locationFilter)
-        // always send industry (backend may handle 'all' explicitly)
-        if (industryFilter) params.set("industry", industryFilter)
+        if (industryFilter && industryFilter !== "all")
+          params.set("industry", industryFilter)
         if (experienceFilter && experienceFilter !== "all")
           params.set("experience", experienceFilter)
         if (remoteOnly) params.set("remote", "true")
+        if (debouncedSearchTerm) params.set("search", debouncedSearchTerm)
 
-        const url = `/api/seeker/jobs/get_matching_jobs?${params.toString()}`
+        const url = `/api/seeker/profile/get_matching_jobs?${params.toString()}`
 
         const res = await fetch(url, { signal: controller.signal })
         if (!res.ok) {
@@ -157,6 +180,13 @@ export default function MatchingJobsPage() {
           (json && (json.data || json.jobs)) ||
           (Array.isArray(json) ? json : json.data || json.jobs) ||
           []
+
+        // Handle pagination data
+        if (json.pagination) {
+          setCurrentPage(json.pagination.current_page)
+          setTotalPages(json.pagination.total_pages)
+          setTotalRecords(json.pagination.total_records)
+        }
 
         // Map raw items to Job interface safely
         const formatted: Job[] = rawJobs.map((job: any, idx: number) => {
@@ -235,25 +265,11 @@ export default function MatchingJobsPage() {
       controller.abort()
     }
     // NOTE: searchTerm is intentionally omitted to keep search client-side (same as your previous logic).
-  }, [locationFilter, industryFilter, experienceFilter, remoteOnly])
+  }, [locationFilter, industryFilter, experienceFilter, remoteOnly, currentPage, debouncedSearchTerm])
 
-  // Filter + sort client-side (search is client-side)
-  const filteredJobs = jobs
-    .filter((job) => {
-      const matchesSearch =
-        (job.title?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-        (job.company?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-      const matchesLocation = locationFilter === "all" || job.location === locationFilter
-      const matchesIndustry = industryFilter === "all" || job.industry === industryFilter
-      const matchesExperience =
-        experienceFilter === "all" || job.experienceLevel === experienceFilter
-      const matchesRemote = !remoteOnly || job.remote
-
-      return (
-        matchesSearch && matchesLocation && matchesIndustry && matchesExperience && matchesRemote
-      )
-    })
-    .sort((a, b) => b.matchScore - a.matchScore)
+  // No client-side filtering needed - all filtering is handled by backend
+  // Just sort by match score for display
+  const filteredJobs = jobs.sort((a, b) => b.matchScore - a.matchScore)
 
   // Dynamic select options (fallback constants if no jobs yet)
   const locations = ["all", ...Array.from(new Set(jobs.map((j) => j.location))).filter(Boolean)]
@@ -553,17 +569,90 @@ export default function MatchingJobsPage() {
                 </CardContent>
               </Card>
             ))
-          ) : !loading && (
-            <Card className="border-2 border-dashed border-emerald-300 bg-emerald-50/50">
-              <CardContent className="p-6 sm:p-12 text-center">
-                <Target className="h-12 w-12 sm:h-16 sm:w-16 text-emerald-400 mx-auto mb-4" />
-                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 break-words">No matching jobs found</h3>
-                <p className="text-sm sm:text-base text-gray-600 mb-6 break-words">Try adjusting your search criteria or update your profile to get better matches</p>
+        ) : !loading && (
+          <Card className="border-2 border-dashed border-emerald-300 bg-emerald-50/50">
+            <CardContent className="p-6 sm:p-12 text-center">
+              <Target className="h-12 w-12 sm:h-16 sm:w-16 text-emerald-400 mx-auto mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 break-words">
+                {searchTerm ? 'No jobs found matching your search' : 'No matching jobs found'}
+              </h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-6 break-words">
+                {searchTerm 
+                  ? 'Try adjusting your search terms or browse other pages'
+                  : 'Try adjusting your filters or update your profile to get better matches'
+                }
+              </p>
+              {!searchTerm && (
                 <Button className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-xs sm:text-sm">Update Profile</Button>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
+        )}
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <Card className="border-emerald-200 dark:border-emerald-800 shadow-lg bg-white dark:bg-gray-800">
+            <CardContent className="p-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  Showing {filteredJobs.length} of {totalRecords} jobs (Page {currentPage} of {totalPages})
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentPage(prev => Math.max(1, prev - 1))
+                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
+                    disabled={currentPage === 1}
+                    className="border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const pageNum = Math.max(1, Math.min(totalPages, currentPage - 2 + i))
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setCurrentPage(pageNum)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                          className={
+                            currentPage === pageNum
+                              ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white"
+                              : "border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                          }
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
+                    disabled={currentPage === totalPages}
+                    className="border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Match Statistics */}
         {!loading && (

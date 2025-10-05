@@ -10,15 +10,26 @@ export function middleware(request: NextRequest) {
       "/",
       "/employers/login",
       "/employers/register",
+      "/employers/forgot-password",
+      "/employers/reset-password",
       "/job-seekers/login",
       "/job-seekers/register",
+      "/job-seekers/forgot-password",
+      "/job-seekers/reset-password",
       "/companies/login",
       "/companies/register",
       "/students/login",
       "/students/register",
+      "/students/forgot-password",
+      "/students/reset-password",
       "/teachers/login",
       "/teachers/register",
+      "/teachers/forgot-password",
+      "/teachers/reset-password",
       "/admin/login",
+      "/admin/register",
+      "/admin/forgot-password",
+      "/admin/reset-password",
     ])
 
     // allow exact "/" or exact public entries, plus any nested paths under specific auth-less groups if needed
@@ -34,7 +45,12 @@ export function middleware(request: NextRequest) {
     const adminToken = request.cookies.get("admin_jwt")?.value
 
     // Employer routes protection
-    if (pathname.startsWith("/employers")) {
+    if (
+      pathname.startsWith("/employers") &&
+      !pathname.startsWith("/employers/login") &&
+      !pathname.startsWith("/employers/register") &&
+      !pathname.startsWith("/employers/forgot-password")
+    ) {
       if (!employerToken) {
         return NextResponse.redirect(new URL("/employers/login", request.url))
       }
@@ -42,7 +58,13 @@ export function middleware(request: NextRequest) {
     }
 
     // Job seeker routes protection
-    if (pathname.startsWith("/job-seekers")) {
+    if (
+      pathname.startsWith("/job-seekers") &&
+      !pathname.startsWith("/job-seekers/login") &&
+      !pathname.startsWith("/job-seekers/register") &&
+      !pathname.startsWith("/job-seekers/forgot-password") &&
+      !pathname.startsWith("/job-seekers/reset-password")
+    ) {
       if (!jobseekerToken) {
         return NextResponse.redirect(new URL("/job-seekers/login", request.url))
       }

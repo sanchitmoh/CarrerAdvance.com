@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import JobSeekerSidebar from '@/components/JobseekerSidebar'
 import JobSeekerNavbar from '@/components/JobseekerNavbar'
 import { Toaster } from '@/components/ui/toaster'
+import Footer from '@/components/Footer'
 
 export default function JobSeekerDashboardLayout({
   children,
@@ -55,10 +56,12 @@ export default function JobSeekerDashboardLayout({
         } p-3 sm:p-4 md:p-6 min-h-[calc(100vh-4rem-80px)]`}>
           <div className="max-w-7xl mx-auto">
             {children}
+            
           </div>
         </main>
+        
       </div>
-      
+      <Footer/>
       {/* Toaster for notifications */}
       <Toaster />
     </div>

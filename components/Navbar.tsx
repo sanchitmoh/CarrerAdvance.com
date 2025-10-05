@@ -103,20 +103,8 @@ export default function Navbar() {
     // allow default navigation for other roles
   }
 
-  // Hide homepage Navbar on admin pages except the admin login and register pages
-  if (
-    (pathname?.startsWith('/admin') && pathname !== '/admin/login' && pathname !== '/admin/register') ||
-    (pathname?.startsWith('/job-seekers') &&
-      !pathname?.includes('/login') &&
-      !pathname?.includes('/register') &&
-      !pathname?.includes('/forgot-password')) ||
-    (pathname?.startsWith('/employers') &&
-      !pathname?.includes('/login') &&
-      !pathname?.includes('/register') &&
-      !pathname?.includes('/forgot-password'))
-  ) {
-    return null
-  }
+  // Let ConditionalLayout handle navbar visibility logic
+  // This component will always render when called
 
   return (
     <nav 

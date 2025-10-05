@@ -13,9 +13,10 @@ import { getApiUrl, getBaseUrl } from '@/lib/api-config'
 
 interface AuthFormProps {
   role: string
-  type: 'login' | 'register' | 'forgot-password'
+  type: 'login' | 'register' | 'forgot-password' | 'reset-password'
   title: string
   subtitle: string
+  resetToken?: string
 }
 
 const roleIcons: { [key: string]: string } = {
@@ -152,7 +153,7 @@ export function useStudentAuth() {
   return { isLoggedIn }
 }
 
-export default function AuthForm({ role, type, title, subtitle }: AuthFormProps) {
+export default function AuthForm({ role, type, title, subtitle, resetToken }: AuthFormProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -211,7 +212,7 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
       let redirectUrl = ''
 
       if (type === 'login') {
-        endpoint = getBaseUrl('seeker/auth/api_login')
+        endpoint = getApiUrl('seeker/auth/api_login')
         body = new URLSearchParams()
         body.append('email', formData.email)
         body.append('password', formData.password)
@@ -228,11 +229,18 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
         successMsg = 'Registration successful! Please check your email to verify your account.'
         errorMsg = 'Registration failed. Please check your details.'
       } else if (type === 'forgot-password') {
-        endpoint = getBaseUrl('seeker/auth/api_forgot_password')
+        endpoint = getApiUrl('seeker/auth/api_forgot_password')
         body = new URLSearchParams()
         body.append('email', formData.email)
         successMsg = 'Password reset link sent! Please check your email.'
         errorMsg = 'Failed to send reset link. Please check your email.'
+      } else if (type === 'reset-password') {
+        endpoint = getApiUrl('seeker/auth/reset_password/' + resetToken)
+        body = new URLSearchParams()
+        body.append('password', formData.password)
+        body.append('confirm_password', formData.confirmPassword)
+        successMsg = 'Password reset successfully! You can now log in with your new password.'
+        errorMsg = 'Failed to reset password. Please try again.'
       }
 
       try {
@@ -255,6 +263,12 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
               }
               router.push('/job-seekers/dashboard')
             }
+          if (type === 'reset-password') {
+            // Redirect to login page after successful password reset
+            setTimeout(() => {
+              router.push('/job-seekers/login')
+            }, 2000)
+          }
           // Optionally redirect or update auth state here
         } else {
           toast({ title: 'Error', description: data.message || errorMsg, variant: 'destructive' })
@@ -277,14 +291,14 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
       let errorMsg = ''
 
       if (type === 'login') {
-        endpoint = getBaseUrl('employers/auth/api_login')
+        endpoint = getApiUrl('employers/auth/api_login')
         body = new URLSearchParams()
         body.append('email', formData.email)
         body.append('password', formData.password)
         successMsg = 'Login successful!'
         errorMsg = 'Invalid email or password.'
       } else if (type === 'register') {
-        endpoint = getBaseUrl('employers/auth/api_register')
+        endpoint = getApiUrl('employers/auth/api_register')
         body = new URLSearchParams()
         body.append('firstname', formData.firstName)
         body.append('lastname', formData.lastName)
@@ -296,7 +310,7 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
         successMsg = 'Registration successful! Please check your email to verify your account.'
         errorMsg = 'Registration failed. Please check your details.'
       } else if (type === 'forgot-password') {
-        endpoint = getBaseUrl('employers/auth/api_forgot_password')
+        endpoint = getApiUrl('employers/auth/api_forgot_password')
         body = new URLSearchParams()
         body.append('email', formData.email)
         successMsg = 'Password reset link sent! Please check your email.'
@@ -443,7 +457,8 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
             <CardDescription className="text-gray-600">
               {type === 'login' ? 'Sign in to your account' : 
                type === 'register' ? 'Join our community today' : 
-               'We\'ll send you a reset link'}
+               type === 'forgot-password' ? 'We\'ll send you a reset link' :
+               'Enter your new password below'}
             </CardDescription>
           </CardHeader>
           
@@ -551,7 +566,75 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
                 </div>
               </div>
 
-              {type !== 'forgot-password' && (
+              {type === 'reset-password' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                      New Password
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className="pl-10 pr-12 h-12 border-2 border-gray-200 focus:border-emerald-500 rounded-xl"
+                        placeholder="••••••••"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                      Confirm New Password
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        required
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className="pl-10 pr-12 h-12 border-2 border-gray-200 focus:border-emerald-500 rounded-xl"
+                        placeholder="••••••••"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(type !== 'forgot-password' && type !== 'reset-password') && (
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                     Password
@@ -633,7 +716,8 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
                   <div className="flex items-center">
                     {type === 'login' ? 'Sign In' : 
                      type === 'register' ? 'Create Account' : 
-                     'Send Reset Link'}
+                     type === 'forgot-password' ? 'Send Reset Link' :
+                     'Reset Password'}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </div>
                 )}
@@ -666,6 +750,14 @@ export default function AuthForm({ role, type, title, subtitle }: AuthFormProps)
                 </p>
               )}
               {type === 'forgot-password' && (
+                <p className="text-gray-600">
+                  Remember your password?{' '}
+                  <Link href={`/${roleBasePath}/login`} className={`font-semibold bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent hover:underline`}>
+                    Sign in here
+                  </Link>
+                </p>
+              )}
+              {type === 'reset-password' && (
                 <p className="text-gray-600">
                   Remember your password?{' '}
                   <Link href={`/${roleBasePath}/login`} className={`font-semibold bg-gradient-to-r ${gradientClass} bg-clip-text text-transparent hover:underline`}>

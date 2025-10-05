@@ -26,6 +26,24 @@ export default function MyApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
+
+  // Debounced search term
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 500) // 500ms delay
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   // Load applications on component mount
   useEffect(() => {
@@ -40,7 +58,14 @@ export default function MyApplicationsPage() {
           return;
         }
 
-        const response = await fetch(`/api/seeker/profile/get_applications?jobseeker_id=${jobseekerId}`);
+        const params = new URLSearchParams()
+        params.set('jobseeker_id', jobseekerId)
+        params.set('page', currentPage.toString())
+        params.set('limit', '5')
+        if (debouncedSearchTerm) params.set('search', debouncedSearchTerm)
+        if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+
+        const response = await fetch(`/api/seeker/profile/get_applications?${params.toString()}`);
         const data = await response.json();
         
         if (data.success && data.data) {
@@ -57,6 +82,13 @@ export default function MyApplicationsPage() {
             remote: app.remote === 1
           }));
           setApplications(formattedApplications);
+          
+          // Handle pagination data
+          if (data.pagination) {
+            setCurrentPage(data.pagination.current_page);
+            setTotalPages(data.pagination.total_pages);
+            setTotalRecords(data.pagination.total_records);
+          }
         }
       } catch (error) {
         console.error('Error loading applications:', error);
@@ -67,11 +99,12 @@ export default function MyApplicationsPage() {
     };
 
     loadApplications();
-  }, []);
+  }, [currentPage, debouncedSearchTerm, statusFilter]);
 
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchTerm, statusFilter])
 
   const statusColors = {
     applied: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -89,12 +122,8 @@ export default function MyApplicationsPage() {
     offer: 'Offer Received'
   }
 
-  const filteredApplications = applications.filter(app => {
-    const matchesSearch = (app.jobTitle?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                         (app.company?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  // No client-side filtering needed - all filtering is handled by backend
+  const filteredApplications = applications
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Date not available';
@@ -332,7 +361,7 @@ export default function MyApplicationsPage() {
               </h3>
               <p className="text-sm sm:text-base text-gray-600 mb-6">
                 {searchTerm || statusFilter !== 'all'
-                  ? 'Try adjusting your search or filter criteria'
+                  ? 'Try adjusting your search or filter criteria, or check other pages'
                   : 'Start applying to jobs to track your applications here'}
               </p>
               {!searchTerm && statusFilter === 'all' && (
@@ -344,6 +373,70 @@ export default function MyApplicationsPage() {
           </Card>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <Card className="border-emerald-200 dark:border-emerald-800 shadow-lg bg-white dark:bg-gray-800">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  Showing {filteredApplications.length} of {totalRecords} applications (Page {currentPage} of {totalPages})
+                </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCurrentPage(prev => Math.max(1, prev - 1))
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  disabled={currentPage === 1}
+                  className="border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = Math.max(1, Math.min(totalPages, currentPage - 2 + i))
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setCurrentPage(pageNum)
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }}
+                        className={
+                          currentPage === pageNum
+                            ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white"
+                            : "border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                        }
+                      >
+                        {pageNum}
+                      </Button>
+                    )
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  disabled={currentPage === totalPages}
+                  className="border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Statistics */}
       {!loading && (

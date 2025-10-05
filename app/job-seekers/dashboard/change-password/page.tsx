@@ -109,15 +109,44 @@ export default function ChangePasswordPage() {
     setIsLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      setMessage({ type: 'success', text: 'Password changed successfully!' })
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('jobseeker_jwt')
+      if (!token) {
+        setMessage({ type: 'error', text: 'Please log in to change your password.' })
+        setIsLoading(false)
+        return
+      }
+
+      // Prepare form data
+      const formData = new URLSearchParams()
+      formData.append('old_password', currentPassword)
+      formData.append('new_password', newPassword)
+      formData.append('confirm_password', confirmPassword)
+
+      // Make API call
+      const response = await fetch('http://localhost:8080/api/seeker/profile/change_password', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+        credentials: 'include',
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setMessage({ type: 'success', text: data.message || 'Password changed successfully!' })
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to change password. Please try again.' })
+      }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to change password. Please try again.' })
+      console.error('Change password error:', error)
+      setMessage({ type: 'error', text: 'Network error. Please check your connection and try again.' })
     } finally {
       setIsLoading(false)
     }
