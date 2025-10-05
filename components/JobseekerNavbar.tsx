@@ -24,6 +24,7 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
   const router = useRouter()
   const { logout } = useJobseekerLogout()
   const [scrolled, setScrolled] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState({
     name: 'Job Seeker',
     email: '',
@@ -36,6 +37,11 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Avoid SSR hydration mismatch by rendering only after mount
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   // Fetch user details for avatar/name
@@ -70,6 +76,8 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
     logout()
     router.push('/job-seekers/login')
   }
+
+  if (!mounted) return null
 
   return (
     <nav 

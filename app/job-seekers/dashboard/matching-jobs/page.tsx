@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   Card,
   CardContent,
@@ -87,7 +87,7 @@ export default function MatchingJobsPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm)
-    }, 500) // 500ms delay
+    }, 700) // 700ms delay to reduce rapid calls
 
     return () => clearTimeout(timer)
   }, [searchTerm])
@@ -123,15 +123,15 @@ export default function MatchingJobsPage() {
     }
   }, [savedJobs])
 
+  // Track last effective query to avoid redundant fetches
+  const lastQueryRef = useRef<string>("")
+
   // Fetch jobs from backend on mount and when certain filters change
   useEffect(() => {
     let isMounted = true
     const controller = new AbortController()
 
     const loadMatchingJobs = async () => {
-      setLoading(true)
-      setError(null)
-
       try {
         // get jobseeker id from localStorage (same behavior as your original)
         const jobseekerId = localStorage.getItem("jobseeker_id")
@@ -144,6 +144,26 @@ export default function MatchingJobsPage() {
           setLoading(false)
           return
         }
+
+        // Build a stable query key to avoid duplicate requests for same params
+        const queryKey = JSON.stringify({
+          jobseekerId,
+          page: currentPage,
+          limit: 5,
+          locationFilter,
+          industryFilter,
+          experienceFilter,
+          remoteOnly,
+          search: debouncedSearchTerm?.trim() || ""
+        })
+
+        if (lastQueryRef.current === queryKey) {
+          return
+        }
+        lastQueryRef.current = queryKey
+
+        setLoading(true)
+        setError(null)
 
         const params = new URLSearchParams()
         params.set("jobseeker_id", jobseekerId)
@@ -343,27 +363,39 @@ export default function MatchingJobsPage() {
 
   // Save (toggle) job locally (and attempt backend if you add an endpoint later)
   const toggleSaveJob = async (jobId: string) => {
-    if (savedJobs.includes(jobId)) {
-      setSavedJobs((prev) => prev.filter((id) => id !== jobId))
-    } else {
-      setSavedJobs((prev) => [...prev, jobId])
+    const jobseekerId = localStorage.getItem("jobseeker_id")
+    if (!jobseekerId) {
+      alert("Please login to save jobs.")
+      return
     }
 
-    // Optionally you can call backend to persist saves. This won't break if endpoint doesn't exist:
+    // Optimistic UI update
+    const wasSaved = savedJobs.includes(jobId)
+    setSavedJobs((prev) => (wasSaved ? prev.filter((id) => id !== jobId) : [...prev, jobId]))
+
     try {
-      const jobseekerId = localStorage.getItem("jobseeker_id")
-      if (jobseekerId) {
-        // Best-effort: attempt to notify backend (no hard failure)
-        fetch("/api/seeker/profile/toggle_save_job", {
+      if (wasSaved) {
+        // Remove saved job
+        const res = await fetch(`/api/seeker/jobs/remove_saved_job?jobseeker_id=${encodeURIComponent(jobseekerId)}&job_id=${encodeURIComponent(jobId)}`)
+        if (!res.ok) {
+          // revert on failure
+          setSavedJobs((prev) => (prev.includes(jobId) ? prev : [...prev, jobId]))
+        }
+      } else {
+        // Save job
+        const res = await fetch("/api/seeker/jobs/save_job", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ jobseeker_id: jobseekerId, job_id: jobId }),
-        }).catch(() => {
-          /* ignore */
         })
+        if (!res.ok) {
+          // revert on failure
+          setSavedJobs((prev) => prev.filter((id) => id !== jobId))
+        }
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      // revert on error
+      setSavedJobs((prev) => (wasSaved ? (prev.includes(jobId) ? prev : [...prev, jobId]) : prev.filter((id) => id !== jobId)))
     }
   }
 
@@ -613,11 +645,14 @@ export default function MatchingJobsPage() {
                   </Button>
                   
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const pageNum = Math.max(1, Math.min(totalPages, currentPage - 2 + i))
-                      return (
+                    {(() => {
+                      const maxButtons = 5
+                      const visible = Math.min(maxButtons, totalPages)
+                      const half = Math.floor(maxButtons / 2)
+                      const start = Math.max(1, Math.min(Math.max(1, totalPages - visible + 1), currentPage - half))
+                      return Array.from({ length: visible }, (_, i) => start + i).map((pageNum) => (
                         <Button
-                          key={pageNum}
+                          key={`page-${pageNum}`}
                           variant={currentPage === pageNum ? "default" : "outline"}
                           size="sm"
                           onClick={() => {
@@ -632,8 +667,8 @@ export default function MatchingJobsPage() {
                         >
                           {pageNum}
                         </Button>
-                      )
-                    })}
+                      ))
+                    })()}
                   </div>
                   
                   <Button

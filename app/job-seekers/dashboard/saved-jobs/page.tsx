@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,75 +31,13 @@ interface SavedJob {
   requirements: string[]
   industry: string
   experienceLevel: string
+  applied?: boolean
 }
 
 export default function SavedJobsPage() {
-  const [savedJobs, setSavedJobs] = useState<SavedJob[]>([
-    {
-      id: "1",
-      title: "Senior React Developer",
-      company: "InnovateTech",
-      location: "New York, NY",
-      salary: "$130,000 - $160,000",
-      jobType: "full-time",
-      remote: true,
-      postedDate: "2024-01-14",
-      savedDate: "2024-01-15",
-      description:
-        "We are looking for a Senior React Developer to lead our frontend development team. You will be responsible for architecting and implementing complex user interfaces.",
-      requirements: ["5+ years React experience", "TypeScript", "Redux", "Testing", "Team Leadership"],
-      industry: "Technology",
-      experienceLevel: "Senior",
-    },
-    {
-      id: "2",
-      title: "Full Stack Engineer",
-      company: "StartupXYZ",
-      location: "San Francisco, CA",
-      salary: "$110,000 - $140,000",
-      jobType: "full-time",
-      remote: false,
-      postedDate: "2024-01-13",
-      savedDate: "2024-01-14",
-      description:
-        "Join our fast-growing startup as a Full Stack Engineer. Work on exciting projects and help shape the future of our platform.",
-      requirements: ["3+ years experience", "React", "Node.js", "PostgreSQL", "AWS"],
-      industry: "Technology",
-      experienceLevel: "Mid-Level",
-    },
-    {
-      id: "3",
-      title: "Frontend Developer",
-      company: "Design Studio Pro",
-      location: "Los Angeles, CA",
-      salary: "$85,000 - $110,000",
-      jobType: "full-time",
-      remote: true,
-      postedDate: "2024-01-12",
-      savedDate: "2024-01-13",
-      description:
-        "Creative Frontend Developer position at a leading design studio. Work with designers to create beautiful and functional web experiences.",
-      requirements: ["2+ years experience", "React", "CSS/SCSS", "JavaScript", "Figma"],
-      industry: "Design",
-      experienceLevel: "Mid-Level",
-    },
-    {
-      id: "4",
-      title: "DevOps Engineer",
-      company: "CloudTech Solutions",
-      location: "Austin, TX",
-      salary: "$120,000 - $150,000",
-      jobType: "full-time",
-      remote: true,
-      postedDate: "2024-01-11",
-      savedDate: "2024-01-12",
-      description:
-        "DevOps Engineer role focusing on cloud infrastructure and automation. Help us scale our platform to serve millions of users.",
-      requirements: ["4+ years experience", "AWS", "Kubernetes", "Docker", "Terraform", "CI/CD"],
-      industry: "Technology",
-      experienceLevel: "Senior",
-    },
-  ])
+  const [savedJobs, setSavedJobs] = useState<SavedJob[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [industryFilter, setIndustryFilter] = useState("all")
@@ -128,14 +67,117 @@ export default function SavedJobsPage() {
     })
   }
 
-  const handleRemoveJob = (jobId: string) => {
-    setSavedJobs(savedJobs.filter((job) => job.id !== jobId))
+  const handleRemoveJob = async (jobId: string) => {
+    const jobseekerId = localStorage.getItem("jobseeker_id")
+    if (!jobseekerId) return
+    // optimistic remove
+    const prev = savedJobs
+    setSavedJobs(prev.filter((job) => job.id !== jobId))
+    try {
+      await fetch(`/api/seeker/jobs/remove_saved_job?jobseeker_id=${encodeURIComponent(jobseekerId)}&job_id=${encodeURIComponent(jobId)}`)
+    } catch {
+      // revert on failure
+      setSavedJobs(prev)
+    }
   }
 
-  const handleApply = (jobId: string) => {
-    // Handle job application
-    console.log("Applying to job:", jobId)
+  const handleApply = async (jobId: string) => {
+    try {
+      const jobseekerId = localStorage.getItem("jobseeker_id")
+      if (!jobseekerId) {
+        alert("Please login to apply for jobs.")
+        return
+      }
+
+      const response = await fetch("/api/seeker/profile/apply_job", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobseeker_id: jobseekerId, job_id: jobId }),
+      })
+
+      const contentType = response.headers.get("content-type") || ""
+      const data = contentType.includes("application/json")
+        ? await response.json().catch(() => ({} as any))
+        : ({} as any)
+
+      const markApplied = () => setSavedJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, applied: true } : j))
+
+      if (response.ok && (!contentType || !contentType.includes("application/json"))) {
+        alert("Application submitted successfully.")
+        markApplied()
+        return
+      }
+
+      if (response.ok && data?.success !== false) {
+        alert("Application submitted successfully.")
+        markApplied()
+        return
+      }
+
+      const message = data?.message || "Failed to apply"
+      if (typeof message === "string" && message.toLowerCase().includes("already applied")) {
+        alert("You already applied to this job.")
+        markApplied()
+        return
+      }
+
+      alert(message)
+    } catch (err) {
+      console.error("Error applying to job:", err)
+      alert("An error occurred while applying. Please try again.")
+    }
   }
+
+  // Load saved jobs from backend
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const jobseekerId = localStorage.getItem("jobseeker_id")
+        if (!jobseekerId) {
+          setError("No jobseeker ID found. Please login again.")
+          setLoading(false)
+          return
+        }
+        const res = await fetch(`/api/seeker/jobs/get_saved_jobs?jobseeker_id=${encodeURIComponent(jobseekerId)}`)
+        const json = await res.json().catch(() => null)
+        if (!mounted) return
+        if (!res.ok || !json) {
+          setError("Failed to load saved jobs")
+          setSavedJobs([])
+        } else {
+          const rows = (json?.data || json?.jobs || []) as any[]
+          const mapped: SavedJob[] = rows.map((job: any, idx: number) => ({
+            id: String(job.job_id ?? job.id ?? idx),
+            title: job.title ?? job.job_title ?? "Untitled Position",
+            company: job.company ?? job.company_name ?? "Unknown Company",
+            location: job.location ?? [job.city, job.country].filter(Boolean).join(", ") ?? "",
+            salary: job.salary ?? "Salary not specified",
+            jobType: (job.job_type ?? "full-time") as SavedJob["jobType"],
+            remote: job.remote === 1 || job.remote === true,
+            postedDate: job.posted_date ?? job.created_at ?? job.created_date ?? new Date().toISOString(),
+            savedDate: job.saved_at ?? new Date().toISOString(),
+            description: job.description ?? "",
+            requirements: Array.isArray(job.requirements) ? job.requirements : [],
+            industry: job.industry ?? job.industry_name ?? "",
+            experienceLevel: job.experience_level ?? "",
+            applied: job.applied === 1 || job.is_applied === 1 || job.applied === true,
+          }))
+          setSavedJobs(mapped)
+        }
+      } catch (e) {
+        if (!mounted) return
+        setError("Failed to load saved jobs")
+        setSavedJobs([])
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
 
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 space-y-4 sm:space-y-6">
@@ -206,9 +248,27 @@ export default function SavedJobsPage() {
         </CardContent>
       </Card>
 
+      {/* Error */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="text-red-800 text-center">
+              <p className="font-medium">{error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Saved Jobs List */}
       <div className="space-y-3 sm:space-y-4">
-        {filteredJobs.length > 0 ? (
+        {loading ? (
+          <Card className="border-emerald-200 bg-emerald-50">
+            <CardContent className="p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+              <p className="text-emerald-800 font-medium">Loading saved jobs...</p>
+            </CardContent>
+          </Card>
+        ) : filteredJobs.length > 0 ? (
           filteredJobs.map((job) => (
             <Card key={job.id} className="border-gray-200 hover:border-emerald-300 transition-colors shadow-sm">
               <CardContent className="p-3 sm:p-4 md:p-6">
@@ -273,9 +333,10 @@ export default function SavedJobsPage() {
                   <div className="flex flex-row sm:flex-row lg:flex-col gap-2 lg:gap-3 items-stretch lg:items-start lg:ml-4 mt-2 lg:mt-0 flex-shrink-0 w-full sm:w-auto">
                     <Button
                       onClick={() => handleApply(job.id)}
-                      className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm py-2"
+                      disabled={job.applied === true}
+                      className={`w-full sm:w-auto text-sm py-2 ${job.applied ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white'}`}
                     >
-                      Apply Now
+                      {job.applied ? 'Applied' : 'Apply Now'}
                     </Button>
 
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -373,7 +434,9 @@ export default function SavedJobsPage() {
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">{searchTerm || industryFilter !== "all" || jobTypeFilter !== "all" ? "No saved jobs match your filters" : "No saved jobs yet"}</h3>
               <p className="text-sm sm:text-base text-gray-600 mb-6">{searchTerm || industryFilter !== "all" || jobTypeFilter !== "all" ? "Try adjusting your search or filter criteria" : "Start saving jobs you're interested in to keep track of them here"}</p>
               {!searchTerm && industryFilter === "all" && jobTypeFilter === "all" && (
-                <Button className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white">Browse Jobs</Button>
+                <Button asChild className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white">
+                  <Link href="/job-seekers/dashboard/matching-jobs">Browse Jobs</Link>
+                </Button>
               )}
             </CardContent>
           </Card>

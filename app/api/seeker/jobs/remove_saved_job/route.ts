@@ -15,18 +15,35 @@ export async function GET(request: NextRequest) {
     }
 
     // Proxy the request to the PHP backend
-    const response = await fetch(
-      getApiUrl(`seeker/profile/remove_saved_job?jobseeker_id=${jobseekerId}&job_id=${jobId}`),
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+    const backendUrl = getApiUrl(
+      `seeker/profile/remove_saved_job?jobseeker_id=${encodeURIComponent(jobseekerId)}&job_id=${encodeURIComponent(jobId)}`
     )
+    const response = await fetch(backendUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    })
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    const raw = await response.text()
+    let payload: any
+    try {
+      payload = raw ? JSON.parse(raw) : null
+    } catch {
+      payload = null
+    }
+
+    if (!response.ok) {
+      return NextResponse.json(
+        payload ?? { success: false, message: 'Failed to remove saved job' },
+        { status: response.status }
+      )
+    }
+
+    return NextResponse.json(
+      payload ?? { success: true },
+      { status: 200 }
+    )
   } catch (error) {
     console.error('Error in remove_saved_job API:', error)
     return NextResponse.json(

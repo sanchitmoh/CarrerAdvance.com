@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -40,10 +41,13 @@ export default function MyApplicationsPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm)
-    }, 500) // 500ms delay
+    }, 700) // 700ms delay to reduce rapid calls
 
     return () => clearTimeout(timer)
   }, [searchTerm])
+
+  // Avoid redundant fetches when params unchanged
+  const lastQueryRef = useRef<string>("")
 
   // Load applications on component mount
   useEffect(() => {
@@ -64,6 +68,12 @@ export default function MyApplicationsPage() {
         params.set('limit', '5')
         if (debouncedSearchTerm) params.set('search', debouncedSearchTerm)
         if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+
+        const queryKey = JSON.stringify({ jobseekerId, page: currentPage, limit: 5, search: debouncedSearchTerm?.trim() || '', status: statusFilter })
+        if (lastQueryRef.current === queryKey) {
+          return
+        }
+        lastQueryRef.current = queryKey
 
         const response = await fetch(`/api/seeker/profile/get_applications?${params.toString()}`);
         const data = await response.json();
@@ -365,8 +375,8 @@ export default function MyApplicationsPage() {
                   : 'Start applying to jobs to track your applications here'}
               </p>
               {!searchTerm && statusFilter === 'all' && (
-                <Button className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm sm:text-base px-4 py-2">
-                  Browse Jobs
+                <Button asChild className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm sm:text-base px-4 py-2">
+                  <Link href="/job-seekers/dashboard/matching-jobs">Browse Jobs</Link>
                 </Button>
               )}
             </CardContent>
@@ -397,11 +407,14 @@ export default function MyApplicationsPage() {
                 </Button>
                 
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = Math.max(1, Math.min(totalPages, currentPage - 2 + i))
-                    return (
+                  {(() => {
+                    const maxButtons = 5
+                    const visible = Math.min(maxButtons, totalPages)
+                    const half = Math.floor(maxButtons / 2)
+                    const start = Math.max(1, Math.min(Math.max(1, totalPages - visible + 1), currentPage - half))
+                    return Array.from({ length: visible }, (_, i) => start + i).map((pageNum) => (
                       <Button
-                        key={pageNum}
+                        key={`apps-page-${pageNum}`}
                         variant={currentPage === pageNum ? "default" : "outline"}
                         size="sm"
                         onClick={() => {
@@ -416,8 +429,8 @@ export default function MyApplicationsPage() {
                       >
                         {pageNum}
                       </Button>
-                    )
-                  })}
+                    ))
+                  })()}
                 </div>
                 
                 <Button
