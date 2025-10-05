@@ -124,23 +124,7 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link 
-              href="/" 
-              className="flex items-center space-x-2 text-gray-700 hover:text-emerald-600 transition-all duration-300 font-medium relative group"
-            >
-              <Home className="h-4 w-4" />
-              <span>Home</span>
-              <span className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full w-0 group-hover:w-full transition-all duration-300" />
-            </Link>
             
-            <Link 
-              href="/jobs" 
-              className="flex items-center space-x-2 text-gray-700 hover:text-emerald-600 transition-all duration-300 font-medium relative group"
-            >
-              <Briefcase className="h-4 w-4" />
-              <span>Jobs</span>
-              <span className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full w-0 group-hover:w-full transition-all duration-300" />
-            </Link>
           </div>
 
           {/* User Profile Dropdown */}

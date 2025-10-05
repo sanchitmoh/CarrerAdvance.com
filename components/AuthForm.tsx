@@ -315,6 +315,15 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
         body.append('email', formData.email)
         successMsg = 'Password reset link sent! Please check your email.'
         errorMsg = 'Failed to send reset link. Please check your email.'
+      } else if (type === 'reset-password') {
+        // Employers reset submits to web controller (non-API)
+        endpoint = getBaseUrl('employers/auth/reset_password/' + (resetToken || ''))
+        body = new URLSearchParams()
+        body.append('password', formData.password)
+        body.append('confirm_password', formData.confirmPassword)
+        body.append('submit', '1')
+        successMsg = 'Password reset successfully! You can now log in with your new password.'
+        errorMsg = 'Failed to reset password. Please try again.'
       }
 
       try {

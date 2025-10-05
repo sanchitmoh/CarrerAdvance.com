@@ -9,7 +9,7 @@ const testimonials = [
     name: 'Sarah Chen',
     role: 'Senior Software Engineer',
     company: 'Google',
-    image: '/placeholder.svg?height=80&width=80&text=SC',
+    image: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&h=150&fit=crop&crop=face&auto=format',
     content: 'CareerAdvance completely transformed my job search. The AI matching was incredibly accurate, and I landed my dream role at Google within 3 weeks!',
     rating: 5,
     salary: '$180K',
@@ -19,7 +19,7 @@ const testimonials = [
     name: 'Marcus Johnson',
     role: 'Product Manager',
     company: 'Microsoft',
-    image: '/placeholder.svg?height=80&width=80&text=MJ',
+    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face&auto=format',
     content: 'The platform\'s modern interface and smart recommendations helped me transition from engineering to product management seamlessly. Highly recommend!',
     rating: 5,
     salary: '$165K',
@@ -29,7 +29,7 @@ const testimonials = [
     name: 'Elena Rodriguez',
     role: 'UX Design Lead',
     company: 'Airbnb',
-    image: '/placeholder.svg?height=80&width=80&text=ER',
+    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face&auto=format',
     content: 'As a designer, I appreciated the beautiful, intuitive interface. More importantly, it connected me with opportunities I never would have found elsewhere.',
     rating: 5,
     salary: '$155K',
@@ -39,11 +39,31 @@ const testimonials = [
     name: 'David Kim',
     role: 'Data Scientist',
     company: 'Netflix',
-    image: '/placeholder.svg?height=80&width=80&text=DK',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format',
     content: 'The AI-powered job matching is next level. It understood my skills better than I did and found me the perfect role in machine learning.',
     rating: 5,
     salary: '$170K',
     location: 'Los Angeles'
+  },
+  {
+    name: 'Priya Patel',
+    role: 'Marketing Director',
+    company: 'Meta',
+    image: 'https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=150&h=150&fit=crop&crop=face&auto=format',
+    content: 'From resume optimization to interview prep, CareerAdvance provided end-to-end support that helped me land a leadership role at Meta.',
+    rating: 5,
+    salary: '$190K',
+    location: 'New York'
+  },
+  {
+    name: 'James Wilson',
+    role: 'DevOps Engineer',
+    company: 'Amazon Web Services',
+    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face&auto=format',
+    content: 'The skill assessment and matching algorithm perfectly aligned me with cloud computing roles I was passionate about. Game-changer!',
+    rating: 5,
+    salary: '$175K',
+    location: 'Austin'
   }
 ]
 
@@ -81,14 +101,14 @@ export default function Testimonials() {
   };
 
   return (
-    <section className="py-32 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 relative overflow-hidden"> {/* Changed to emerald/green/teal */}
+    <section className="py-32 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0">
         <div 
-          className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-emerald-300/20 to-green-300/20 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite_alternate]" // Changed to emerald/green
+          className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-emerald-300/20 to-green-300/20 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite_alternate]"
         />
         <div 
-          className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-r from-green-300/20 to-teal-300/20 rounded-full blur-3xl animate-[pulse_10s_ease-in-out_infinite_alternate_2s]" // Changed to green/teal
+          className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-r from-green-300/20 to-teal-300/20 rounded-full blur-3xl animate-[pulse_10s_ease-in-out_infinite_alternate_2s]"
         />
       </div>
 
@@ -97,14 +117,14 @@ export default function Testimonials() {
           className="text-center mb-20 opacity-0 translate-y-8 animate-fade-in-up"
         >
           <div
-            className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 text-sm font-semibold mb-6 transition-transform duration-300 hover:scale-105" // Changed to emerald/green
+            className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 text-sm font-semibold mb-6 transition-transform duration-300 hover:scale-105"
           >
             <Star className="w-4 h-4 mr-2 text-yellow-500" />
             Success Stories
           </div>
           <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-8 tracking-tight">
             Real People,{' '}
-            <span className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent"> {/* Changed to emerald/green/teal */}
+            <span className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 bg-clip-text text-transparent">
               Real Results
             </span>
           </h2>
@@ -121,7 +141,7 @@ export default function Testimonials() {
             <div
               className="flex justify-center mb-8 transition-transform duration-300 scale-0 animate-[scaleIn_0.5s_ease-out_forwards_0.2s]"
             >
-              <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center shadow-lg"> {/* Changed to emerald/green */}
+              <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center shadow-lg">
                 <Quote className="h-8 w-8 text-white" />
               </div>
             </div>
@@ -146,15 +166,15 @@ export default function Testimonials() {
             <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8">
               <div className="flex items-center space-x-4">
                 <img
-                  src={testimonials[currentIndex].image || "/placeholder.svg"}
+                  src={testimonials[currentIndex].image}
                   alt={testimonials[currentIndex].name}
-                  className="w-16 h-16 rounded-full border-4 border-emerald-100 shadow-lg transition-transform duration-300 hover:scale-110" // Changed to emerald
+                  className="w-16 h-16 rounded-full border-4 border-emerald-100 shadow-lg transition-transform duration-300 hover:scale-110 object-cover"
                 />
                 <div className="text-center md:text-left">
                   <div className="font-bold text-gray-900 text-xl">
                     {testimonials[currentIndex].name}
                   </div>
-                  <div className="text-emerald-600 font-semibold"> {/* Changed to emerald */}
+                  <div className="text-emerald-600 font-semibold">
                     {testimonials[currentIndex].role}
                   </div>
                   <div className="text-gray-500 font-medium">
@@ -168,9 +188,9 @@ export default function Testimonials() {
                   <DollarSign className="h-4 w-4 text-green-700" />
                   <div className="text-green-700 font-bold text-lg">{testimonials[currentIndex].salary}</div>
                 </div>
-                <div className="px-4 py-2 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-xl flex items-center gap-2"> {/* Changed to emerald/teal */}
-                  <MapPin className="h-4 w-4 text-emerald-700" /> {/* Changed to emerald */}
-                  <div className="text-emerald-700 font-bold text-lg">{testimonials[currentIndex].location}</div> {/* Changed to emerald */}
+                <div className="px-4 py-2 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-xl flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-emerald-700" />
+                  <div className="text-emerald-700 font-bold text-lg">{testimonials[currentIndex].location}</div>
                 </div>
               </div>
             </div>
@@ -181,7 +201,7 @@ export default function Testimonials() {
             variant="outline"
             size="icon"
             onClick={prevTestimonial}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-6 bg-white shadow-xl hover:shadow-2xl border-2 border-gray-200 hover:border-emerald-300 w-12 h-12 rounded-full" // Changed to emerald
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-6 bg-white shadow-xl hover:shadow-2xl border-2 border-gray-200 hover:border-emerald-300 w-12 h-12 rounded-full"
           >
             <ChevronLeft className="h-6 w-6" />
           </Button>
@@ -190,7 +210,7 @@ export default function Testimonials() {
             variant="outline"
             size="icon"
             onClick={nextTestimonial}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-6 bg-white shadow-xl hover:shadow-2xl border-2 border-gray-200 hover:border-emerald-300 w-12 h-12 rounded-full" // Changed to emerald
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-6 bg-white shadow-xl hover:shadow-2xl border-2 border-gray-200 hover:border-emerald-300 w-12 h-12 rounded-full"
           >
             <ChevronRight className="h-6 w-6" />
           </Button>
@@ -205,7 +225,7 @@ export default function Testimonials() {
                 aria-label={`Go to testimonial ${index + 1}`}
                 className={`transition-all duration-300 rounded-full ${
                   index === currentIndex 
-                    ? 'w-12 h-3 bg-gradient-to-r from-emerald-500 to-green-500' // Changed to emerald/green
+                    ? 'w-12 h-3 bg-gradient-to-r from-emerald-500 to-green-500'
                     : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
                 }`}
               />

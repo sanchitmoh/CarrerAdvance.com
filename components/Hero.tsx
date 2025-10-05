@@ -162,7 +162,7 @@ export default function Hero() {
             <div
               className="transition-transform duration-300 hover:scale-105 hover:translate-y-[-2px] active:scale-95"
             >
-              <Button onClick={() => router.push('/jobs')} size="lg" className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-10 py-4 text-lg font-bold shadow-2xl hover:shadow-emerald-300 transition-all duration-300 rounded-2xl group"> {/* Changed to emerald/green */}
+              <Button onClick={() => router.push('/jobs')} size="lg" className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-10 py-4 text-lg font-bold shadow-md hover:shadow-emerald-300 transition-all duration-300 rounded-2xl group"> {/* Changed to emerald/green */}
                 <Briefcase className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
                 Find Your Dream Job
                 <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
@@ -171,7 +171,7 @@ export default function Hero() {
             <div
               className="transition-transform duration-300 hover:scale-105 hover:translate-y-[-2px] active:scale-95"
             >
-              <Button onClick={() => router.push('/courses')} size="lg" variant="outline" className="border-2 border-emerald-400 text-emerald-200 hover:bg-emerald-500/10 hover:text-white hover:border-emerald-300 px-10 py-4 text-lg font-bold transition-all duration-300 rounded-2xl group backdrop-blur-sm"> {/* Changed to emerald */}
+              <Button onClick={() => router.push('/courses')} size="lg" variant="outline" className="border-2 border-emerald-400 text-emerald-600 hover:bg-emerald-500/10 hover:text-white hover:border-emerald-300 px-10 py-4 text-lg font-bold transition-all duration-300 rounded-2xl group backdrop-blur-sm"> {/* Changed to emerald */}
                 <BookOpen className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
                 Explore Courses
               </Button>
@@ -190,7 +190,7 @@ export default function Hero() {
                 <div 
                   className="flex-1 relative group transition-transform duration-200 focus-within:scale-[1.02]"
                 >
-                  <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-400 h-6 w-6 group-focus-within:text-emerald-500 transition-colors" /> {/* Changed to emerald */}
+                  <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-100 h-6 w-6 group-focus-within:text-emerald-200 transition-colors" /> {/* Changed to emerald */}
                   <Input
                     type="text"
                     placeholder="Job title, skills, or company"
@@ -202,7 +202,7 @@ export default function Hero() {
                 <div 
                   className="flex-1 relative group transition-transform duration-200 focus-within:scale-[1.02]"
                 >
-                  <MapPin className="absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-400 h-6 w-6 group-focus-within:text-green-500 transition-colors" /> {/* Changed to green */}
+                  <MapPin className="absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-100 h-6 w-6 group-focus-within:text-green-200 transition-colors" /> {/* Changed to green */}
                   <Input
                     type="text"
                     placeholder="Location or remote"
@@ -217,7 +217,7 @@ export default function Hero() {
                   <Button 
                     type="submit" 
                     size="lg" 
-                    className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 h-16 px-10 text-lg font-bold shadow-xl hover:shadow-emerald-300 transition-all duration-300 rounded-2xl" // Changed to emerald/green
+                    className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 h-16 px-10 text-lg font-bold shadow-md hover:shadow-emerald-300 transition-all duration-300 rounded-2xl" // Changed to emerald/green
                   >
                     Search
                   </Button>

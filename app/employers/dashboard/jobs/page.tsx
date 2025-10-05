@@ -40,7 +40,7 @@ import {
   FileText,
 } from "lucide-react"
 import { employerApiService, Job, AddJobRequest } from "@/lib/employer-api"
-import { getAssetUrl, getBaseUrl, getMeetUrl } from "@/lib/api-config"
+import { getAssetUrl, getBaseUrl } from "@/lib/api-config"
 import { jobsApiService } from "@/lib/jobs-api"
 
 interface Candidate {
@@ -168,6 +168,33 @@ interface Candidate {
   
   // Initialize jobs state
   const [jobs, setJobs] = useState<any[]>([])
+  // Pagination state (5 per page)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 5
+
+  // Reset to first page when jobs list changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [jobs])
+
+  // Pagination helpers
+  const totalPages = Math.max(1, Math.ceil(jobs.length / pageSize))
+  const start = (currentPage - 1) * pageSize
+  const end = start + pageSize
+  const displayJobs = jobs.slice(start, end)
+  const getPageNumbers = () => {
+    const maxButtons = 5
+    const total = Math.max(1, totalPages)
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2))
+    let endPage = startPage + maxButtons - 1
+    if (endPage > total) {
+      endPage = total
+      startPage = Math.max(1, endPage - maxButtons + 1)
+    }
+    const pages: number[] = []
+    for (let p = startPage; p <= endPage; p++) pages.push(p)
+    return pages
+  }
 
   const fetchStates = async (countryId: string) => {
     try {
@@ -968,7 +995,7 @@ interface Candidate {
                         if (!selectedJob || !selectedCandidate) return
                         const interviewerEmail = (await employerApiService.getProfile()).data?.employer?.email || ''
                         const formUrl = `${window.location.origin}/employers/interview-form?job_id=${encodeURIComponent(selectedJob.id)}&job_title=${encodeURIComponent(selectedJob.title || '')}&candidate_email=${encodeURIComponent(selectedCandidate.email || '')}&candidate_name=${encodeURIComponent(selectedCandidate.name || '')}&employer_email=${encodeURIComponent(interviewerEmail)}`
-                        const loginUrl = `${getMeetUrl('/login')}?job_id=${encodeURIComponent(selectedJob.id)}&redirect=${encodeURIComponent(formUrl)}`
+                        const loginUrl = `http://localhost:8080/index.php/googlecalendar/login?job_id=${encodeURIComponent(selectedJob.id)}&redirect=${encodeURIComponent(formUrl)}`
                         window.open(loginUrl, '_blank')
                         // move to interviewed and switch to Contacted tab
                         await moveCandidateToStatus(selectedCandidate.id, 'interviewed')
@@ -1830,7 +1857,7 @@ interface Candidate {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {jobs.map((job) => (
+                  {displayJobs.map((job) => (
                     <Card key={job.id} className="hover:shadow-md transition-shadow cursor-pointer border border-gray-200">
                       <CardContent className="p-3 sm:p-4">
                         <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
@@ -1965,6 +1992,67 @@ interface Candidate {
               )}
             </CardContent>
           </Card>
+
+          {/* Pagination Controls */}
+          {jobs.length > pageSize && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {displayJobs.length} of {jobs.length} jobs (Page {currentPage} of {totalPages})
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCurrentPage((prev) => Math.max(1, prev - 1))
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
+                      disabled={currentPage === 1}
+                      className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {getPageNumbers().map((pageNum) => (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setCurrentPage(pageNum)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                          className={
+                            currentPage === pageNum
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                          }
+                        >
+                          {pageNum}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
+                      disabled={currentPage === totalPages}
+                      className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Candidate Management */}
           {selectedJob && (

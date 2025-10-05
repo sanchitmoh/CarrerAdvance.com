@@ -161,14 +161,7 @@ export default function JobCategories() {
                 <div 
                   className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-x-[-10px] group-hover:translate-x-0"
                 >
-                  <span className="text-emerald-600 font-bold text-sm flex items-center"> {/* Changed to emerald */}
-                    Explore jobs 
-                    <span
-                      className="ml-2 inline-block animate-[bounceX_1.5s_infinite]"
-                    >
-                      →
-                    </span>
-                  </span>
+                  
                 </div>
               </div>
             </div>

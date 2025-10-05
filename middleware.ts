@@ -10,6 +10,7 @@ export function middleware(request: NextRequest) {
       "/",
       "/employers/login",
       "/employers/register",
+      
       "/employers/forgot-password",
       "/employers/reset-password",
       "/job-seekers/login",
@@ -18,6 +19,7 @@ export function middleware(request: NextRequest) {
       "/job-seekers/reset-password",
       "/companies/login",
       "/companies/register",
+
       "/students/login",
       "/students/register",
       "/students/forgot-password",
@@ -32,9 +34,20 @@ export function middleware(request: NextRequest) {
       "/admin/reset-password",
     ])
 
-    // allow exact "/" or exact public entries, plus any nested paths under specific auth-less groups if needed
+    // allow exact "/" or exact public entries
     const isPublic = publicRoutes.has(pathname)
     if (isPublic) {
+      return NextResponse.next()
+    }
+
+    // Always allow password reset pages with token (dynamic path segments)
+    if (
+      pathname.startsWith("/job-seekers/reset-password") ||
+      pathname.startsWith("/employers/reset-password") ||
+      pathname.startsWith("/students/reset-password") ||
+      pathname.startsWith("/teachers/reset-password") ||
+      pathname.startsWith("/admin/reset-password")
+    ) {
       return NextResponse.next()
     }
 
