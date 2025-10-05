@@ -4,14 +4,24 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const jobseekerId = searchParams.get('jobseeker_id')
+    const page = searchParams.get('page') || '1'
+    const limit = searchParams.get('limit') || '5'
+    
     if (!jobseekerId) {
       return NextResponse.json({ success: false, message: 'jobseeker_id is required' }, { status: 400 })
     }
 
-    const backend = await fetch(
-      `http://localhost:8080/index.php/api/seeker/profile/get_matching_jobs?jobseeker_id=${encodeURIComponent(jobseekerId)}`,
-      { method: 'GET', headers: { 'Content-Type': 'application/json', Accept: 'application/json' } }
-    )
+    // Use environment variable for backend URL
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080'
+    const apiUrl = `${backendUrl}/index.php/api/seeker/profile/get_matching_jobs?jobseeker_id=${encodeURIComponent(jobseekerId)}&page=${page}&limit=${limit}`
+
+    const backend = await fetch(apiUrl, {
+      method: 'GET', 
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Accept': 'application/json' 
+      }
+    })
 
     const raw = await backend.text()
     let payload: any
