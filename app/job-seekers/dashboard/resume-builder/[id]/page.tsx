@@ -202,6 +202,8 @@ export default function ResumeBuilderPage() {
   useEffect(() => {
     const loadExisting = async () => {
       if (!resumeIdParam) return
+      // Skip loading if it's a new resume (starts with 'new-')
+      if (resumeIdParam.startsWith('new-')) return
       const idNum = parseInt(resumeIdParam, 10)
       if (!idNum || Number.isNaN(idNum)) return
       try {
@@ -724,10 +726,17 @@ export default function ResumeBuilderPage() {
         resume_name: resumeName.trim(),
       }
       // If editing existing resume, include its id to update that record
+      // Only treat as valid ID if it's a numeric database ID (not a timestamp or 'new-' prefix)
       if (typeof resumeIdParam === 'string') {
-        const idNum = parseInt(resumeIdParam, 10)
-        if (!Number.isNaN(idNum) && idNum > 0) {
-          payload.id = idNum
+        // Skip if it's a new resume (starts with 'new-')
+        if (!resumeIdParam.startsWith('new-')) {
+          const idNum = parseInt(resumeIdParam, 10)
+          // Only use as ID if it's a reasonable database ID (less than 100000)
+          // Timestamps are much larger numbers (13+ digits)
+          // Database IDs are typically small integers
+          if (!Number.isNaN(idNum) && idNum > 0 && idNum < 100000) {
+            payload.id = idNum
+          }
         }
       }
       if (savedResumeId && !payload.id) {
@@ -775,7 +784,7 @@ export default function ResumeBuilderPage() {
     window.open(url, '_blank')
   }
 
-  
+
   const buildResumeContent = () => {
     const lines: string[] = []
     lines.push(`${resumeData.personalInfo.fullName}`)
@@ -1108,13 +1117,13 @@ export default function ResumeBuilderPage() {
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
+              <Button
+                variant="outline"
+                className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+              >
+                <Download className="h-4 w-4 mr-2" />
                     Download
-                  </Button>
+              </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
                   <DropdownMenuItem onClick={() => handleDownload('pdf')}>Download as PDF</DropdownMenuItem>
@@ -2429,8 +2438,8 @@ export default function ResumeBuilderPage() {
               <Button onClick={() => confirmLeaveAndNavigate('save')} className="bg-emerald-600 hover:bg-emerald-700 text-white">Save & Leave</Button>
             </div>
           </div>
-        </div>
-      )}
+                    </div>
+                  )}
                 </div>
               )}
 

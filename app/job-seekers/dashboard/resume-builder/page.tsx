@@ -73,8 +73,8 @@ function ResumeBuilderContent() {
   ]
 
   const handleCreateResume = (templateId: string) => {
-    // Generate a new resume ID and navigate to the builder
-    const newResumeId = Date.now().toString()
+    // Generate a unique identifier for new resumes (not a database ID)
+    const newResumeId = 'new-' + Date.now().toString()
     
     // If we have imported data, pass it to the builder
     if (importedData) {
