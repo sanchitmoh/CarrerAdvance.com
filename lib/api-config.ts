@@ -1,8 +1,8 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/index.php/api';
-export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080/index.php';
-export const PUBLIC_URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:8080/';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api';
+export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080/api';
+export const PUBLIC_URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:8080';
 export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
-const MEET_BASE_RAW = process.env.NEXT_PUBLIC_MEET_URL || 'http://localhost:8080/index.php/googlecalendar';
+const MEET_BASE_RAW = process.env.NEXT_PUBLIC_MEET_URL || 'http://localhost:8080/googlecalendar';
 export const MEET_BASE_URL = MEET_BASE_RAW.replace(/\/+$/, '');
 
 export const getApiUrl = (endpoint: string): string =>

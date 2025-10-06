@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,8 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { useParams, useSearchParams } from "next/navigation"
+import { getApiUrl } from "@/lib/api-config"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 interface ResumeData {
   personalInfo: {
@@ -91,7 +93,9 @@ interface ResumeData {
 }
 
 export default function ResumeBuilderPage() {
+  const [mounted, setMounted] = useState(false)
   const params = useParams()
+  const resumeIdParam = params?.id as string | undefined
   const [resumeData, setResumeData] = useState<ResumeData>({
     personalInfo: {
       fullName: "John Doe",
@@ -179,12 +183,118 @@ export default function ResumeBuilderPage() {
     : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL || ''))
 
   const [lastStatus, setLastStatus] = useState<string>("")
+  const [savedResumeId, setSavedResumeId] = useState<number | null>(null)
+  const [isDirty, setIsDirty] = useState<boolean>(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState<boolean>(false)
+  const [pendingNav, setPendingNav] = useState<'back' | null>(null)
+  const ignoreNextPopRef = useRef<boolean>(false)
 
   useEffect(() => {
     if (analysis || suggestions) {
       setShowResultsModal(true)
     }
   }, [analysis, suggestions])
+
+  // Avoid SSR hydration mismatches by rendering only on client
+  useEffect(() => { setMounted(true) }, [])
+
+  // Load existing resume data when opened via /resume-builder/[id]
+  useEffect(() => {
+    const loadExisting = async () => {
+      if (!resumeIdParam) return
+      const idNum = parseInt(resumeIdParam, 10)
+      if (!idNum || Number.isNaN(idNum)) return
+      try {
+        const url = getApiUrl(`resume/get/${idNum}`)
+        const res = await fetch(url, { credentials: 'include' })
+        const data = await res.json()
+        if (data && data.success && data.data) {
+          const payload = data.data
+          const rd = payload.resume_data
+          if (rd && typeof rd === 'object') {
+            setResumeData((prev) => ({
+              ...prev,
+              ...rd,
+            }))
+          } else if (typeof rd === 'string') {
+            try {
+              const parsed = JSON.parse(rd)
+              if (parsed && typeof parsed === 'object') {
+                setResumeData((prev) => ({ ...prev, ...parsed }))
+              }
+            } catch (_) {}
+          }
+          try { setSavedResumeId(idNum) } catch (_) {}
+          setIsDirty(false)
+          setLastStatus(`saved:${idNum}`)
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+    loadExisting()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeIdParam])
+
+  // Mark form as dirty on resumeData changes
+  useEffect(() => {
+    setIsDirty(true)
+  }, [resumeData])
+
+  // Prompt before unload if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDirty])
+
+  // In-app back navigation guard: intercept browser back and show custom confirm
+  useEffect(() => {
+    // Push a dummy state so that back stays within the page once
+    const pushMarker = () => {
+      try { history.pushState({ rb: true }, '') } catch (_) {}
+    }
+    pushMarker()
+
+    const onPopState = (e: PopStateEvent) => {
+      if (ignoreNextPopRef.current) { ignoreNextPopRef.current = false; return }
+      if (isDirty) {
+        // Re-push to cancel the back and show confirm
+        try { history.pushState({ rb: true }, '') } catch (_) {}
+        setPendingNav('back')
+        setShowLeaveConfirm(true)
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [isDirty])
+
+  const confirmLeaveAndNavigate = async (action: 'save' | 'discard' | 'cancel') => {
+    if (action === 'save') {
+      await handleSave()
+      setShowLeaveConfirm(false)
+      setPendingNav(null)
+      // Allow back to proceed
+      ignoreNextPopRef.current = true
+      window.history.back()
+      return
+    }
+    if (action === 'discard') {
+      setShowLeaveConfirm(false)
+      setPendingNav(null)
+      ignoreNextPopRef.current = true
+      window.history.back()
+      return
+    }
+    // cancel
+    setShowLeaveConfirm(false)
+    setPendingNav(null)
+  }
 
   // Handle imported resume data
   useEffect(() => {
@@ -595,16 +705,77 @@ export default function ResumeBuilderPage() {
     { id: "extracurriculars", label: "Extra-Curricular", icon: CheckCircle },
   ]
 
-  const handleSave = () => {
-    // Save resume data
-    console.log("Saving resume:", resumeData)
+  const handleSave = async () => {
+    try {
+      const userId = (typeof window !== 'undefined') ? (localStorage.getItem('jobseeker_id') || localStorage.getItem('user_id')) : null
+      if (!userId) {
+        alert('Please log in to save your resume')
+        return
+      }
+      const defaultName = (resumeData?.personalInfo?.fullName ? `${resumeData.personalInfo.fullName} Resume` : 'My Resume')
+      const resumeName = window.prompt('Enter a name for your resume:', defaultName)
+      if (!resumeName || !resumeName.trim()) {
+        return
+      }
+      const payload: any = {
+        user_id: parseInt(userId as string, 10) || 0,
+        template_id: 1,
+        resume_data: resumeData,
+        resume_name: resumeName.trim(),
+      }
+      // If editing existing resume, include its id to update that record
+      if (typeof resumeIdParam === 'string') {
+        const idNum = parseInt(resumeIdParam, 10)
+        if (!Number.isNaN(idNum) && idNum > 0) {
+          payload.id = idNum
+        }
+      }
+      if (savedResumeId && !payload.id) {
+        payload.id = savedResumeId
+      }
+      const url = getApiUrl('resume/save')
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      })
+      let data: any = null
+      try { data = await res.clone().json() } catch (_) {
+        const text = await res.text()
+        data = { success: res.ok, message: text }
+      }
+      if (data && data.success) {
+        setLastStatus(`saved:${data.id || ''}`)
+        if (data.id) { try { setSavedResumeId(parseInt(String(data.id), 10)) } catch(_) {} }
+        setIsDirty(false)
+        alert('Resume saved successfully')
+      } else {
+        alert(data?.message || 'Failed to save resume')
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Unexpected error while saving')
+    }
   }
 
-  const handleDownload = (format: "pdf" | "docx") => {
-    // Download resume in specified format
-    console.log("Downloading resume as:", format)
+  const handleDownload = async (format: 'pdf' | 'doc') => {
+    let id = savedResumeId
+    if (!id) {
+      // Try to parse from lastStatus saved:id
+      if (lastStatus.startsWith('saved:')) {
+        const parts = lastStatus.split(':')
+        if (parts[1]) { try { id = parseInt(parts[1], 10) } catch(_) {} }
+      }
+    }
+    if (!id) {
+      alert('Please save your resume first to download.')
+      return
+    }
+    const url = getApiUrl(`resume/${format}/${id}`)
+    window.open(url, '_blank')
   }
 
+  
   const buildResumeContent = () => {
     const lines: string[] = []
     lines.push(`${resumeData.personalInfo.fullName}`)
@@ -884,6 +1055,9 @@ export default function ResumeBuilderPage() {
     }))
   }
 
+  if (!mounted) {
+    return null
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex flex-col lg:flex-row">
@@ -932,22 +1106,21 @@ export default function ResumeBuilderPage() {
                 <Save className="h-4 w-4 mr-2" />
                 Save
               </Button>
-              <Button
-                onClick={() => handleDownload("pdf")}
-                variant="outline"
-                className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                PDF
-              </Button>
-              <Button
-                onClick={() => handleDownload("docx")}
-                variant="outline"
-                className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                DOCX
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem onClick={() => handleDownload('pdf')}>Download as PDF</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownload('doc')}>Download as DOC</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 onClick={() => setShowTailorCard(!showTailorCard)}
                 variant="outline"
@@ -2242,6 +2415,22 @@ export default function ResumeBuilderPage() {
                       <p className="text-gray-700 mt-1 text-sm">{jobData.job_description}</p>
                     </div>
                   )}
+
+      {/* Leave Confirm Modal */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => confirmLeaveAndNavigate('cancel')} />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Unsaved changes</h3>
+            <p className="text-sm text-gray-600 mb-4">You have unsaved changes. Would you like to save before leaving?</p>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => confirmLeaveAndNavigate('cancel')} className="border-gray-200">Stay</Button>
+              <Button variant="outline" onClick={() => confirmLeaveAndNavigate('discard')} className="border-red-200 text-red-600">Discard</Button>
+              <Button onClick={() => confirmLeaveAndNavigate('save')} className="bg-emerald-600 hover:bg-emerald-700 text-white">Save & Leave</Button>
+            </div>
+          </div>
+        </div>
+      )}
                 </div>
               )}
 

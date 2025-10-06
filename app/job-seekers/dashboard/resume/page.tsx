@@ -1,63 +1,66 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Plus, Edit, Trash2, Star, Download, Eye, Upload, Palette, X, FileUp } from "lucide-react"
 import Link from "next/link"
 import { toast } from "@/hooks/use-toast"
+import { getApiUrl } from "@/lib/api-config"
 
-interface Resume {
-  id: string
-  title: string
-  template: string
-  lastModified: string
-  isPrimary: boolean
-  status: "draft" | "completed"
-  score: number
+interface ResumeItem {
+  id: number
+  user_id: number
+  template_id?: number
+  resume_name?: string
+  pdf_file?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export default function ResumeBuilderPage() {
-  const [resumes, setResumes] = useState<Resume[]>([
-    {
-      id: "1",
-      title: "Software Developer Resume",
-      template: "Modern Professional",
-      lastModified: "2024-01-15",
-      isPrimary: true,
-      status: "completed",
-      score: 85,
-    },
-    {
-      id: "2",
-      title: "Full Stack Developer Resume",
-      template: "Creative",
-      lastModified: "2024-01-10",
-      isPrimary: false,
-      status: "draft",
-      score: 72,
-          },
-    ])
+  const [resumes, setResumes] = useState<ResumeItem[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string>("")
 
   const [showUploadPopup, setShowUploadPopup] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Debug logging
-  console.log('Component state:', { showUploadPopup, uploading, selectedFile: selectedFile?.name })
+  useEffect(() => {
+    const userId = (typeof window !== 'undefined') ? (localStorage.getItem('jobseeker_id') || localStorage.getItem('user_id')) : null
+    if (!userId) {
+      setLoading(false)
+      setResumes([])
+      return
+    }
+    const fetchResumes = async () => {
+      try {
+        setLoading(true)
+        const url = getApiUrl(`resume/list/${parseInt(userId as string, 10)}`)
+        const res = await fetch(url, { credentials: 'include' })
+        const data = await res.json()
+        if (data && data.success) {
+          setResumes(Array.isArray(data.data) ? data.data : [])
+        } else {
+          setError(data?.message || 'Failed to fetch resumes')
+        }
+      } catch (e: any) {
+        setError(e?.message || 'Network error')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchResumes()
+  }, [])
 
-  const handleSetPrimary = (id: string) => {
-    setResumes(
-      resumes.map((resume) => ({
-        ...resume,
-        isPrimary: resume.id === id,
-      })),
-    )
+  const handleSetPrimary = (id: number) => {
+    toast({ title: 'Updated', description: 'Primary resume set (local only).' })
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     setResumes(resumes.filter((resume) => resume.id !== id))
   }
 
@@ -191,12 +194,11 @@ export default function ResumeBuilderPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    if (isNaN(d.getTime())) return dateString
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
   }
 
   const getScoreColor = (score: number) => {
@@ -325,14 +327,20 @@ export default function ResumeBuilderPage() {
 
           {/* Resume List */}
           <div className="space-y-3 sm:space-y-4 w-full">
-            {resumes.length > 0 ? (
+            {loading ? (
+              <Card className="border-emerald-200">
+                <CardContent className="p-6 text-center text-sm text-gray-600">Loading resumes…</CardContent>
+              </Card>
+            ) : error ? (
+              <Card className="border-red-200">
+                <CardContent className="p-6 text-center text-sm text-red-700">{error}</CardContent>
+              </Card>
+            ) : resumes.length > 0 ? (
               resumes.map((resume) => (
                 <Card
                   key={resume.id}
                   className={`border transition-colors w-full overflow-hidden ${
-                    resume.isPrimary
-                      ? "border-emerald-300 bg-emerald-50/50"
-                      : "border-gray-200 hover:border-emerald-200"
+                    "border-gray-200 hover:border-emerald-200"
                   }`}
                 >
                   <CardContent className="p-3 sm:p-4 lg:p-6 w-full">
@@ -344,7 +352,7 @@ export default function ResumeBuilderPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-2">
                             <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 break-words">
-                              {resume.title}
+                              {resume.resume_name || `Resume #${resume.id}`}
                             </h3>
                             <div className="flex items-center gap-2 flex-wrap">
                               {resume.isPrimary && (
@@ -366,16 +374,11 @@ export default function ResumeBuilderPage() {
                             </div>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                            <span className="break-words">Template: {resume.template}</span>
+                            <span className="break-words">Template: {resume.template_id ?? '-'}</span>
                             <span className="hidden sm:inline">•</span>
-                            <span className="break-words">Modified: {formatDate(resume.lastModified)}</span>
+                            <span className="break-words">Modified: {formatDate(resume.updated_at)}</span>
                             <span className="hidden sm:inline">•</span>
-                            <div className="flex items-center gap-1">
-                              <span>Score:</span>
-                              <Badge variant="outline" className={`text-xs ${getScoreColor(resume.score)}`}>
-                                {resume.score}%
-                              </Badge>
-                            </div>
+                            <span className="break-words">Created: {formatDate(resume.created_at)}</span>
                           </div>
                         </div>
                       </div>

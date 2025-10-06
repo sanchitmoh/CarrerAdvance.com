@@ -35,16 +35,16 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
   // Fetch user details for avatar/name
   useEffect(() => {
     const employerId = typeof window !== 'undefined' ? localStorage.getItem('employer_id') : null
-    console.log('Navbar employerId:', employerId)
+  
     if (!employerId) return
     ;(async () => {
       try {
         // Use backend Employer_api to fetch ew_employers.profile_picture reliably
-        console.log('Fetching:', getBackendUrl(`/index.php/api/Employer_api/get_profile?employer_id=${employerId}`))
+        
         const res = await fetch(getBackendUrl(`/index.php/api/Employer_api/get_profile?employer_id=${employerId}`), {
           credentials: 'include',
         })
-        console.log('Fetch done:', res.status)
+       
         const data = await res.json()
         if (data?.success && data?.data?.employer) {
           const p = data.data.employer
