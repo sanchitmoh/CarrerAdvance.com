@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { Lock, Eye, EyeOff, CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import BackButton from "@/components/back-button"
+import { getBackendUrl } from "@/lib/api-config"
 
 export default function ChangePasswordPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -93,17 +94,37 @@ export default function ChangePasswordPage() {
 
     setIsLoading(true)
 
-    // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      setMessage({ type: "success", text: "Password changed successfully!" })
-      setFormData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
+      const employerId = typeof window !== "undefined" ? localStorage.getItem("employer_id") : null
+      const payload = {
+        id: employerId ? parseInt(employerId as string, 10) : 0,
+        old_password: formData.currentPassword,
+        password: formData.newPassword,
+      }
+
+      const res = await fetch(getBackendUrl('/index.php/api/Emp_api/changepass'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
       })
-    } catch (error) {
-      setMessage({ type: "error", text: "Failed to change password. Please try again." })
+
+      let data: any = null
+      try {
+        data = await res.clone().json()
+      } catch (_err) {
+        const text = await res.text()
+        data = res.ok ? { status: 1, message: text.slice(0, 200) } : { status: 0, message: text.slice(0, 200) }
+      }
+
+      if (data && (data.status === 1 || data.success === true)) {
+        setMessage({ type: "success", text: data.message || "Password changed successfully!" })
+        setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      } else {
+        setMessage({ type: "error", text: (data && (data.message || data.error)) || "Failed to change password. Please try again." })
+      }
+    } catch (_e) {
+      setMessage({ type: "error", text: "Network error. Please try again." })
     } finally {
       setIsLoading(false)
     }
@@ -354,28 +375,8 @@ export default function ChangePasswordPage() {
         </CardContent>
       </Card>
 
-      {/* Additional Security */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Additional Security</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
-              <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
-            </div>
-            <Button variant="outline">Enable 2FA</Button>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <h4 className="font-medium text-gray-900">Login Notifications</h4>
-              <p className="text-sm text-gray-600">Get notified when someone logs into your account</p>
-            </div>
-            <Button variant="outline">Configure</Button>
-          </div>
-        </CardContent>
-      </Card>
+     
+      
     </div>
   )
 }

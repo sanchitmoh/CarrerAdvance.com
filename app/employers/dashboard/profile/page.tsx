@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Edit, Save, X, Eye, Upload, MapPin, Globe, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { employerApiService, type EmployerProfile, type UpdateProfileRequest } from "@/lib/employer-api"
+import { getBackendUrl } from "@/lib/api-config"
 import { useToast } from "@/hooks/use-toast"
 import BackButton from "@/components/back-button"
 
@@ -221,20 +222,28 @@ export default function EmployerProfilePage() {
     setProfileData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     
     const file = e.target.files[0]
-    const formData = new FormData()
-    formData.append('profile_picture', file)
+		const formData = new FormData()
+		formData.append('profile_picture', file)
+		// include employer_id as backend fallback when session cookie isn't available
+		try {
+			const employerId = typeof window !== 'undefined' ? localStorage.getItem('employer_id') : null
+			if (employerId) {
+				formData.append('employer_id', employerId)
+			}
+		} catch {}
     
     try {
       setSaving(true)
       
-             const response = await fetch('/api/employer/profile/upload_picture', {
-        method: 'POST',
-        body: formData,
-      })
+			const response = await fetch(getBackendUrl('/index.php/api/Employer_api/upload_profile_picture'), {
+				method: 'POST',
+				body: formData,
+				credentials: 'include',
+			})
       
       const data = await response.json()
       

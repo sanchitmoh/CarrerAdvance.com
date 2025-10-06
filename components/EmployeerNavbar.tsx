@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Bell, Menu, X, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { getApiUrl, getAssetUrl } from "@/lib/api-config"
+import { getApiUrl, getAssetUrl, getBackendUrl } from "@/lib/api-config"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,12 +35,16 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
   // Fetch user details for avatar/name
   useEffect(() => {
     const employerId = typeof window !== 'undefined' ? localStorage.getItem('employer_id') : null
+    console.log('Navbar employerId:', employerId)
     if (!employerId) return
     ;(async () => {
       try {
-        const res = await fetch(getApiUrl(`employer/profile/get_profile?employer_id=${employerId}`), {
+        // Use backend Employer_api to fetch ew_employers.profile_picture reliably
+        console.log('Fetching:', getBackendUrl(`/index.php/api/Employer_api/get_profile?employer_id=${employerId}`))
+        const res = await fetch(getBackendUrl(`/index.php/api/Employer_api/get_profile?employer_id=${employerId}`), {
           credentials: 'include',
         })
+        console.log('Fetch done:', res.status)
         const data = await res.json()
         if (data?.success && data?.data?.employer) {
           const p = data.data.employer
@@ -48,12 +52,14 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
           const lastName = p.lastname || ''
           const name = `${firstName} ${lastName}`.trim() || 'Employer'
           const email = p.email || ''
+          // Prefer ew_employers.profile_picture
           const avatarPath = p.profile_picture || p.profile_pic || p.avatar || ''
           const avatar = avatarPath ? getAssetUrl(avatarPath) : ''
           setUser({ name, email, avatar })
         }
       } catch (_e) {
         // ignore
+        console.error('Navbar fetch error:', _e)
       }
     })()
   }, [])
@@ -61,6 +67,8 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
   const handleLogout = () => {
     logout()
     router.push('/employers/login')
+
+
   }
 
   return (
@@ -76,7 +84,7 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
           {/* Logo/Title */}
           <div className="flex items-center space-x-2">
             <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-              Employer Dashboard
+              Company Dashboard
             </h1>
           </div>
         </div>

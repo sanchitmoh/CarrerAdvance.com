@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,86 +19,140 @@ import {
   MapPin,
 } from "lucide-react"
 import Link from "next/link"
+import { getApiUrl, getBackendUrl } from "@/lib/api-config"
 
 export default function EmployerDashboardPage() {
-  // Sample data
-  const [stats] = useState({
-    totalJobs: 12,
-    activeJobs: 8,
-    totalApplications: 156,
-    interviewsScheduled: 7,
-    candidatesHired: 3,
-    profileViews: 1240,
+  const [stats, setStats] = useState({
+    totalJobs: 0,
+    activeJobs: 0,
+    totalApplications: 0,
+    interviewsScheduled: 0,
+    candidatesHired: 0,
+    profileViews: 0,
   })
 
-  const [recentApplications] = useState([
-    {
-      id: 1,
-      candidateName: "Sarah Johnson",
-      position: "Senior Frontend Developer",
-      appliedDate: "2024-01-20",
-      status: "pending",
-      avatar: "/placeholder.svg?height=40&width=40",
-      location: "San Francisco, CA",
-    },
-    {
-      id: 2,
-      candidateName: "Michael Chen",
-      position: "Product Manager",
-      appliedDate: "2024-01-20",
-      status: "reviewed",
-      avatar: "/placeholder.svg?height=40&width=40",
-      location: "Seattle, WA",
-    },
-    {
-      id: 3,
-      candidateName: "Emily Davis",
-      position: "UX Designer",
-      appliedDate: "2024-01-19",
-      status: "shortlisted",
-      avatar: "/placeholder.svg?height=40&width=40",
-      location: "Austin, TX",
-    },
-    {
-      id: 4,
-      candidateName: "David Wilson",
-      position: "Backend Developer",
-      appliedDate: "2024-01-19",
-      status: "rejected",
-      avatar: "/placeholder.svg?height=40&width=40",
-      location: "New York, NY",
-    },
-  ])
+  const [recentApplications, setRecentApplications] = useState<Array<{
+    id: number | string,
+    candidateName: string,
+    position: string,
+    appliedDate: string,
+    status: string,
+    avatar: string,
+    location: string,
+  }>>([])
 
-  const [upcomingInterviews] = useState([
-    {
-      id: 1,
-      candidateName: "Sarah Johnson",
-      position: "Senior Frontend Developer",
-      date: "2024-01-22",
-      time: "10:00 AM",
-      type: "video",
-      interviewer: "John Doe",
-    },
-    {
-      id: 2,
-      candidateName: "Michael Chen",
-      position: "Product Manager",
-      date: "2024-01-22",
-      time: "2:00 PM",
-      type: "phone",
-      interviewer: "Jane Smith",
-    },
-    {
-      id: 3,
-      candidateName: "Emily Davis",
-      position: "UX Designer",
-      date: "2024-01-23",
-      time: "11:00 AM",
-      type: "in-person",
-      interviewer: "Bob Wilson",
-    },
-  ])
+  const [upcomingInterviews, setUpcomingInterviews] = useState<Array<{
+    id: number,
+    candidateName: string,
+    position: string,
+    date: string,
+    time: string,
+    type: string,
+    interviewer: string,
+  }>>([])
+
+  useEffect(() => {
+    const employerId = typeof window !== 'undefined' ? localStorage.getItem('employer_id') : null
+    // Fetch employer jobs to derive stats and get a job id for applications
+    ;(async () => {
+      try {
+        const jobsRes = await fetch(getBackendUrl('/index.php/api/Employer_api/get_employer_jobs') + (employerId ? `?employer_id=${employerId}` : ''), {
+          credentials: 'include',
+        })
+        const jobsJson = await jobsRes.json()
+        if (jobsJson && jobsJson.success && Array.isArray(jobsJson.jobs)) {
+          const jobs = jobsJson.jobs as Array<any>
+          const activeCount = jobs.filter((j) => (j.status || '').toLowerCase() === 'active').length
+          setStats((s) => ({
+            ...s,
+            totalJobs: jobs.length,
+            activeJobs: activeCount,
+          }))
+
+          // Build recent applications from up to 3 most recent jobs
+          const sortedJobs = [...jobs].sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime())
+          const jobSample = sortedJobs.slice(0, 3)
+          let allCandidates: any[] = []
+          for (const j of jobSample) {
+            try {
+              // Primary: Employer_api/get_job_candidates/{jobId}
+              const candRes = await fetch(getBackendUrl(`/index.php/api/Employer_api/get_job_candidates/${j.id}`), { credentials: 'include' })
+              const candJson = await candRes.json()
+              if (candJson && candJson.success && Array.isArray(candJson.data) && candJson.data.length > 0) {
+                const mapped = (candJson.data as Array<any>).map((c) => ({
+                  id: c.id,
+                  candidateName: c.name || 'Candidate',
+                  position: j.title || 'Position',
+                  appliedDate: c.appliedDate || '',
+                  status: c.status || 'applied',
+                  avatar: c.avatar || '/placeholder.svg?height=40&width=40',
+                  location: c.location || 'Not specified',
+                }))
+                allCandidates = allCandidates.concat(mapped)
+                continue
+              }
+              // Fallback: Emp_api/applications (POST { id: jobId })
+              const fbRes = await fetch(getBackendUrl('/index.php/api/Emp_api/applications'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ id: j.id }),
+              })
+              const fbJson = await fbRes.json().catch(() => ({}))
+              const fbData = fbJson?.data?.applicants || fbJson?.data || []
+              if (Array.isArray(fbData) && fbData.length > 0) {
+                const mappedFb = fbData.map((c: any) => ({
+                  id: c.seeker_id || c.id || Math.random(),
+                  candidateName: (c.firstname && c.lastname) ? `${c.firstname} ${c.lastname}` : (c.name || 'Candidate'),
+                  position: j.title || 'Position',
+                  appliedDate: c.applied_date || c.apply_date || '',
+                  status: c.status || 'applied',
+                  avatar: c.profile_picture || c.avatar || '/placeholder.svg?height=40&width=40',
+                  location: c.location || 'Not specified',
+                }))
+                allCandidates = allCandidates.concat(mappedFb)
+              }
+            } catch { /* ignore per-job errors */ }
+          }
+          if (allCandidates.length > 0) {
+            const top = allCandidates
+              .sort((a, b) => new Date(b.appliedDate || 0).getTime() - new Date(a.appliedDate || 0).getTime())
+              .slice(0, 4)
+            setRecentApplications(top)
+            setStats((s) => ({ ...s, totalApplications: allCandidates.length }))
+          } else {
+            setRecentApplications([])
+            setStats((s) => ({ ...s, totalApplications: 0 }))
+          }
+        }
+      } catch (_e) {
+        // ignore
+      }
+
+      // Fetch interviews and take most recent 4
+      try {
+        const ivRes = await fetch(getBackendUrl('/index.php/api/Interview_api'), { credentials: 'include' })
+        const ivJson = await ivRes.json()
+        if (ivJson && ivJson.success && Array.isArray(ivJson.data)) {
+          const mapped = (ivJson.data as Array<any>)
+            .slice(0, 4)
+            .map((i) => ({
+              id: i.id,
+              candidateName: i.candidateName || 'Candidate',
+              position: i.position || 'Position',
+              date: i.date || '',
+              time: i.time || '',
+              type: i.type || 'video',
+              interviewer: i.interviewer || '',
+            }))
+          setUpcomingInterviews(mapped)
+          setStats((s) => ({ ...s, interviewsScheduled: ivJson.data.length || 0 }))
+        }
+      } catch (_e) {
+        // ignore
+      }
+    })()
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {

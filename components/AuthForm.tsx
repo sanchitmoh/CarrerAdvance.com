@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, CheckCircle, Building } from 'lucide-react'
-import { getApiUrl, getBaseUrl } from '@/lib/api-config'
+import { getApiUrl, getBaseUrl, getBackendUrl } from '@/lib/api-config'
 
 interface AuthFormProps {
   role: string
-  type: 'login' | 'register' | 'forgot-password' | 'reset-password'
+  type: 'login' | 'register' | 'forgot-password' | 'reset-password' | 'change-password'
   title: string
   subtitle: string
   resetToken?: string
@@ -158,6 +158,7 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
     email: '',
     password: '',
     confirmPassword: '',
+    oldPassword: '',
     firstName: '',
     lastName: '',
     phone: '',
@@ -181,7 +182,7 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
     setIsLoading(true)
 
     // Basic validation
-    if (!formData.email) {
+    if (type !== 'reset-password' && type !== 'change-password' && !formData.email) {
       toast({
         title: 'Error',
         description: 'Email is required',
@@ -199,6 +200,48 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
       })
       setIsLoading(false)
       return
+    }
+
+    if (type === 'reset-password') {
+      if (!formData.password || !formData.confirmPassword) {
+        toast({
+          title: 'Error',
+          description: 'Please enter and confirm your new password',
+          variant: 'destructive'
+        })
+        setIsLoading(false)
+        return
+      }
+      if (formData.password !== formData.confirmPassword) {
+        toast({
+          title: 'Error',
+          description: 'Passwords do not match',
+          variant: 'destructive'
+        })
+        setIsLoading(false)
+        return
+      }
+    }
+
+    if (type === 'change-password') {
+      if (!formData.oldPassword || !formData.password || !formData.confirmPassword) {
+        toast({
+          title: 'Error',
+          description: 'Please fill all password fields',
+          variant: 'destructive'
+        })
+        setIsLoading(false)
+        return
+      }
+      if (formData.password !== formData.confirmPassword) {
+        toast({
+          title: 'Error',
+          description: 'Passwords do not match',
+          variant: 'destructive'
+        })
+        setIsLoading(false)
+        return
+      }
     }
 
     // --- Job Seeker Auth Integration ---
@@ -316,25 +359,72 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
         successMsg = 'Password reset link sent! Please check your email.'
         errorMsg = 'Failed to send reset link. Please check your email.'
       } else if (type === 'reset-password') {
-        // Employers reset submits to web controller (non-API)
-        endpoint = getBaseUrl('employers/auth/reset_password/' + (resetToken || ''))
+        // Employers reset: call API endpoint that accepts token and new password
+        endpoint = getBackendUrl('/index.php/api/Emp_api/resetpassword')
         body = new URLSearchParams()
+        body.append('token', (resetToken || ''))
         body.append('password', formData.password)
         body.append('confirm_password', formData.confirmPassword)
-        body.append('submit', '1')
         successMsg = 'Password reset successfully! You can now log in with your new password.'
         errorMsg = 'Failed to reset password. Please try again.'
+      } else if (type === 'change-password') {
+        // Employers dashboard change password (ensure index.php/api path in some environments)
+        endpoint = getBackendUrl('/index.php/api/Emp_api/changepass')
+        // JSON payload for this endpoint
+        headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+        successMsg = 'Password updated successfully.'
+        errorMsg = 'Failed to change password. Please check your old password.'
       }
 
       try {
-        const res = await fetch(endpoint, {
-          method,
-          headers: {}, // Let browser set Content-Type for form data
-          body: body as URLSearchParams,
-          credentials: 'include',
-        })
-        const data = await res.json()
-        if (data.success) {
+        // attempt primary endpoint
+        let res: Response
+        if (type === 'change-password') {
+          // Send JSON for change-password
+          const employerId = (typeof window !== 'undefined') ? localStorage.getItem('employer_id') : null
+          const payload = {
+            id: employerId ? parseInt(employerId as string, 10) : 0,
+            old_password: formData.oldPassword,
+            password: formData.password,
+          }
+          res = await fetch(endpoint, {
+            method: 'POST',
+            headers,
+            credentials: 'include',
+            body: JSON.stringify(payload),
+          })
+        } else {
+          res = await fetch(endpoint, {
+            method,
+            headers: {}, // Let browser set Content-Type for form data
+            body: body as URLSearchParams,
+            credentials: 'include',
+          })
+        }
+
+        // If reset-password and primary returns 404, try index.php fallback
+        if (type === 'reset-password' && res.status === 404) {
+          const webFallback = getBackendUrl('/index.php/employers/auth/reset_password/' + (resetToken || ''))
+          const form = new URLSearchParams()
+          form.append('password', formData.password)
+          form.append('confirm_password', formData.confirmPassword)
+          form.append('submit', '1')
+          res = await fetch(webFallback, {
+            method: 'POST',
+            headers: {},
+            body: form,
+            credentials: 'include',
+          })
+        }
+
+        let data: any = null
+        try {
+          data = await res.clone().json()
+        } catch (_jsonErr) {
+          const text = await res.text()
+          data = res.ok ? { success: true, message: text?.slice(0, 200) || successMsg } : { success: false, message: text?.slice(0, 200) || errorMsg }
+        }
+        if (data && data.success) {
           toast({ title: 'Success!', description: data.message || successMsg })
           if (type === 'register') {
             router.push('/employers/login')
@@ -352,8 +442,13 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
             }
             router.push('/employers/dashboard')
           }
+          if (type === 'reset-password') {
+            setTimeout(() => {
+              router.push('/employers/login')
+            }, 1500)
+          }
         } else {
-          toast({ title: 'Error', description: data.message || errorMsg, variant: 'destructive' })
+          toast({ title: 'Error', description: (data && data.message) || errorMsg, variant: 'destructive' })
         }
       } catch (err) {
         toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
@@ -460,19 +555,21 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">
               {type === 'login' ? 'Welcome Back!' : 
-               type === 'register' ? 'Create Account' : 
+               type === 'register' ? 'Create Account' :
+               type === 'change-password' ? 'Change Password' :
                'Reset Password'}
             </CardTitle>
             <CardDescription className="text-gray-600">
               {type === 'login' ? 'Sign in to your account' : 
                type === 'register' ? 'Join our community today' : 
                type === 'forgot-password' ? 'We\'ll send you a reset link' :
+               type === 'change-password' ? 'Update your account password' :
                'Enter your new password below'}
             </CardDescription>
           </CardHeader>
           
           <CardContent className="pt-0">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form noValidate onSubmit={handleSubmit} className="space-y-5">
               {type === 'register' && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
@@ -556,24 +653,26 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
                 </>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="pl-10 h-12 border-2 border-gray-200 focus:border-emerald-500 rounded-xl"
-                    placeholder="john@example.com"
-                  />
+              {type !== 'reset-password' && type !== 'change-password' && (
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                    Email Address
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="pl-10 h-12 border-2 border-gray-200 focus:border-emerald-500 rounded-xl"
+                      placeholder="john@example.com"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {type === 'reset-password' && (
                 <>
@@ -643,7 +742,68 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
                 </>
               )}
 
-              {(type !== 'forgot-password' && type !== 'reset-password') && (
+              {type === 'change-password' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="oldPassword" className="text-sm font-medium text-gray-700">
+                      Current Password
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        id="oldPassword"
+                        name="oldPassword"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={formData.oldPassword}
+                        onChange={handleInputChange}
+                        className="pl-10 pr-12 h-12 border-2 border-gray-200 focus:border-emerald-500 rounded-xl"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                      New Password
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className="pl-10 pr-12 h-12 border-2 border-gray-200 focus:border-emerald-500 rounded-xl"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                      Confirm New Password
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        required
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className="pl-10 pr-12 h-12 border-2 border-gray-200 focus:border-emerald-500 rounded-xl"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(type !== 'forgot-password' && type !== 'reset-password' && type !== 'change-password') && (
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                     Password
@@ -726,6 +886,7 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
                     {type === 'login' ? 'Sign In' : 
                      type === 'register' ? 'Create Account' : 
                      type === 'forgot-password' ? 'Send Reset Link' :
+                     type === 'change-password' ? 'Change Password' :
                      'Reset Password'}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </div>
@@ -801,4 +962,4 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
       </div>
     </div>
   )
-}
+}21

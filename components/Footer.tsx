@@ -50,14 +50,15 @@ export default function Footer() {
       {/* Animated gradient background */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-black via-emerald-950/30 to-black"></div>
-        
+
         {/* Animated orbs */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite]"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-green-500/20 to-lime-500/20 rounded-full blur-3xl animate-[pulse_10s_ease-in-out_infinite_2s]"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-teal-500/10 to-emerald-500/10 rounded-full blur-3xl animate-[pulse_12s_ease-in-out_infinite_4s]"></div>
-        
+
         {/* Grid overlay */}
-        <div className="absolute inset-0 opacity-[0.03]" 
+        <div
+          className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `linear-gradient(rgba(16,185,129,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,.5) 1px, transparent 1px)`,
             backgroundSize: "60px 60px",
@@ -70,32 +71,28 @@ export default function Footer() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 py-16 border-b border-white/10">
           {/* Brand Section */}
           <div className="lg:col-span-4 space-y-6">
-            <a href="/" className="inline-flex items-center group">
+            <Link href="/" className="inline-flex items-center group">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                <div className="relative w-14 h-14 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                  <Zap className="h-7 w-7 text-white" />
-                </div>
+                <img
+                  src="/logo.png"
+                  alt="CareerAdvance Logo"
+                  className="h-30 w-100 object-contain transition-transform duration-300 hover:scale-105 active:scale-95"
+                />
               </div>
-              <div className="ml-4">
-                <div className="text-2xl font-black tracking-tight bg-gradient-to-r from-white via-emerald-200 to-white bg-clip-text text-transparent">
-                  CAREER ADVANCE
-                </div>
-                <div className="text-xs text-emerald-400 font-semibold tracking-widest mt-0.5">ONLINE LEARNING</div>
-              </div>
-            </a>
-            
+            </Link>
+
             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
-              Empowering careers through cutting-edge technology, intelligent job matching, and transformative learning experiences.
+              Empowering careers through cutting-edge technology, intelligent job matching, and transformative learning
+              experiences.
             </p>
-            
+
             {/* Social Links */}
             <div className="flex items-center gap-3">
               {[
                 { Icon: Facebook, color: "hover:bg-emerald-500/20 hover:text-emerald-400" },
                 { Icon: Twitter, color: "hover:bg-green-500/20 hover:text-green-400" },
                 { Icon: Linkedin, color: "hover:bg-teal-500/20 hover:text-teal-400" },
-                { Icon: Instagram, color: "hover:bg-lime-500/20 hover:text-lime-400" }
+                { Icon: Instagram, color: "hover:bg-lime-500/20 hover:text-lime-400" },
               ].map(({ Icon, color }, idx) => (
                 <a
                   key={idx}
@@ -142,8 +139,13 @@ export default function Footer() {
               { icon: Phone, text: "+1 (555) 123-4567", label: "Call Us", gradient: "from-green-500 to-teal-500" },
               { icon: MapPin, text: "Toronto, ON, Canada", label: "Visit Us", gradient: "from-teal-500 to-lime-500" },
             ].map((contact, idx) => (
-              <div key={idx} className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-emerald-500/50 transition-all duration-300 hover:bg-white/10">
-                <div className={`w-12 h-12 bg-gradient-to-br ${contact.gradient} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+              <div
+                key={idx}
+                className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-emerald-500/50 transition-all duration-300 hover:bg-white/10"
+              >
+                <div
+                  className={`w-12 h-12 bg-gradient-to-br ${contact.gradient} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}
+                >
                   <contact.icon className="w-5 h-5 text-white" />
                 </div>
                 <div className="min-w-0">
@@ -159,22 +161,22 @@ export default function Footer() {
         <div className="py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-wrap items-center justify-center md:justify-start text-sm text-gray-500 gap-1">
-              
               <span className="text-white">Designed & Developed with</span>
               <Heart className="w-4 h-4 text-red-500 fill-current animate-pulse mx-1" />
-              <span className="text-white">by 
-                <Link className=" ml-2 text-emerald-200" href="https://seoulix.com">
-                 Seoulix Technologies
+              <span className="text-white">
+                by
+                <Link className="ml-2 text-emerald-200" href="https://seoulix.com">
+                  Seoulix Technologies
                 </Link>
-                 </span>
+              </span>
             </div>
-            
+
             <div className="flex flex-wrap justify-center gap-6">
               {[
                 { name: "Privacy", href: "/privacy" },
                 { name: "Terms", href: "/terms" },
                 { name: "Cookies", href: "/cookies" },
-                { name: "Accessibility", href: "/accessibility" }
+                { name: "Accessibility", href: "/accessibility" },
               ].map((link, idx) => (
                 <a
                   key={idx}

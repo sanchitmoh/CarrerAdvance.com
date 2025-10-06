@@ -340,11 +340,23 @@ export default function MatchingJobsPage() {
 
       if (response.ok && (!contentType || !contentType.includes("application/json"))) {
         alert("Application submitted successfully.")
+        // Remove the applied job from the list without refreshing
+        setJobs((prev) => prev.filter((j) => j.id !== jobId))
+        if (selectedJob && selectedJob.id === jobId) {
+          setDialogOpen(false)
+          setSelectedJob(null)
+        }
         return
       }
 
       if (response.ok && (data as any)?.success !== false) {
         alert("Application submitted successfully.")
+        // Remove the applied job from the list without refreshing
+        setJobs((prev) => prev.filter((j) => j.id !== jobId))
+        if (selectedJob && selectedJob.id === jobId) {
+          setDialogOpen(false)
+          setSelectedJob(null)
+        }
         return
       }
 
