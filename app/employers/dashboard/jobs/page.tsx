@@ -433,7 +433,7 @@ interface Candidate {
         const newJob = await employerApiService.addJob(jobData)
         toast({
           title: "Success",
-          description: "Job posted successfully",
+          description: "You have created a job.",
         })
         
         // Refresh jobs list

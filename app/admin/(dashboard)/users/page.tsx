@@ -112,7 +112,24 @@ export default function UsersPage() {
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser)
 
   const handleViewProfile = (user: (typeof users)[0]) => { setSelectedUser(user); setIsProfileDialogOpen(true) }
-  const handleSuspendUser = (userId: number) => { setUsersData((prev) => prev.filter((user) => user.id !== userId)) }
+  const handleSuspendUser = async (user: any) => {
+    try {
+      const role = (user.role || '').toLowerCase()
+      const type = role === 'employer' ? 'employer' : (role === 'student' ? 'student' : 'jobseeker')
+      const res = await fetch(getApiUrl('admin/users/suspend'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id: user.id, type })
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) { return }
+      setUsersData((prev) => prev.map((u) => u.id === user.id ? { ...u, status: 'Suspended' } : u))
+      if (selectedUser && selectedUser.id === user.id) {
+        setSelectedUser({ ...selectedUser, status: 'Suspended' } as any)
+      }
+    } catch (_) {}
+  }
   const handleUserLogin = (user: (typeof users)[0]) => { setSelectedUser(user); setIsLoginDialogOpen(true) }
 
   const impersonateSelectedUser = async () => {
@@ -265,7 +282,7 @@ export default function UsersPage() {
                     <DropdownMenuItem onClick={() => handleViewProfile(user)}>
                       <Eye className="h-4 w-4 mr-2" /> View Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSuspendUser(user.id)}>
+                    <DropdownMenuItem onClick={() => handleSuspendUser(user)}>
                       <Ban className="h-4 w-4 mr-2" /> Suspend User
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleUserLogin(user)}>
@@ -291,7 +308,6 @@ export default function UsersPage() {
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Join Date</TableHead>
                 
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -312,7 +328,6 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell><Badge className={getRoleColor(user.role)}>{user.role}</Badge></TableCell>
                   <TableCell><Badge className={getStatusColor(user.status)}>{user.status}</Badge></TableCell>
-                  <TableCell className="hidden lg:table-cell">{user.joinDate}</TableCell>
                   
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -325,7 +340,7 @@ export default function UsersPage() {
                         <DropdownMenuItem onClick={() => handleViewProfile(user)}>
                           <Eye className="h-4 w-4 mr-2" /> View Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleSuspendUser(user.id)}>
+                        <DropdownMenuItem onClick={() => handleSuspendUser(user)}>
                           <Ban className="h-4 w-4 mr-2" /> Suspend User
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleUserLogin(user)}>
@@ -409,10 +424,7 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <div className="flex justify-between"><span>Role:</span> <Badge className={getRoleColor(selectedUser.role)}>{selectedUser.role}</Badge></div>
                 <div className="flex justify-between"><span>Status:</span> <Badge className={getStatusColor(selectedUser.status)}>{selectedUser.status}</Badge></div>
-                <div className="flex justify-between"><span>Joined:</span> {selectedUser.joinDate}</div>
-                <div className="flex justify-between"><span>Last Active:</span> {selectedUser.lastActive}</div>
               </div>
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 mt-4"><Edit className="h-4 w-4 mr-2"/> Edit Profile</Button>
             </div>
           )}
         </DialogContent>
