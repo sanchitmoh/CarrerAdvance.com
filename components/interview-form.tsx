@@ -23,6 +23,7 @@ export default function InterviewScheduler() {
   const candidateName = searchParams.get("candidate_name") || ""
   const employerEmailParam = searchParams.get("employer_email") || ""
   const authKey = searchParams.get("auth_key") || ""
+  const [loginUrl, setLoginUrl] = useState("")
   const [formData, setFormData] = useState({
     title: "Interview with Candidate",
     description: "Interview scheduled via CareerAdvance",
@@ -47,6 +48,20 @@ export default function InterviewScheduler() {
     }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Build Google login URL with redirect back to this page
+  useEffect(() => {
+    const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
+    const params = new URLSearchParams()
+    if (jobId) params.set('job_id', jobId)
+    if (jobTitle) params.set('job_title', jobTitle)
+    if (candidateEmail) params.set('candidate_email', candidateEmail)
+    if (candidateName) params.set('candidate_name', candidateName)
+    if (employerEmailParam) params.set('employer_email', employerEmailParam)
+    if (authKey) params.set('auth_key', authKey)
+    if (currentUrl) params.set('redirect', currentUrl)
+    setLoginUrl(getMeetUrl(`/login?${params.toString()}`))
+  }, [jobId, jobTitle, candidateEmail, candidateName, employerEmailParam, authKey])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -385,7 +400,7 @@ export default function InterviewScheduler() {
             {/* Login with Google (if needed) */}
             <div className="mt-4 text-center">
               <a
-                href={`${getMeetUrl("/login")}?job_id=${encodeURIComponent(jobId)}`}
+                href={loginUrl || `${getMeetUrl("/login")}?job_id=${encodeURIComponent(jobId)}`}
                 target="_blank"
                 className="inline-block px-6 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700 transition"
               >
