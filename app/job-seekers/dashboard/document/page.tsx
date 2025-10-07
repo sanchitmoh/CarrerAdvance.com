@@ -83,6 +83,8 @@ const DOC_CATEGORIES = [
 ].sort()
 
 export default function JobSeekerDocumentPage() {
+  const [isHired, setIsHired] = useState<boolean | null>(null)
+  const [loadingHired, setLoadingHired] = useState<boolean>(true)
   const [category, setCategory] = useState<string>("")
   const [docName, setDocName] = useState<string>("")
   const [description, setDescription] = useState<string>("")
@@ -102,6 +104,26 @@ export default function JobSeekerDocumentPage() {
   const previewUrlsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
+    // Check hire status on mount
+    const checkHired = async () => {
+      try {
+        const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
+        if (!jsId) {
+          setIsHired(false)
+          return
+        }
+        const res = await fetch(`/api/seeker/profile/is_hired?jobseeker_id=${encodeURIComponent(jsId)}`, { credentials: 'include' })
+        const data = await res.json().catch(() => ({} as any))
+        const hired = !!(data?.data?.is_hired)
+        setIsHired(hired)
+      } catch {
+        setIsHired(false)
+      } finally {
+        setLoadingHired(false)
+      }
+    }
+    checkHired()
+
     return () => {
       previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
       previewUrlsRef.current.clear()
@@ -177,6 +199,25 @@ export default function JobSeekerDocumentPage() {
     setDescription("")
     setExpiry("")
     setFile(null)
+  }
+
+  if (loadingHired) {
+    return (
+      <main className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="rounded-xl border bg-background p-6 text-center text-sm text-muted-foreground">Checking access…</div>
+      </main>
+    )
+  }
+
+  if (!isHired) {
+    return (
+      <main className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="rounded-xl border bg-amber-50 border-amber-200 p-6 text-center">
+          <h2 className="text-lg font-semibold text-foreground">Documents are available after you are hired</h2>
+          <p className="text-sm text-muted-foreground mt-2">Once an employer marks you as hired, this section will unlock.</p>
+        </div>
+      </main>
+    )
   }
 
   return (

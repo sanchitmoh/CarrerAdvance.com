@@ -67,6 +67,8 @@ function isTodayDateStr(dateStr: string) {
 
 export default function JobSeekerTimeTrackerPage() {
   // State
+  const [isHired, setIsHired] = useState<boolean | null>(null)
+  const [loadingHired, setLoadingHired] = useState<boolean>(true)
   const [entries, setEntries] = useState<Entry[]>([])
   const [now, setNow] = useState<number>(() => Date.now())
   const [isBreakDialogOpen, setIsBreakDialogOpen] = useState(false)
@@ -80,6 +82,28 @@ export default function JobSeekerTimeTrackerPage() {
   const [leaveFrom, setLeaveFrom] = useState<string>("")
   const [leaveTo, setLeaveTo] = useState<string>("")
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
+
+  // Check hire status on mount
+  useEffect(() => {
+    const checkHired = async () => {
+      try {
+        const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
+        if (!jsId) {
+          setIsHired(false)
+          return
+        }
+        const res = await fetch(`/api/seeker/profile/is_hired?jobseeker_id=${encodeURIComponent(jsId)}`, { credentials: 'include' })
+        const data = await res.json().catch(() => ({} as any))
+        const hired = !!(data?.data?.is_hired)
+        setIsHired(hired)
+      } catch {
+        setIsHired(false)
+      } finally {
+        setLoadingHired(false)
+      }
+    }
+    checkHired()
+  }, [])
 
   // Load entries for the selected day
   useEffect(() => {
@@ -344,6 +368,25 @@ export default function JobSeekerTimeTrackerPage() {
   }
 
   const statusLabel = isClockedIn ? (isOnBreak ? "On Break" : "On the Clock") : "Off the Clock"
+
+  if (loadingHired) {
+    return (
+      <main className="p-4 sm:p-6 lg:p-8">
+        <div className="rounded-xl border bg-background p-6 text-center text-sm text-muted-foreground">Checking access…</div>
+      </main>
+    )
+  }
+
+  if (!isHired) {
+    return (
+      <main className="p-4 sm:p-6 lg:p-8">
+        <div className="rounded-xl border bg-amber-50 border-amber-200 p-6 text-center">
+          <h2 className="text-lg font-semibold text-foreground">Time Tracker is available after you are hired</h2>
+          <p className="text-sm text-muted-foreground mt-2">Once an employer marks you as hired, this section will unlock.</p>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="p-4 sm:p-6 lg:p-8">
