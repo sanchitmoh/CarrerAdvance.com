@@ -4,6 +4,7 @@ export const PUBLIC_URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:8080'
 export const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 const MEET_BASE_RAW = process.env.NEXT_PUBLIC_MEET_URL || 'http://localhost:8080/googlecalendar';
 export const MEET_BASE_URL = MEET_BASE_RAW.replace(/\/+$/, '');
+export const GOOGLE_LOGIN_PATH = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_PATH || '/index.php/googlecalendar/login';
 
 export const getApiUrl = (endpoint: string): string =>
   `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;

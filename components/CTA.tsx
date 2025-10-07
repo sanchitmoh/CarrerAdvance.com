@@ -101,12 +101,14 @@ export default function CTA() {
           {/* Learn More */}
           <div className="transition-transform duration-300 hover:scale-105 hover:-translate-y-0.5 active:scale-95">
             <Button
-              size="lg"
-              variant="outline"
-              className="border-2 border-emerald-400 text-emerald-200 hover:bg-emerald-500/10 hover:text-white hover:border-emerald-300 px-12 py-4 text-xl font-bold transition-all duration-300 rounded-2xl backdrop-blur-sm"
-            >
-              Learn More
-            </Button>
+  size="lg"
+  variant="outline"
+  className="border-2 border-emerald-400 text-emerald-200 hover:bg-emerald-500/10 hover:text-white hover:border-emerald-300 px-12 py-4 text-xl font-bold transition-all duration-300 rounded-2xl backdrop-blur-sm"
+  onClick={() => window.location.href = "/learn-more"}
+>
+  Learn More
+</Button>
+
           </div>
         </div>
 

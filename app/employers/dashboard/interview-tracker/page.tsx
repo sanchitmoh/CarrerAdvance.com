@@ -335,8 +335,8 @@ export default function InterviewTrackerPage() {
             <p className="text-xs text-gray-600 mb-1">Interviewer: {interview.interviewer}</p>
             <p className="text-xs text-gray-500 mb-1">Email: {interview.candidateEmail}</p>
 
-            {/* Meeting Link for Video Calls */}
-            {interview.type === "video" && interview.meetingLink && (
+            {/* Meeting Link for Video Calls - Only show if not cancelled */}
+            {interview.type === "video" && interview.meetingLink && interview.status !== "cancelled" && (
               <div className="flex items-center space-x-2 mt-2">
                 <Button
                   size="sm"
@@ -378,71 +378,86 @@ export default function InterviewTrackerPage() {
             )}
           </div>
           <div className="mt-3 sm:mt-0 sm:ml-4 flex flex-col space-y-2 w-full sm:w-auto">
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full sm:w-auto text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent"
-            >
-              <Edit className="h-3 w-3 mr-1" />
-              Edit
-            </Button>
-            {interview.status === "scheduled" && (
+            {/* For cancelled interviews, only show the cancelled button */}
+            {interview.status === "cancelled" ? (
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full sm:w-auto text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
-                onClick={async () => {
-                  await setStatus(interview.id, 'confirmed')
-                  setActiveTab('confirmed')
-                }}
+                className="w-full sm:w-auto text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                disabled
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Confirm
+                <XCircle className="h-3 w-3 mr-1" />
+                Cancelled
               </Button>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent"
+                >
+                  <Edit className="h-3 w-3 mr-1" />
+                  Edit
+                </Button>
+                {interview.status === "scheduled" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full sm:w-auto text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
+                    onClick={async () => {
+                      await setStatus(interview.id, 'confirmed')
+                      setActiveTab('confirmed')
+                    }}
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Confirm
+                  </Button>
+                )}
+                {interview.status === "completed" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full sm:w-auto text-blue-600 border-blue-600 hover:bg-blue-50 bg-transparent"
+                    onClick={() => {
+                      setSelectedInterview(interview)
+                      if (interview.review) {
+                        setReviewData(interview.review)
+                      }
+                      setIsReviewDialogOpen(true)
+                    }}
+                  >
+                    <MessageSquare className="h-3 w-3 mr-1" />
+                    {interview.review ? "Edit Review" : "Add Review"}
+                  </Button>
+                )}
+                {interview.status === "confirmed" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full sm:w-auto text-gray-700 border-gray-300 hover:bg-gray-50 bg-transparent"
+                    onClick={async () => {
+                      await setStatus(interview.id, 'completed')
+                      setActiveTab('completed')
+                    }}
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Mark Completed
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                  onClick={async () => {
+                    await setStatus(interview.id, 'cancelled')
+                    setActiveTab('cancelled')
+                  }}
+                >
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Cancel
+                </Button>
+              </>
             )}
-            {interview.status === "completed" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full sm:w-auto text-blue-600 border-blue-600 hover:bg-blue-50 bg-transparent"
-                onClick={() => {
-                  setSelectedInterview(interview)
-                  if (interview.review) {
-                    setReviewData(interview.review)
-                  }
-                  setIsReviewDialogOpen(true)
-                }}
-              >
-                <MessageSquare className="h-3 w-3 mr-1" />
-                {interview.review ? "Edit Review" : "Add Review"}
-              </Button>
-            )}
-            {interview.status === "confirmed" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full sm:w-auto text-gray-700 border-gray-300 hover:bg-gray-50 bg-transparent"
-                onClick={async () => {
-                  await setStatus(interview.id, 'completed')
-                  setActiveTab('completed')
-                }}
-              >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Mark Completed
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full sm:w-auto text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
-              onClick={async () => {
-                await setStatus(interview.id, 'cancelled')
-                setActiveTab('cancelled')
-              }}
-            >
-              <XCircle className="h-3 w-3 mr-1" />
-              Cancel
-            </Button>
           </div>
         </div>
       </CardContent>
@@ -705,10 +720,17 @@ export default function InterviewTrackerPage() {
         </TabsContent>
 
         <TabsContent value="cancelled" className="space-y-4">
-          <div className="text-center py-8 text-gray-500">
-            <XCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>No cancelled interviews</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filterInterviews("cancelled").map((interview) => (
+              <InterviewCard key={interview.id} interview={interview} />
+            ))}
           </div>
+          {filterInterviews("cancelled").length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <XCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No cancelled interviews</p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
