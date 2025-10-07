@@ -49,7 +49,7 @@ export default function InterviewScheduler() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Build Google login URL with redirect back to this page
+  // Build Google login URL with explicit redirect params back to this page
   useEffect(() => {
     const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
     const params = new URLSearchParams()
@@ -59,7 +59,11 @@ export default function InterviewScheduler() {
     if (candidateName) params.set('candidate_name', candidateName)
     if (employerEmailParam) params.set('employer_email', employerEmailParam)
     if (authKey) params.set('auth_key', authKey)
-    if (currentUrl) params.set('redirect', currentUrl)
+    if (currentUrl) {
+      params.set('redirect', currentUrl)
+      params.set('return_url', currentUrl)
+      params.set('next', currentUrl)
+    }
     setLoginUrl(getMeetUrl(`/login?${params.toString()}`))
   }, [jobId, jobTitle, candidateEmail, candidateName, employerEmailParam, authKey])
 
