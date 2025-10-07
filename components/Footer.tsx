@@ -1,7 +1,27 @@
+"use client"
+import { useCallback } from "react"
 import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, Heart, Zap, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function Footer() {
+  const router = useRouter()
+
+  const handlePostJobClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    try {
+      e.preventDefault()
+      const hasCookie = typeof document !== 'undefined' && document.cookie.includes('employer_id=')
+      const hasLocal = typeof window !== 'undefined' && !!window.localStorage?.getItem('employer_id')
+      const isLoggedIn = hasCookie || hasLocal
+      if (isLoggedIn) {
+        router.push('/employers/dashboard/jobs?tab=post')
+      } else {
+        router.push('/employers/login')
+      }
+    } catch {
+      router.push('/employers/login')
+    }
+  }, [router])
   const footerSections = [
     {
       title: "For Job Seekers",
@@ -118,6 +138,7 @@ export default function Footer() {
                     <li key={lidx}>
                       <a
                         href={link.href}
+                        onClick={link.name === 'Post a Job' ? handlePostJobClick : undefined}
                         className="text-sm text-gray-400 hover:text-emerald-400 transition-colors duration-200 flex items-center group"
                       >
                         <ArrowRight className="w-3 h-3 mr-1.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />

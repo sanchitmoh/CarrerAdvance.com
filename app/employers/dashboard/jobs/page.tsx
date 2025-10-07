@@ -809,7 +809,7 @@ interface Candidate {
       <CardContent className="p-4 sm:p-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:space-x-4 space-y-3 sm:space-y-0">
           <Avatar className="w-12 h-12">
-            <AvatarImage src={candidate.avatar || "/placeholder.svg"} alt={candidate.name} />
+            <AvatarImage src={getAssetUrl(candidate.avatar || "/placeholder.svg")} alt={candidate.name} />
             <AvatarFallback className="bg-emerald-100 text-emerald-700">
               {candidate.name
                 .split(" ")
@@ -858,7 +858,8 @@ interface Candidate {
                   className="text-green-600 border-green-600 hover:bg-green-50 px-2 py-1 h-7 bg-transparent"
                   onClick={(e) => {
                     e.stopPropagation()
-                    moveCandidateToStatus(candidate.id, "shortlisted")
+                    const nextStatus = (candidate.status === 'shortlisted' || candidate.status === 'contacted') ? 'hired' : 'shortlisted'
+                    moveCandidateToStatus(candidate.id, nextStatus)
                   }}
                 >
                   <Check className="h-3 w-3" />
@@ -952,7 +953,7 @@ interface Candidate {
                         <CardContent className="p-3">
                           <div className="flex items-center space-x-3">
                             <Avatar className="w-8 h-8">
-                              <AvatarImage src={candidate.avatar || "/placeholder.svg"} alt={candidate.name} />
+                              <AvatarImage src={getAssetUrl(candidate.avatar || "/placeholder.svg")} alt={candidate.name} />
                               <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs">
                                 {candidate.name
                                   .split(" ")

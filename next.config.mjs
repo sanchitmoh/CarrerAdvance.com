@@ -3,6 +3,37 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080'
+    // Normalize to avoid double slashes in destinations
+    const backendBase = backend.replace(/\/$/, '')
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: `${backendBase}/uploads/:path*`,
+      },
+      {
+        source: '/employers/uploads/:path*',
+        destination: `${backendBase}/uploads/:path*`,
+      },
+      {
+        source: '/job-seekers/uploads/:path*',
+        destination: `${backendBase}/uploads/:path*`,
+      },
+      {
+        source: '/students/uploads/:path*',
+        destination: `${backendBase}/uploads/:path*`,
+      },
+      {
+        source: '/teachers/uploads/:path*',
+        destination: `${backendBase}/uploads/:path*`,
+      },
+      {
+        source: '/admin/uploads/:path*',
+        destination: `${backendBase}/uploads/:path*`,
+      },
+    ]
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

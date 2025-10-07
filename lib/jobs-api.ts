@@ -63,8 +63,11 @@ class JobsApiService {
 		category?: string;
 		industry?: string;
 		experience?: string;
+		job_type?: string;
 		salary_min?: number;
 		salary_max?: number;
+		sort?: string;
+		order?: string;
 	} = {}): Promise<JobsResponse> {
 		const searchParams = new URLSearchParams();
 		Object.entries(params).forEach(([key, value]) => {

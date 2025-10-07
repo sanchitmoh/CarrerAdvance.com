@@ -17,6 +17,7 @@ import ProfessionalSummary from '@/components/Jobseeker-profile/ProfessionalSumm
 import Education from '@/components/Jobseeker-profile/Education'
 import Languages from '@/components/Jobseeker-profile/Languages'
 import ResumeUpload from '@/components/Jobseeker-profile/ResumeUpload'
+import Link from 'next/link'
 
 export default function ProfilePage() {
   const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || ''
@@ -157,7 +158,8 @@ export default function ProfilePage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link href={"/job-seekers/dashboard/resume"}>
         <Card className="hover:shadow-lg transition-shadow cursor-pointer border-emerald-200">
           <CardContent className="p-4 text-center">
             <FileText className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
@@ -165,7 +167,9 @@ export default function ProfilePage() {
             <p className="text-sm text-gray-600">Upload & manage</p>
           </CardContent>
         </Card>
+        </Link>
         
+        <Link href={"job-seekers/dashboard/applications"}>
         <Card className="hover:shadow-lg transition-shadow cursor-pointer border-green-200">
           <CardContent className="p-4 text-center">
             <Briefcase className="h-8 w-8 text-green-600 mx-auto mb-2" />
@@ -173,7 +177,9 @@ export default function ProfilePage() {
             <p className="text-sm text-gray-600">Track progress</p>
           </CardContent>
         </Card>
+        </Link>
         
+        <Link href={"/job-seekers/dashboard/matching-jobs"}>
         <Card className="hover:shadow-lg transition-shadow cursor-pointer border-teal-200">
           <CardContent className="p-4 text-center">
             <CheckCircle className="h-8 w-8 text-teal-600 mx-auto mb-2" />
@@ -181,14 +187,9 @@ export default function ProfilePage() {
             <p className="text-sm text-gray-600">Find perfect fit</p>
           </CardContent>
         </Card>
+        </Link>
         
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer border-cyan-200">
-          <CardContent className="p-4 text-center">
-            <Edit className="h-8 w-8 text-cyan-600 mx-auto mb-2" />
-            <h3 className="font-semibold text-gray-900">Profile</h3>
-            <p className="text-sm text-gray-600">Complete setup</p>
-          </CardContent>
-        </Card>
+       
       </div>
 
       {/* Profile Sections */}

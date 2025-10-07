@@ -308,43 +308,137 @@ export default function ResumeBuilderPage() {
           const importedData = JSON.parse(storedData)
           console.log('Loading imported resume data:', importedData)
           
-          // Map imported data to resume form structure
+          // Heuristics to parse experience/education lines
+          const inferExperience = (desc: string) => {
+            const text = String(desc || '').trim()
+            if (!text) return { title: '', company: '', description: '' }
+            // Try patterns: "Role at Company", "Role - Company", "Company - Role"
+            const atMatch = text.match(/^(.*?)\s+at\s+([^,\-\|]+)[,\-\|]?\s*(.*)$/i)
+            if (atMatch) {
+              const [, role, company, rest] = atMatch
+              return { title: role.trim(), company: company.trim(), description: (rest || text).trim() }
+            }
+            const dashMatch = text.match(/^(.*?)\s*[\-|–—]\s*([^,\-\|]+)[,\-\|]?\s*(.*)$/)
+            if (dashMatch) {
+              const [, left, right, rest] = dashMatch
+              // Heuristic: if right contains university/college/institute, swap
+              return { title: left.trim(), company: right.trim(), description: (rest || text).trim() }
+            }
+            // Fallback: first clause as title, second as company
+            const parts = text.split(/[,\|]/).map(p => p.trim()).filter(Boolean)
+            const title = parts[0] || ''
+            const company = parts[1] || ''
+            return { title, company, description: text }
+          }
+
+          const inferEducation = (desc: string) => {
+            const text = String(desc || '').trim()
+            if (!text) return { degree: '', school: '', description: '' }
+            const degreeKeywords = /(Bachelor|Master|B\.?Tech|M\.?Tech|B\.?Sc|M\.?Sc|B\.?E|M\.?E|BCA|MCA|MBA|PhD)/i
+            const schoolKeywords = /(University|College|Institute|School|Academy)/i
+            let degree = ''
+            let school = ''
+            // Split on commas first
+            const parts = text.split(/[,\|]/).map(p => p.trim()).filter(Boolean)
+            for (const p of parts) {
+              if (!degree && degreeKeywords.test(p)) degree = p
+              if (!school && schoolKeywords.test(p)) school = p
+            }
+            // Try dashes if not found
+            if (!degree || !school) {
+              const dashParts = text.split(/[\-|–—]/).map(p => p.trim()).filter(Boolean)
+              for (const p of dashParts) {
+                if (!degree && degreeKeywords.test(p)) degree = p
+                if (!school && schoolKeywords.test(p)) school = p
+              }
+            }
+            return { degree, school, description: text }
+          }
+
+          // Map imported data (support multi-entry lists)
+          const experienceItems = Array.isArray(importedData.experience_list) && importedData.experience_list.length
+            ? importedData.experience_list.map((desc: string, idx: number) => {
+                const inferred = inferExperience(desc)
+                return {
+                id: String(idx + 1),
+                  title: inferred.title,
+                  company: inferred.company,
+                location: "",
+                startDate: "",
+                endDate: "",
+                current: false,
+                  description: String(inferred.description || desc).substring(0, 500),
+                }
+              })
+            : (importedData.experience
+                ? (() => { const inferred = inferExperience(importedData.experience); return [{
+                    id: "1",
+                    title: inferred.title,
+                    company: inferred.company,
+                    location: "",
+                    startDate: "",
+                    endDate: "",
+                    current: false,
+                    description: String(inferred.description || importedData.experience).substring(0, 500),
+                  }] })()
+                : resumeData.experience)
+
+          const educationItems = Array.isArray(importedData.education_list) && importedData.education_list.length
+            ? importedData.education_list.map((desc: string, idx: number) => {
+                const inferred = inferEducation(desc)
+                return {
+                id: String(idx + 1),
+                  degree: inferred.degree,
+                  school: inferred.school,
+                location: "",
+                graduationDate: "",
+                gpa: "",
+                  description: String(inferred.description || desc).substring(0, 300),
+                }
+              })
+            : (importedData.education
+                ? (() => { const inferred = inferEducation(importedData.education); return [{
+                    id: "1",
+                    degree: inferred.degree,
+                    school: inferred.school,
+                    location: "",
+                    graduationDate: "",
+                    gpa: "",
+                    description: String(inferred.description || importedData.education).substring(0, 300),
+                  }] })()
+                : resumeData.education)
+
+          const projectItems = Array.isArray(importedData.projects_list) && importedData.projects_list.length
+            ? importedData.projects_list.map((desc: string, idx: number) => ({
+                id: String(idx + 1),
+                name: "Imported Project",
+                date: "",
+                description: String(desc).substring(0, 400),
+                technologies: [],
+              }))
+            : resumeData.projects
+
+          const skillsArray = Array.isArray(importedData.skills_list) && importedData.skills_list.length
+            ? importedData.skills_list
+            : (importedData.skills
+                ? String(importedData.skills).split(',').map((s: string) => s.trim()).filter(Boolean)
+                : resumeData.skills)
+
           const mappedData: ResumeData = {
             personalInfo: {
-              fullName: importedData.name || "John Doe",
-              email: importedData.email || "john.doe@example.com",
-              phone: importedData.phone || "+1 (555) 123-4567",
-              location: importedData.location || "New York, NY",
-              linkedin: importedData.linkedin || "linkedin.com/in/johndoe",
-              website: importedData.website || "johndoe.dev",
+              fullName: importedData.name || "",
+              email: importedData.email || "",
+              phone: importedData.phone || "",
+              location: importedData.location || "",
+              linkedin: importedData.linkedin || "",
+              website: importedData.website || "",
             },
-            summary: importedData.summary || "Experienced professional with expertise in various domains.",
-            experience: importedData.experience ? [
-              {
-                id: "1",
-                title: "Extracted Experience",
-                company: "Various Companies",
-                location: "Multiple Locations",
-                startDate: "2020-01",
-                endDate: "",
-                current: true,
-                description: importedData.experience.substring(0, 500) + (importedData.experience.length > 500 ? "..." : ""),
-              }
-            ] : resumeData.experience,
-            education: importedData.education ? [
-              {
-                id: "1",
-                degree: "Extracted Education",
-                school: "Various Institutions",
-                location: "Multiple Locations",
-                graduationDate: "2020-05",
-                gpa: "N/A",
-                description: importedData.education.substring(0, 300) + (importedData.education.length > 300 ? "..." : ""),
-              }
-            ] : resumeData.education,
+            summary: importedData.summary || "",
+            experience: experienceItems,
+            education: educationItems,
             certifications: resumeData.certifications,
-            skills: importedData.skills ? importedData.skills.split(',').map((skill: string) => skill.trim()).filter(Boolean) : resumeData.skills,
-            projects: resumeData.projects,
+            skills: skillsArray,
+            projects: projectItems,
             activities: resumeData.activities,
           }
           
@@ -371,43 +465,84 @@ export default function ResumeBuilderPage() {
           const importedData = JSON.parse(storedData)
           console.log('Loading imported resume data:', importedData)
           
-          // Map imported data to resume form structure
+          // Map imported data (support multi-entry lists)
+          const experienceItems2 = Array.isArray(importedData.experience_list) && importedData.experience_list.length
+            ? importedData.experience_list.map((desc: string, idx: number) => ({
+                id: String(idx + 1),
+                title: "Imported Experience",
+                company: "",
+                location: "",
+                startDate: "",
+                endDate: "",
+                current: false,
+                description: String(desc).substring(0, 500),
+              }))
+            : (importedData.experience
+                ? [{
+                    id: "1",
+                    title: "Imported Experience",
+                    company: "",
+                    location: "",
+                    startDate: "",
+                    endDate: "",
+                    current: false,
+                    description: String(importedData.experience).substring(0, 500),
+                  }]
+                : resumeData.experience)
+
+          const educationItems2 = Array.isArray(importedData.education_list) && importedData.education_list.length
+            ? importedData.education_list.map((desc: string, idx: number) => ({
+                id: String(idx + 1),
+                degree: "Imported Education",
+                school: "",
+                location: "",
+                graduationDate: "",
+                gpa: "",
+                description: String(desc).substring(0, 300),
+              }))
+            : (importedData.education
+                ? [{
+                    id: "1",
+                    degree: "Imported Education",
+                    school: "",
+                    location: "",
+                    graduationDate: "",
+                    gpa: "",
+                    description: String(importedData.education).substring(0, 300),
+                  }]
+                : resumeData.education)
+
+          const projectItems2 = Array.isArray(importedData.projects_list) && importedData.projects_list.length
+            ? importedData.projects_list.map((desc: string, idx: number) => ({
+                id: String(idx + 1),
+                name: "Imported Project",
+                date: "",
+                description: String(desc).substring(0, 400),
+                technologies: [],
+              }))
+            : resumeData.projects
+
+          const skillsArray2 = Array.isArray(importedData.skills_list) && importedData.skills_list.length
+            ? importedData.skills_list
+            : (importedData.skills
+                ? String(importedData.skills).split(',').map((s: string) => s.trim()).filter(Boolean)
+                : resumeData.skills)
+
           const mappedData: ResumeData = {
             personalInfo: {
-              fullName: importedData.name || "John Doe",
-              email: importedData.email || "john.doe@example.com",
-              phone: importedData.phone || "+1 (555) 123-4567",
-              location: importedData.location || "New York, NY",
-              linkedin: importedData.linkedin || "linkedin.com/in/johndoe",
-              website: importedData.website || "johndoe.dev",
+              fullName: importedData.name || "",
+              email: importedData.email || "",
+              phone: importedData.phone || "",
+              location: importedData.location || "",
+              linkedin: importedData.linkedin || "",
+              website: importedData.website || "",
             },
-            summary: importedData.summary || "Experienced professional with expertise in various domains.",
-            experience: importedData.experience ? [
-              {
-                id: "1",
-                title: "Extracted Experience",
-                company: "Various Companies",
-                location: "Multiple Locations",
-                startDate: "2020-01",
-                endDate: "",
-                current: true,
-                description: importedData.experience.substring(0, 500) + (importedData.experience.length > 500 ? "..." : ""),
-              }
-            ] : resumeData.experience,
-            education: importedData.education ? [
-              {
-                id: "1",
-                degree: "Extracted Education",
-                school: "Various Institutions",
-                location: "Multiple Locations",
-                graduationDate: "2020-05",
-                gpa: "N/A",
-                description: importedData.education.substring(0, 300) + (importedData.education.length > 300 ? "..." : ""),
-              }
-            ] : resumeData.education,
+            summary: importedData.summary || "",
+            experience: experienceItems2,
+            education: educationItems2,
             certifications: resumeData.certifications,
-            skills: importedData.skills ? importedData.skills.split(',').map((skill: string) => skill.trim()).filter(Boolean) : resumeData.skills,
-            projects: resumeData.projects,
+            skills: skillsArray2,
+            projects: projectItems2,
             activities: resumeData.activities,
           }
           
@@ -2325,7 +2460,7 @@ export default function ResumeBuilderPage() {
                         <div className="text-right text-sm text-gray-600">
                           {project.date && <p>{project.date}</p>}
                           <div className="flex flex-wrap gap-2">
-                            {project.technologies.map((tech, index) => (
+                            {Array.isArray(project.technologies) && project.technologies.map((tech, index) => (
                               <span
                                 key={index}
                                 className="px-2 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-full"

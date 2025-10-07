@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, MapPin, Filter, Briefcase, TrendingUp, Lightbulb, X } from 'lucide-react';
+import { Search, MapPin, Filter, Briefcase, TrendingUp, Lightbulb, X, DollarSign } from 'lucide-react';
 import { jobsApiService, Job } from '@/lib/jobs-api';
 
 const jobTypes = ['All Jobs', 'Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'];
@@ -103,8 +103,16 @@ export default function JobsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentPage(1);
+    // If no search terms provided, fetch all jobs and reset filters
+    if (!title && !location) {
+      setType('All Jobs');
+      setActiveFilters([]);
+      fetchJobs('', '', 'All Jobs', 1, sortBy);
+      return;
+    }
+
     fetchJobs(title, location, type, 1, sortBy);
-    
+
     // Update active filters
     const filters = [];
     if (title) filters.push(`Title: ${title}`);
@@ -257,12 +265,13 @@ export default function JobsPage() {
                 <div key={index} className="flex items-center bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm">
                   <span>{filter}</span>
                   <button
-                    onClick={() => removeFilter(filter)}
-                    className="ml-2 text-emerald-600 hover:text-emerald-800"
-                    aria-label={`Remove ${filter} filter`}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                      onClick={() => removeFilter(filter)}
+                      className="ml-2 text-emerald-600 hover:text-emerald-800"
+                      aria-label={`Remove ${filter} filter`}
+                      title={`Remove ${filter} filter`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                 </div>
               ))}
             </div>
@@ -434,6 +443,8 @@ export default function JobsPage() {
                 <button 
                   onClick={() => setIsDialogOpen(false)} 
                   className="text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all"
+                  aria-label="Close job details"
+                  title="Close"
                 >
                   <X className="h-6 w-6" />
                 </button>

@@ -38,11 +38,7 @@ export const sidebarItems = [
     href: "/admin/jobs",
     icon: Briefcase,
   },
-  {
-    title: "Analytics",
-    href: "/admin/analytics",
-    icon: BarChart3,
-  },
+  
   {
     title: "Subscriptions",
     href: "/admin/subscriptions",
@@ -53,21 +49,13 @@ export const sidebarItems = [
     href: "/admin/feature-flags",
     icon: Flag,
   },
-  {
-    title: "System Logs",
-    href: "/admin/system-logs",
-    icon: FileText,
-  },
+  
   {
     title: "Moderation",
     href: "/admin/moderation",
     icon: Shield,
   },
-  {
-    title: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
-  },
+  
 ]
 
 interface AdminSidebarProps {

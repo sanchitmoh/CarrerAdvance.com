@@ -19,8 +19,11 @@ export const getAssetUrl = (path: string): string => {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
   
-  // For uploads, use the base URL without index.php
-  return `${PUBLIC_URL}${path.replace(/^\//, '')}`;
+  // Use backend domain for upload assets so they bypass Next.js entirely
+  const isUpload = /^\/?uploads\//i.test(path);
+  const base = (isUpload ? BACKEND_URL : PUBLIC_URL).replace(/\/$/, '');
+  const clean = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${clean}`;
 }
 
 export const getBackendUrl = (path: string = ''): string => {

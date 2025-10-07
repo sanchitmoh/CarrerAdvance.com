@@ -167,7 +167,13 @@ export default function Education() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/seeker/profile/delete_education?id=${id}`, {
+      const jobseekerId = localStorage.getItem('jobseeker_id');
+      if (!jobseekerId) {
+        console.error('No jobseeker ID found. Please login again.');
+        return;
+      }
+
+      const response = await fetch(`/api/seeker/profile/delete_education?id=${id}&jobseeker_id=${jobseekerId}` , {
         method: 'GET',
       });
       const data = await response.json();

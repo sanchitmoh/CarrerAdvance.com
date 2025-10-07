@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,18 +12,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Plus, FileText, Search, Edit, Trash2, Calendar, Eye, User, Tag } from "lucide-react"
 import BackButton from "@/components/back-button"
+import { blogsApiService, type EmployerBlogPost } from "@/lib/blogs-api"
 
-interface BlogPost {
+interface BlogPostUI {
   id: number
   title: string
   content: string
   excerpt: string
   author: string
   category: string
+  categoryId?: number
   status: "draft" | "published" | "archived"
   publishDate: string
   tags: string[]
-  readTime: string
   views: number
 }
 
@@ -32,107 +33,151 @@ export default function BlogsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [isAddingPost, setIsAddingPost] = useState(false)
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
-  const [previewingPost, setPreviewingPost] = useState<BlogPost | null>(null)
+  const [editingPost, setEditingPost] = useState<BlogPostUI | null>(null)
+  const [previewingPost, setPreviewingPost] = useState<BlogPostUI | null>(null)
 
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([
-    {
-      id: 1,
-      title: "The Future of Remote Work in Tech Industry",
-      content: "Remote work has become a permanent fixture in the tech industry...",
-      excerpt:
-        "Exploring how remote work is reshaping the technology sector and what it means for the future of employment.",
-      author: "John Smith",
-      category: "Technology",
-      status: "published",
-      publishDate: "2024-01-15",
-      tags: ["remote work", "technology", "future"],
-      readTime: "5 min read",
-      views: 1250,
-    },
-    {
-      id: 2,
-      title: "Building Effective Development Teams",
-      content: "Creating high-performing development teams requires...",
-      excerpt:
-        "Key strategies for building and managing successful software development teams in modern organizations.",
-      author: "Sarah Johnson",
-      category: "Management",
-      status: "published",
-      publishDate: "2024-01-10",
-      tags: ["team building", "management", "development"],
-      readTime: "7 min read",
-      views: 890,
-    },
-    {
-      id: 3,
-      title: "AI and Machine Learning Trends 2024",
-      content: "The landscape of AI and ML is rapidly evolving...",
-      excerpt:
-        "A comprehensive look at the latest trends and developments in artificial intelligence and machine learning.",
-      author: "Mike Wilson",
-      category: "AI/ML",
-      status: "draft",
-      publishDate: "2024-01-20",
-      tags: ["AI", "machine learning", "trends", "2024"],
-      readTime: "8 min read",
-      views: 0,
-    },
-  ])
+  const [blogPosts, setBlogPosts] = useState<BlogPostUI[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string>("")
+  const [categoriesList, setCategoriesList] = useState<{ id: number; name: string }[]>([])
+
+  const loadBlogs = async () => {
+      setLoading(true)
+      setError("")
+      try {
+        const res = await blogsApiService.getEmployerBlogs()
+        const cats = await blogsApiService.getCategories()
+        if (cats.success) {
+          setCategoriesList(cats.data || [])
+        }
+        if (res.success) {
+          const mapped: BlogPostUI[] = (res.data || []).map((b: EmployerBlogPost) => ({
+            id: Number(b.id),
+            title: b.title || "",
+            content: b.content || "",
+            excerpt: (b as any).excerpt || "",
+            author: b.author_name || (b as any).company_name || "",
+            category: b.category_name || "",
+            categoryId: (b as any).category_id ? Number((b as any).category_id) : undefined,
+            status: (b.status as any) || "draft",
+            publishDate: (b.published_at || b.created_at || new Date().toISOString()).split("T")[0],
+            tags: (b as any).tags || [],
+            views: Number(b.views_count || 0),
+          }))
+          setBlogPosts(mapped)
+        } else {
+          setBlogPosts([])
+        }
+      } catch (e: any) {
+        setError(e?.message || "Failed to load blogs")
+      } finally {
+        setLoading(false)
+      }
+  }
+
+  useEffect(() => {
+    loadBlogs()
+  }, [])
 
   const [newPost, setNewPost] = useState({
     title: "",
     content: "",
     excerpt: "",
-    category: "",
+    categoryId: "" as string | number,
     tags: "",
-    readTime: "",
+    imageFile: null as File | null,
   })
 
-  const categories = ["Technology", "Management", "AI/ML", "Career", "Industry News", "Company Updates"]
+  const categories = categoriesList
 
   const handleInputChange = (field: string, value: string) => {
     if (editingPost) {
+      if (field === "tags") {
+        const arr = value
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t)
+        setEditingPost({ ...editingPost, tags: arr })
+        return
+      }
+      if (field === "categoryId") {
+        const idNum = value ? Number(value) : undefined
+        const catName = idNum ? (categories.find((c) => c.id === idNum)?.name || "") : ""
+        setEditingPost({ ...editingPost, categoryId: idNum, category: catName })
+        return
+      }
       setEditingPost({ ...editingPost, [field]: value })
     } else {
       setNewPost((prev) => ({ ...prev, [field]: value }))
     }
   }
 
-  const handleAddPost = (status: "draft" | "published") => {
-    const post: BlogPost = {
-      id: Date.now(),
-      ...newPost,
-      author: "Current User",
-      status,
-      publishDate: new Date().toISOString().split("T")[0],
-      tags: newPost.tags
+  const handleAddPost = async (status: "draft" | "published") => {
+    try {
+      setLoading(true)
+      const tags = newPost.tags
         .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag),
-      views: 0,
+        .map((t) => t.trim())
+        .filter((t) => t)
+        .join(",")
+      const categoryId = newPost.categoryId ? Number(newPost.categoryId) : undefined
+      const res = await blogsApiService.createBlog({
+        title: newPost.title,
+        content: newPost.content,
+        excerpt: newPost.excerpt,
+        summary: newPost.excerpt, // basic summary from excerpt
+        keywords: "",
+        category_id: categoryId as any,
+        status,
+        tags,
+      })
+      if (!res.success) throw new Error(res.message || "Create failed")
+      await loadBlogs()
+      setNewPost({ title: "", content: "", excerpt: "", categoryId: "", tags: "", imageFile: null })
+      setIsAddingPost(false)
+    } catch (e) {
+      setError((e as any)?.message || "Failed to create blog")
+    } finally {
+      setLoading(false)
     }
-    setBlogPosts([...blogPosts, post])
-    setNewPost({
-      title: "",
-      content: "",
-      excerpt: "",
-      category: "",
-      tags: "",
-      readTime: "",
-    })
-    setIsAddingPost(false)
   }
 
-  const handleUpdatePost = () => {
-    if (editingPost) {
-      setBlogPosts(blogPosts.map((post) => (post.id === editingPost.id ? editingPost : post)))
+  const handleUpdatePost = async () => {
+    if (!editingPost) return
+    try {
+      setLoading(true)
+      const res = await blogsApiService.updateBlog(editingPost.id, {
+        title: editingPost.title,
+        content: editingPost.content,
+        excerpt: editingPost.excerpt,
+        summary: editingPost.excerpt,
+        keywords: "",
+        category_id: editingPost.categoryId as any,
+        status: editingPost.status,
+        tags: editingPost.tags.join(","),
+        imageFile: newPost.imageFile,
+      })
+      if (!res.success) throw new Error(res.message || "Update failed")
+      await loadBlogs()
       setEditingPost(null)
+    } catch (e) {
+      setError((e as any)?.message || "Failed to update blog")
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleDeletePost = (id: number) => {
-    setBlogPosts(blogPosts.filter((post) => post.id !== id))
+  const handleDeletePost = async (id: number) => {
+    try {
+      setLoading(true)
+      const res = await blogsApiService.deleteBlog(id)
+      if (!res.success) throw new Error(res.message || "Delete failed")
+      await loadBlogs()
+    } catch (e) {
+      setError((e as any)?.message || "Failed to delete blog")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const filteredPosts = blogPosts.filter((post) => {
@@ -148,11 +193,11 @@ export default function BlogsPage() {
     return matchesSearch && matchesStatus && matchesTab
   })
 
-  const publishedPosts = blogPosts.filter((post) => post.status === "published")
-  const draftPosts = blogPosts.filter((post) => post.status === "draft")
-  const archivedPosts = blogPosts.filter((post) => post.status === "archived")
+  const publishedPosts = useMemo(() => blogPosts.filter((post) => post.status === "published"), [blogPosts])
+  const draftPosts = useMemo(() => blogPosts.filter((post) => post.status === "draft"), [blogPosts])
+  const archivedPosts = useMemo(() => blogPosts.filter((post) => post.status === "archived"), [blogPosts])
 
-  const BlogCard = ({ post }: { post: BlogPost }) => (
+  const BlogCard = ({ post }: { post: BlogPostUI }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4 sm:p-6">
         <div className="space-y-3 sm:space-y-4">
@@ -183,7 +228,7 @@ export default function BlogsPage() {
           </div>
 
           <div className="flex flex-wrap gap-1 mb-3">
-            {post.tags.slice(0, 2).map((tag, index) => (
+            {post.tags.slice(0, 2).map((tag: string, index: number) => (
               <Badge key={index} variant="outline" className="text-xs">
                 <Tag className="h-2 w-2 mr-1" />
                 <span className="truncate max-w-16 sm:max-w-none">{tag}</span>
@@ -209,7 +254,7 @@ export default function BlogsPage() {
                   {new Date(post.publishDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
               </span>
-              <span className="hidden sm:inline">{post.readTime}</span>
+              {/* Read Time removed */}
             </div>
             {post.status === "published" && (
               <div className="flex items-center">
@@ -261,7 +306,14 @@ export default function BlogsPage() {
           <Input
             id="title"
             value={isEditing ? editingPost?.title || "" : newPost.title}
-            onChange={(e) => handleInputChange("title", e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              if (isEditing && editingPost) {
+                setEditingPost({ ...editingPost, title: v })
+              } else {
+                setNewPost((prev) => ({ ...prev, title: v }))
+              }
+            }}
             placeholder="Enter blog post title"
           />
         </div>
@@ -272,7 +324,14 @@ export default function BlogsPage() {
             id="excerpt"
             rows={2}
             value={isEditing ? editingPost?.excerpt || "" : newPost.excerpt}
-            onChange={(e) => handleInputChange("excerpt", e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              if (isEditing && editingPost) {
+                setEditingPost({ ...editingPost, excerpt: v })
+              } else {
+                setNewPost((prev) => ({ ...prev, excerpt: v }))
+              }
+            }}
             placeholder="Brief description of the blog post"
           />
         </div>
@@ -281,30 +340,61 @@ export default function BlogsPage() {
           <div>
             <Label htmlFor="category">Category *</Label>
             <Select
-              value={isEditing ? editingPost?.category || "" : newPost.category}
-              onValueChange={(value) => handleInputChange("category", value)}
+              value={isEditing ? (editingPost?.categoryId ? String(editingPost.categoryId) : "") : (newPost.categoryId ? String(newPost.categoryId) : "")}
+              onValueChange={(value) => handleInputChange("categoryId", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                  <SelectItem key={category.id} value={String(category.id)}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label htmlFor="readTime">Read Time</Label>
-            <Input
-              id="readTime"
-              value={isEditing ? editingPost?.readTime || "" : newPost.readTime}
-              onChange={(e) => handleInputChange("readTime", e.target.value)}
-              placeholder="e.g., 5 min read"
-            />
+            {/* Read Time removed */}
           </div>
+        </div>
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={async () => {
+              const title = isEditing ? (editingPost?.title || "") : newPost.title
+              const categoryId = isEditing ? editingPost?.categoryId : (newPost.categoryId ? Number(newPost.categoryId) : undefined)
+              const categoryName = categoryId ? (categories.find((c) => c.id === categoryId)?.name || "") : ""
+              if (!title || !categoryName) {
+                alert('Please enter a title and select a category before generating.');
+                return
+              }
+              try {
+                setLoading(true)
+                const res = await blogsApiService.aiGenerateContent({ title, category: categoryName })
+                const ai = res && (res as any).data ? (res as any).data : undefined
+                if (res.success && ai) {
+                  if (isEditing && editingPost) {
+                    setEditingPost({ ...editingPost, content: ai.content, excerpt: ai.excerpt })
+                  } else {
+                    setNewPost((prev) => ({ ...prev, content: ai.content, excerpt: ai.excerpt }))
+                  }
+                } else {
+                  alert(res?.message || 'AI generation failed')
+                }
+              } catch (e: any) {
+                alert(e?.message || 'AI generation error')
+              } finally {
+                setLoading(false)
+              }
+            }}
+            aria-label="Generate content with AI"
+            disabled={loading}
+          >
+            Generate with AI
+          </Button>
         </div>
 
         <div>
@@ -312,8 +402,29 @@ export default function BlogsPage() {
           <Input
             id="tags"
             value={isEditing ? editingPost?.tags?.join(", ") || "" : newPost.tags}
-            onChange={(e) => handleInputChange("tags", e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              if (isEditing && editingPost) {
+                const arr = v.split(",").map((t) => t.trim()).filter((t) => t)
+                setEditingPost({ ...editingPost, tags: arr })
+              } else {
+                setNewPost((prev) => ({ ...prev, tags: v }))
+              }
+            }}
             placeholder="Enter tags separated by commas"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="image">Featured Image</Label>
+          <Input
+            id="image"
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files && e.target.files[0] ? e.target.files[0] : null
+              setNewPost((prev) => ({ ...prev, imageFile: file }))
+            }}
           />
         </div>
 
@@ -323,7 +434,14 @@ export default function BlogsPage() {
             id="content"
             rows={12}
             value={isEditing ? editingPost?.content || "" : newPost.content}
-            onChange={(e) => handleInputChange("content", e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              if (isEditing && editingPost) {
+                setEditingPost({ ...editingPost, content: v })
+              } else {
+                setNewPost((prev) => ({ ...prev, content: v }))
+              }
+            }}
             placeholder="Write your blog post content here..."
           />
         </div>
@@ -341,9 +459,9 @@ export default function BlogsPage() {
                 title: "",
                 content: "",
                 excerpt: "",
-                category: "",
+                categoryId: "",
                 tags: "",
-                readTime: "",
+                imageFile: null,
               })
             }
           }}
@@ -547,11 +665,7 @@ export default function BlogsPage() {
                         })}
                       </span>
                     </div>
-                    {previewingPost.readTime && (
-                      <div className="flex items-center">
-                        <span>{previewingPost.readTime}</span>
-                      </div>
-                    )}
+                    {/* Read Time removed */}
                     {previewingPost.status === "published" && (
                       <div className="flex items-center">
                         <Eye className="h-4 w-4 mr-2" />
@@ -562,7 +676,7 @@ export default function BlogsPage() {
 
                   {previewingPost.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {previewingPost.tags.map((tag, index) => (
+                      {previewingPost.tags.map((tag: string, index: number) => (
                         <Badge key={index} variant="outline" className="text-xs">
                           <Tag className="h-3 w-3 mr-1" />
                           {tag}
