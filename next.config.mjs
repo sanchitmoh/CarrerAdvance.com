@@ -9,6 +9,10 @@ const nextConfig = {
     const backendBase = backend.replace(/\/$/, '')
     return [
       {
+        source: '/api/:path*',
+        destination: `${backendBase}/api/:path*`,
+      },
+      {
         source: '/uploads/:path*',
         destination: `${backendBase}/uploads/:path*`,
       },

@@ -53,6 +53,7 @@ class BlogsApiService {
     category_id?: number;
     status: 'draft' | 'published';
     tags?: string; // comma-separated
+    imageFile?: File | null;
   }): Promise<{ success: boolean; message?: string; post_id?: number }> {
     const form = new FormData();
     form.append('title', payload.title);
@@ -63,6 +64,7 @@ class BlogsApiService {
     if (payload.category_id) form.append('category_id', String(payload.category_id));
     form.append('status', payload.status);
     if (payload.tags) form.append('tags', payload.tags);
+    if (payload.imageFile) form.append('image', payload.imageFile);
 
     const res = await fetch(`${this.baseUrl}`, { method: 'POST', body: form, credentials: 'include' });
     return res.json();
@@ -95,7 +97,8 @@ class BlogsApiService {
       form.append('status', payload.status);
       if (payload.tags) form.append('tags', payload.tags);
       if ((payload as any).imageFile) form.append('image', (payload as any).imageFile as File);
-      const res = await fetch(`${this.baseUrl}/${id}`, { method: 'PUT', body: form, credentials: 'include' });
+      // Use POST for multipart so CodeIgniter can parse fields via $this->input->post
+      const res = await fetch(`${this.baseUrl}/${id}`, { method: 'POST', body: form, credentials: 'include' });
       return res.json();
     } else {
       const res = await fetch(`${this.baseUrl}/${id}`, {

@@ -76,6 +76,11 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
   // Sidebar sizing follows employer sidebar: desktop fixed narrow; mobile slide-in when open
   const shouldExpand = !collapsed
 
+  // Hide sidebar on specific jobseeker tools pages where a full-width layout is desired
+  const hideOnRoutes = ['/job-seekers/dashboard/time-tracker']
+  const shouldHideSidebar = hideOnRoutes.some((route) => pathname?.startsWith(route))
+  if (shouldHideSidebar) return null
+
   return (
     <TooltipProvider>
       <div

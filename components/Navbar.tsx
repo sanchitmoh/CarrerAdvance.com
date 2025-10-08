@@ -121,7 +121,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center group transition-transform duration-300 hover:scale-105 active:scale-95">
             <div className="relative">
               <Image 
-                src="/logo1.png" 
+                src="/logo3.png" 
                 alt="Career Advance - Empowering Your Journey"
                 width={200}
                 height={88}

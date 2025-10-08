@@ -49,42 +49,13 @@ function formatBytes(bytes: number) {
   return `${val.toFixed(i === 0 ? 0 : 1)} ${sizes[i]}`
 }
 
-const DOC_CATEGORIES = [
-  "10th Marksheet",
-  "12th Marksheet",
-  "Aadhaar Card",
-  "Bank Passbook/Statement",
-  "Birth Certificate",
-  "BMC ID",
-  "Cancelled Cheque",
-  "Company ID (Previous)",
-  "Degree Certificate",
-  "Diploma Certificate",
-  "Driving License",
-  "ESIC/PF Card",
-  "Experience Letter",
-  "Form 16/IT Returns",
-  "Marriage Certificate",
-  "Medical Certificate",
-  "PAN Card",
-  "Passport",
-  "Police Verification",
-  "Postgraduate Certificate",
-  "Professional Certification",
-  "Ration Card",
-  "Reference Letter",
-  "Relieving Letter",
-  "Rent Agreement",
-  "Salary Slips (Previous Job)",
-  "Utility Bill (Address Proof)",
-  "Vaccination Record",
-  "Voter ID",
-  "Other",
-].sort()
+type BackendCategory = { id: number; company_id: number; name: string; slug?: string }
 
 export default function JobSeekerDocumentPage() {
   const [isHired, setIsHired] = useState<boolean | null>(null)
   const [loadingHired, setLoadingHired] = useState<boolean>(true)
+  const [categories, setCategories] = useState<string[]>([])
+  const [loadingCategories, setLoadingCategories] = useState<boolean>(true)
   const [category, setCategory] = useState<string>("")
   const [docName, setDocName] = useState<string>("")
   const [description, setDescription] = useState<string>("")
@@ -124,13 +95,88 @@ export default function JobSeekerDocumentPage() {
     }
     checkHired()
 
+    // Load categories for hired users
+    const loadCategories = async () => {
+      try {
+        const ls = typeof window !== 'undefined' ? window.localStorage : null
+        const jsId = ls ? ls.getItem('jobseeker_id') : null
+        const empId = ls ? ls.getItem('employer_id') : null
+        let query = ''
+        if (empId) {
+          query = `employer_id=${encodeURIComponent(empId)}`
+        } else if (jsId) {
+          // If only jobseeker_id is present, try to resolve hiring employers first
+          const hiredRes = await fetch(`/api/seeker/profile/get_hiring_employers?jobseeker_id=${encodeURIComponent(jsId)}`, { credentials: 'include' })
+          const hiredData = await hiredRes.json().catch(() => ({} as any))
+          const ids = Array.isArray(hiredData?.data) ? hiredData.data : []
+          if (ids.length > 0) {
+            query = `employer_id=${encodeURIComponent(ids[0])}`
+          } else {
+            query = `jobseeker_id=${encodeURIComponent(jsId)}`
+          }
+        } else {
+          setCategories([])
+          return
+        }
+        const res = await fetch(`/api/seeker/profile/get_document_categories?${query}`, { credentials: 'include' })
+        const data = await res.json().catch(() => ({} as any))
+        const names = Array.isArray(data?.data) ? data.data.map((c: BackendCategory) => c?.name).filter((n: any) => typeof n === 'string' && n.trim() !== '') : []
+        // Ensure "Other" option exists and uniqueness
+        const unique = Array.from(new Set([...(names || [])])) as string[]
+        if (!unique.includes('Other')) unique.push('Other')
+        unique.sort((a, b) => a.localeCompare(b))
+        setCategories(unique)
+      } catch {
+        setCategories(['Other'])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+    loadCategories()
+
+    // Load documents if hired
+    if (isHired) {
+      loadDocuments()
+    }
+
     return () => {
       previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
       previewUrlsRef.current.clear()
     }
-  }, [])
+  }, [isHired])
 
   const requiresCustomName = useMemo(() => category === "Other", [category])
+
+  // Load documents from API
+  const loadDocuments = async () => {
+    try {
+      const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
+      if (!jsId) return
+
+      const response = await fetch(`/api/seeker/profile/get_documents?jobseeker_id=${encodeURIComponent(jsId)}`, {
+        credentials: 'include'
+      })
+      const result = await response.json()
+
+      if (result.success) {
+        const documents: DocRecord[] = result.data.map((doc: any) => ({
+          id: doc.id.toString(),
+          category: doc.category_name || doc.name,
+          name: doc.name,
+          description: doc.description || "",
+          expiry: doc.expiry_date || null,
+          fileName: doc.original_filename,
+          fileType: doc.mime_type || "unknown",
+          fileSize: doc.file_size || 0,
+          uploadedAt: doc.created_at,
+          previewUrl: doc.file_url
+        }))
+        setUploadedDocs(documents)
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error)
+    }
+  }
 
   function onDrop(e: React.DragEvent<HTMLLabelElement>) {
     e.preventDefault()
@@ -176,29 +222,45 @@ export default function JobSeekerDocumentPage() {
       return
     }
 
-    const previewUrl = file ? URL.createObjectURL(file) : undefined
-    if (previewUrl) previewUrlsRef.current.add(previewUrl)
-
-    const record: DocRecord = {
-      id: (globalThis.crypto?.randomUUID?.() as string) || String(Date.now()),
-      category,
-      name: requiresCustomName ? docName.trim() : category,
-      description: description?.trim() || "",
-      expiry: expiry || null,
-      fileName: file.name,
-      fileType: file.type || "unknown",
-      fileSize: file.size ?? 0,
-      uploadedAt: new Date().toISOString(),
-      previewUrl,
+    const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
+    if (!jsId) {
+      alert("Please log in to upload documents.")
+      return
     }
-    setUploadedDocs((prev) => [record, ...prev])
 
-    alert("Document submitted successfully.")
-    setCategory("")
-    setDocName("")
-    setDescription("")
-    setExpiry("")
-    setFile(null)
+    try {
+      const formData = new FormData()
+      formData.append('jobseeker_id', jsId)
+      formData.append('category', category)
+      formData.append('name', requiresCustomName ? docName.trim() : category)
+      formData.append('description', description?.trim() || "")
+      formData.append('expiry_date', expiry || "")
+      formData.append('file', file)
+
+      const response = await fetch('/api/seeker/profile/upload_document', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert("Document uploaded successfully.")
+        setCategory("")
+        setDocName("")
+        setDescription("")
+        setExpiry("")
+        setFile(null)
+        // Refresh the documents list
+        loadDocuments()
+      } else {
+        alert(`Upload failed: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert("Upload failed. Please try again.")
+    }
   }
 
   if (loadingHired) {
@@ -249,11 +311,12 @@ export default function JobSeekerDocumentPage() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full rounded-lg border bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 aria-describedby="doc-category-help"
+                disabled={loadingCategories}
               >
                 <option value="" disabled>
-                  Select a category
+                  {loadingCategories ? 'Loading categories…' : 'Select a category'}
                 </option>
-                {DOC_CATEGORIES.map((c) => (
+                {categories.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -264,21 +327,23 @@ export default function JobSeekerDocumentPage() {
               </p>
             </div>
 
-            {requiresCustomName && (
-              <div className="space-y-2">
-                <label htmlFor="doc-name" className="text-sm font-medium text-foreground">
-                  Document Name *
-                </label>
-                <input
-                  id="doc-name"
-                  type="text"
-                  placeholder="Enter document name"
-                  value={docName}
-                  onChange={(e) => setDocName(e.target.value)}
-                  className="w-full rounded-lg border bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <label htmlFor="doc-name" className="text-sm font-medium text-foreground">
+                Document Name {requiresCustomName ? '*' : <span className="text-xs text-muted-foreground">(Optional)</span>}
+              </label>
+              <input
+                id="doc-name"
+                type="text"
+                placeholder="Enter document name"
+                value={docName}
+                onChange={(e) => setDocName(e.target.value)}
+                className="w-full rounded-lg border bg-background px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                aria-describedby="doc-name-help"
+              />
+              <p id="doc-name-help" className="text-xs text-muted-foreground">
+                {requiresCustomName ? 'Required when category is Other.' : 'Optional; used for clarity.'}
+              </p>
+            </div>
 
             <div className="space-y-2">
               <label htmlFor="doc-desc" className="text-sm font-medium text-foreground">
@@ -391,7 +456,15 @@ export default function JobSeekerDocumentPage() {
             </p>
           </div>
           {uploadedDocs.length > 0 && (
-            <Button variant="outline" size="sm" className="sm:self-start">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="sm:self-start"
+              onClick={() => {
+                // Download all documents as a zip (this would require backend implementation)
+                alert("Export functionality will be implemented in a future update.")
+              }}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export All
             </Button>
@@ -578,7 +651,23 @@ export default function JobSeekerDocumentPage() {
                     src={docToPreview.previewUrl}
                     alt={docToPreview.fileName}
                     className="max-w-full h-auto mx-auto rounded border"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                    }}
                   />
+                  <div className="hidden text-center py-8">
+                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground mb-3">Image preview not available</p>
+                    <a
+                      href={docToPreview.previewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                    >
+                      Open in new tab
+                    </a>
+                  </div>
                 </div>
               ) : docToPreview.fileType === "application/pdf" ? (
                 <iframe 
@@ -627,13 +716,40 @@ export default function JobSeekerDocumentPage() {
             <AlertDialogCancel className="mt-0 flex-1 sm:flex-none">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700 flex-1 sm:flex-none"
-              onClick={() => {
-                if (docToDelete?.previewUrl) {
-                  URL.revokeObjectURL(docToDelete.previewUrl)
-                  previewUrlsRef.current.delete(docToDelete.previewUrl)
-                }
+              onClick={async () => {
                 if (docToDelete) {
-                  setUploadedDocs((prev) => prev.filter((d) => d.id !== docToDelete.id))
+                  try {
+                    const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
+                    if (!jsId) {
+                      alert("Please log in to delete documents.")
+                      return
+                    }
+
+                    const response = await fetch('/api/seeker/profile/delete_document', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        jobseeker_id: jsId,
+                        document_id: docToDelete.id
+                      }),
+                      credentials: 'include'
+                    })
+
+                    const result = await response.json()
+
+                    if (result.success) {
+                      // Remove from local state
+                      setUploadedDocs((prev) => prev.filter((d) => d.id !== docToDelete.id))
+                      alert("Document deleted successfully.")
+                    } else {
+                      alert(`Delete failed: ${result.message}`)
+                    }
+                  } catch (error) {
+                    console.error('Delete error:', error)
+                    alert("Delete failed. Please try again.")
+                  }
                 }
                 setDocToDelete(null)
                 setDeleteOpen(false)

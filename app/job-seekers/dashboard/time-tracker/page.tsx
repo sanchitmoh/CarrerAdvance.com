@@ -13,6 +13,26 @@ type Entry = {
   breakType?: string
 }
 
+type TimeTrackingSession = {
+  id: number
+  employee_id: number
+  company_id: number
+  date: string
+  clock_in_time: string
+  clock_out_time: string | null
+  break_start_time: string | null
+  break_end_time: string | null
+  total_work_hours: number
+  total_break_hours: number
+  overtime_hours: number
+  location: string
+  device_info: string
+  ip_address: string
+  is_active: number
+  created_at: string
+  updated_at: string
+}
+
 type LeaveStatus = "Pending" | "Approved" | "Cancelled"
 
 type LeaveRequest = {
@@ -74,6 +94,9 @@ export default function JobSeekerTimeTrackerPage() {
   const [isBreakDialogOpen, setIsBreakDialogOpen] = useState(false)
   const [selectedBreakType, setSelectedBreakType] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string>(() => dateStrFromDate(new Date()))
+  const [activeSession, setActiveSession] = useState<TimeTrackingSession | null>(null)
+  const [sessions, setSessions] = useState<TimeTrackingSession[]>([])
+  const [loading, setLoading] = useState(false)
   const breakOptions = [
     { type: "Lunch", duration: "1 hour" },
     { type: "Coffee", duration: "15 mins" }
@@ -83,11 +106,78 @@ export default function JobSeekerTimeTrackerPage() {
   const [leaveTo, setLeaveTo] = useState<string>("")
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
 
+  // API functions
+  const loadActiveSession = async () => {
+    try {
+      const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
+      if (!jsId) return
+
+      const res = await fetch(`/api/seeker/time-tracking/active_session?jobseeker_id=${encodeURIComponent(jsId)}`, { 
+        credentials: 'include' 
+      })
+      const data = await res.json()
+      if (data.success) {
+        setActiveSession(data.data)
+      }
+    } catch (error) {
+      console.error('Error loading active session:', error)
+    }
+  }
+
+  const loadSessions = async (date: string) => {
+    try {
+      const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
+      if (!jsId) return
+
+      const res = await fetch(`/api/seeker/time-tracking/sessions?jobseeker_id=${encodeURIComponent(jsId)}&date=${encodeURIComponent(date)}`, { 
+        credentials: 'include' 
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSessions(data.data || [])
+        // Convert sessions to entries for display
+        convertSessionsToEntries(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error loading sessions:', error)
+    }
+  }
+
+  const convertSessionsToEntries = (sessions: TimeTrackingSession[]) => {
+    const newEntries: Entry[] = []
+    
+    sessions.forEach(session => {
+      if (session.clock_in_time) {
+        const clockInTime = new Date(`${session.date}T${session.clock_in_time}`).getTime()
+        newEntries.push({ type: "in", at: clockInTime })
+      }
+      
+      if (session.break_start_time) {
+        const breakStartTime = new Date(`${session.date}T${session.break_start_time}`).getTime()
+        newEntries.push({ type: "break-start", at: breakStartTime, breakType: "Break" })
+      }
+      
+      if (session.break_end_time) {
+        const breakEndTime = new Date(`${session.date}T${session.break_end_time}`).getTime()
+        newEntries.push({ type: "break-end", at: breakEndTime })
+      }
+      
+      if (session.clock_out_time) {
+        const clockOutTime = new Date(`${session.date}T${session.clock_out_time}`).getTime()
+        newEntries.push({ type: "out", at: clockOutTime })
+      }
+    })
+    
+    // Sort by time
+    newEntries.sort((a, b) => a.at - b.at)
+    setEntries(newEntries)
+  }
+
   // Check hire status on mount
   useEffect(() => {
     const checkHired = async () => {
       try {
-        const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
+        const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
         if (!jsId) {
           setIsHired(false)
           return
@@ -96,6 +186,11 @@ export default function JobSeekerTimeTrackerPage() {
         const data = await res.json().catch(() => ({} as any))
         const hired = !!(data?.data?.is_hired)
         setIsHired(hired)
+        
+        if (hired) {
+          await loadActiveSession()
+          await loadSessions(selectedDate)
+        }
       } catch {
         setIsHired(false)
       } finally {
@@ -107,28 +202,10 @@ export default function JobSeekerTimeTrackerPage() {
 
   // Load entries for the selected day
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(keyForDate(selectedDate))
-      if (raw) {
-        const parsed: Entry[] = JSON.parse(raw)
-        if (Array.isArray(parsed)) setEntries(parsed)
-        else setEntries([])
-      } else {
-        setEntries([])
-      }
-    } catch {
-      setEntries([])
+    if (isHired) {
+      loadSessions(selectedDate)
     }
-  }, [selectedDate])
-
-  // Persist entries per selected day
-  useEffect(() => {
-    try {
-      localStorage.setItem(keyForDate(selectedDate), JSON.stringify(entries))
-    } catch {
-      // ignore
-    }
-  }, [entries, selectedDate])
+  }, [selectedDate, isHired])
 
   // Check if a break type has already been taken today
   const getTakenBreakTypes = useMemo(() => {
@@ -157,102 +234,50 @@ export default function JobSeekerTimeTrackerPage() {
   }, [selectedDate])
   const calcNow = isSelectedToday ? now : (lastEventTs ?? startOfSelectedDay)
 
-  // Derive status + durations
+  // Derive status + durations from active session
   const { isClockedIn, isOnBreak, workedMs, breakMs, sessionWorkedMs, sessionBreakMs } = useMemo(() => {
-    let isIn = false
-    let onBreak = false
-    let workMs = 0
-    let bMs = 0
-    let lastWorkStart: number | null = null
-    let lastBreakStart: number | null = null
-
-    for (const e of entries) {
-      if (e.type === "in") {
-        isIn = true
-        onBreak = false
-        lastWorkStart = e.at
-        lastBreakStart = null
-      } else if (e.type === "break-start" && isIn && !onBreak) {
-        onBreak = true
-        if (lastWorkStart != null) {
-          workMs += e.at - lastWorkStart
-          lastWorkStart = null
-        }
-        lastBreakStart = e.at
-      } else if (e.type === "break-end" && isIn && onBreak) {
-        onBreak = false
-        if (lastBreakStart != null) {
-          bMs += e.at - lastBreakStart
-          lastBreakStart = null
-        }
-        lastWorkStart = e.at
-      } else if (e.type === "out" && isIn) {
-        if (onBreak && lastBreakStart != null) {
-          bMs += e.at - lastBreakStart
-          lastBreakStart = null
-          onBreak = false
-        }
-        if (lastWorkStart != null) {
-          workMs += e.at - lastWorkStart
-          lastWorkStart = null
-        }
-        isIn = false
+    if (!activeSession) {
+      return {
+        isClockedIn: false,
+        isOnBreak: false,
+        workedMs: 0,
+        breakMs: 0,
+        sessionWorkedMs: 0,
+        sessionBreakMs: 0,
       }
     }
 
-    if (isIn) {
-      if (onBreak && lastBreakStart != null) {
-        bMs += calcNow - lastBreakStart
-      } else if (!onBreak && lastWorkStart != null) {
-        workMs += calcNow - lastWorkStart
-      }
-    }
+    const isIn = activeSession.clock_in_time && !activeSession.clock_out_time
+    const onBreak = activeSession.break_start_time && !activeSession.break_end_time
 
+    // Calculate total work time from database
+    const totalWorkHours = activeSession.total_work_hours || 0
+    const totalBreakHours = activeSession.total_break_hours || 0
+    const workMs = totalWorkHours * 60 * 60 * 1000
+    const bMs = totalBreakHours * 60 * 60 * 1000
+
+    // Calculate current session work time
     let sessWork = 0
     let sessBreak = 0
-    if (isIn) {
-      let sessionStartIndex = -1
-      for (let i = entries.length - 1; i >= 0; i--) {
-        if (entries[i].type === "out") break
-        if (entries[i].type === "in") {
-          sessionStartIndex = i
-          break
-        }
-      }
-      if (sessionStartIndex !== -1) {
-        let sIsIn = false
-        let sOnBreak = false
-        let sWorkStart: number | null = null
-        let sBreakStart: number | null = null
-        for (let i = sessionStartIndex; i < entries.length; i++) {
-          const e = entries[i]
-          if (e.type === "in") {
-            sIsIn = true
-            sOnBreak = false
-            sWorkStart = e.at
-            sBreakStart = null
-          } else if (e.type === "break-start" && sIsIn && !sOnBreak) {
-            sOnBreak = true
-            if (sWorkStart != null) {
-              sessWork += e.at - sWorkStart
-              sWorkStart = null
-            }
-            sBreakStart = e.at
-          } else if (e.type === "break-end" && sIsIn && sOnBreak) {
-            sOnBreak = false
-            if (sBreakStart != null) {
-              sessBreak += e.at - sBreakStart
-              sBreakStart = null
-            }
-            sWorkStart = e.at
-          }
-        }
-        if (sIsIn) {
-          if (sOnBreak && sBreakStart != null) {
-            sessBreak += calcNow - sBreakStart
-          } else if (!sOnBreak && sWorkStart != null) {
-            sessWork += calcNow - sWorkStart
-          }
+
+    if (isIn && activeSession.clock_in_time) {
+      const clockInTime = new Date(`${activeSession.date}T${activeSession.clock_in_time}`).getTime()
+      const currentTime = calcNow
+      
+      if (onBreak && activeSession.break_start_time) {
+        // Currently on break
+        const breakStartTime = new Date(`${activeSession.date}T${activeSession.break_start_time}`).getTime()
+        sessWork = breakStartTime - clockInTime
+        sessBreak = currentTime - breakStartTime
+      } else {
+        // Currently working
+        sessWork = currentTime - clockInTime
+        if (activeSession.break_start_time && activeSession.break_end_time) {
+          // Had breaks before
+          const breakStartTime = new Date(`${activeSession.date}T${activeSession.break_start_time}`).getTime()
+          const breakEndTime = new Date(`${activeSession.date}T${activeSession.break_end_time}`).getTime()
+          sessBreak = breakEndTime - breakStartTime
+          sessWork = breakEndTime - clockInTime
         }
       }
     }
@@ -262,10 +287,10 @@ export default function JobSeekerTimeTrackerPage() {
       isOnBreak: onBreak,
       workedMs: workMs,
       breakMs: bMs,
-      sessionWorkedMs: isIn ? sessWork : 0,
-      sessionBreakMs: isIn ? sessBreak : 0,
+      sessionWorkedMs: sessWork,
+      sessionBreakMs: sessBreak,
     }
-  }, [entries, calcNow])
+  }, [activeSession, calcNow])
 
   // Derive auto-calculated days from date range
   const derivedDays = useMemo(() => {
@@ -300,10 +325,43 @@ export default function JobSeekerTimeTrackerPage() {
     }
   }, [leaveRequests])
 
-  const handleClockIn = () => {
+  const handleClockIn = async () => {
     if (!isSelectedToday) return
     if (isClockedIn) return
-    setEntries((prev) => [...prev, { type: "in", at: Date.now() }])
+    
+    setLoading(true)
+    try {
+      const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
+      if (!jsId) {
+        alert('Please log in to use time tracking')
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('jobseeker_id', jsId)
+      formData.append('location', navigator.geolocation ? 'Browser' : 'Unknown')
+      formData.append('device_info', navigator.userAgent)
+      formData.append('ip_address', 'Unknown')
+
+      const res = await fetch('/api/seeker/time-tracking/clock_in', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        await loadActiveSession()
+        await loadSessions(selectedDate)
+      } else {
+        alert(data.message || 'Failed to clock in')
+      }
+    } catch (error) {
+      console.error('Clock in error:', error)
+      alert('Failed to clock in')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleStartBreak = () => {
@@ -313,16 +371,71 @@ export default function JobSeekerTimeTrackerPage() {
     setIsBreakDialogOpen(true)
   }
 
-  const confirmStartBreak = () => {
+  const confirmStartBreak = async () => {
     if (!selectedBreakType) return
-    setEntries((prev) => [...prev, { type: "break-start", at: Date.now(), breakType: selectedBreakType }])
-    setIsBreakDialogOpen(false)
+    
+    setLoading(true)
+    try {
+      const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
+      if (!jsId) return
+
+      const formData = new FormData()
+      formData.append('jobseeker_id', jsId)
+      formData.append('break_type', selectedBreakType)
+
+      const res = await fetch('/api/seeker/time-tracking/start_break', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        await loadActiveSession()
+        await loadSessions(selectedDate)
+        setIsBreakDialogOpen(false)
+      } else {
+        alert(data.message || 'Failed to start break')
+      }
+    } catch (error) {
+      console.error('Start break error:', error)
+      alert('Failed to start break')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleEndBreak = () => {
+  const handleEndBreak = async () => {
     if (!isSelectedToday) return
     if (!isClockedIn || !isOnBreak) return
-    setEntries((prev) => [...prev, { type: "break-end", at: Date.now() }])
+    
+    setLoading(true)
+    try {
+      const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
+      if (!jsId) return
+
+      const formData = new FormData()
+      formData.append('jobseeker_id', jsId)
+
+      const res = await fetch('/api/seeker/time-tracking/end_break', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        await loadActiveSession()
+        await loadSessions(selectedDate)
+      } else {
+        alert(data.message || 'Failed to end break')
+      }
+    } catch (error) {
+      console.error('End break error:', error)
+      alert('Failed to end break')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleToggleBreak = () => {
@@ -335,17 +448,40 @@ export default function JobSeekerTimeTrackerPage() {
     }
   }
 
-  const handleClockOut = () => {
+  const handleClockOut = async () => {
     if (!isSelectedToday) return
     if (!isClockedIn) return
-    const t = Date.now()
-    const last = entries[entries.length - 1]
-    const newEntries = [...entries]
-    if (isOnBreak && last?.type !== "break-end") {
-      newEntries.push({ type: "break-end", at: t })
+    
+    setLoading(true)
+    try {
+      const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
+      if (!jsId) return
+
+      const formData = new FormData()
+      formData.append('jobseeker_id', jsId)
+      if (activeSession?.id) {
+        formData.append('session_id', activeSession.id.toString())
+      }
+
+      const res = await fetch('/api/seeker/time-tracking/clock_out', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        await loadActiveSession()
+        await loadSessions(selectedDate)
+      } else {
+        alert(data.message || 'Failed to clock out')
+      }
+    } catch (error) {
+      console.error('Clock out error:', error)
+      alert('Failed to clock out')
+    } finally {
+      setLoading(false)
     }
-    newEntries.push({ type: "out", at: t })
-    setEntries(newEntries)
   }
 
   const handleSubmitLeave = (e: React.FormEvent) => {
@@ -371,25 +507,21 @@ export default function JobSeekerTimeTrackerPage() {
 
   if (loadingHired) {
     return (
-      <main className="p-4 sm:p-6 lg:p-8">
-        <div className="rounded-xl border bg-background p-6 text-center text-sm text-muted-foreground">Checking access…</div>
-      </main>
+      <div className="rounded-xl border bg-background p-6 text-center text-sm text-muted-foreground">Checking access…</div>
     )
   }
 
   if (!isHired) {
     return (
-      <main className="p-4 sm:p-6 lg:p-8">
-        <div className="rounded-xl border bg-amber-50 border-amber-200 p-6 text-center">
-          <h2 className="text-lg font-semibold text-foreground">Time Tracker is available after you are hired</h2>
-          <p className="text-sm text-muted-foreground mt-2">Once an employer marks you as hired, this section will unlock.</p>
-        </div>
-      </main>
+      <div className="rounded-xl border bg-amber-50 border-amber-200 p-6 text-center">
+        <h2 className="text-lg font-semibold text-foreground">Time Tracker is available after you are hired</h2>
+        <p className="text-sm text-muted-foreground mt-2">Once an employer marks you as hired, this section will unlock.</p>
+      </div>
     )
   }
 
   return (
-    <main className="p-4 sm:p-6 lg:p-8">
+    <div>
       {/* Header Section - Improved for mobile */}
       <header className="mb-6 sm:mb-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -442,29 +574,29 @@ export default function JobSeekerTimeTrackerPage() {
             <button
               type="button"
               onClick={handleClockIn}
-              disabled={!isSelectedToday || isClockedIn}
+              disabled={!isSelectedToday || isClockedIn || loading}
               className="inline-flex items-center justify-center rounded-lg px-4 py-3 text-base font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors sm:flex-1"
               aria-label="Clock In"
             >
-              Clock In
+              {loading ? "..." : "Clock In"}
             </button>
             <button
               type="button"
               onClick={handleToggleBreak}
-              disabled={!isSelectedToday || !isClockedIn}
+              disabled={!isSelectedToday || !isClockedIn || loading}
               className="inline-flex items-center justify-center rounded-lg px-4 py-3 text-base font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors sm:flex-1"
               aria-label={isOnBreak ? "End Break" : "Start Break"}
             >
-              {isOnBreak ? "End Break" : "Start Break"}
+              {loading ? "..." : (isOnBreak ? "End Break" : "Start Break")}
             </button>
             <button
               type="button"
               onClick={handleClockOut}
-              disabled={!isSelectedToday || !isClockedIn}
+              disabled={!isSelectedToday || !isClockedIn || loading}
               className="inline-flex items-center justify-center rounded-lg px-4 py-3 text-base font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors sm:flex-1"
               aria-label="Clock Out"
             >
-              Clock Out
+              {loading ? "..." : "Clock Out"}
             </button>
           </div>
         </div>
@@ -728,6 +860,6 @@ export default function JobSeekerTimeTrackerPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </main>
+    </div>
   )
 }

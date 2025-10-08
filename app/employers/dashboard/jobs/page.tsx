@@ -1,6 +1,8 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,6 +42,7 @@ import {
   FileText,
 } from "lucide-react"
 import { employerApiService, Job, AddJobRequest } from "@/lib/employer-api"
+import { fetchDepartments, fetchDesignations, type Department, type Designation } from "@/lib/hrms-api"
 import { getAssetUrl, getBaseUrl, getMeetUrl, getBackendUrl, GOOGLE_LOGIN_PATH } from "@/lib/api-config"
 import { jobsApiService } from "@/lib/jobs-api"
 
@@ -70,8 +73,9 @@ interface Candidate {
       ctc?: string
       documents?: string[]
   }
-  
+ 
   export default function JobsPage() {
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState("manage")
   const [selectedJob, setSelectedJob] = useState<any>(null)
   const [candidateView, setCandidateView] = useState("applied")
@@ -144,7 +148,7 @@ interface Candidate {
         hired: 1,
       },
     },
-    
+   
     {
       id: 2,
       title: "Product Manager",
@@ -165,7 +169,7 @@ interface Candidate {
       },
     },
   ]
-  
+ 
   // Initialize jobs state
   const [jobs, setJobs] = useState<any[]>([])
   // Pagination state (5 per page)
@@ -239,7 +243,7 @@ interface Candidate {
       setLoadingCities(false)
     }
   }
-  
+ 
   // Sample candidates data - ensure it's never undefined
   const [candidates, setCandidates] = useState<Record<string, Candidate[]>>({
     applied: [
@@ -359,15 +363,192 @@ interface Candidate {
     phoneNumber: "",
   })
 
+  // Employee Management modal state
+  const [showEmployeeForm, setShowEmployeeForm] = useState(false)
+  const [employeeSubmitting, setEmployeeSubmitting] = useState(false)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [designations, setDesignations] = useState<Designation[]>([])
+  const [imageUploading, setImageUploading] = useState(false)
+  // Mirror the Employees page add form
+  const [employeeForm, setEmployeeForm] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    empType: "",
+    workingHours: "",
+    salary: "",
+    income: "",
+    joiningDate: "",
+    empId: "",
+    image: "",
+    emergencyContactName: "",
+    emergencyContactNumber: "",
+    emergencyContact: "",
+    department: "",
+    position: "",
+    seekerId: "",
+  })
+
+  // Load departments and designations for dropdowns
+  useEffect(() => {
+    const loadDeps = async () => {
+      try {
+        const [deps, dess] = await Promise.all([fetchDepartments(), fetchDesignations()])
+        setDepartments(deps)
+        setDesignations(dess)
+      } catch (e) {
+        setDepartments([])
+        setDesignations([])
+      }
+    }
+    loadDeps()
+  }, [])
+
+  const openEmployeeFormWithCandidate = (candidate: Candidate | null) => {
+    if (!candidate) return
+    setSelectedCandidate(candidate)
+    setEmployeeForm((prev) => ({
+      ...prev,
+      name: candidate.name || "",
+      email: candidate.email || "",
+      mobile: candidate.phone || "",
+      position: candidate.designation || "",
+      empType: "fulltime",
+      joiningDate: new Date().toISOString().split("T")[0],
+      seekerId: (((candidate as any)?.seeker_id)
+        || (candidate as any)?.jobseeker_id
+        || (candidate as any)?.seeker_id
+        || (candidate as any)?.seeker?.id
+        || (candidate as any)?.jobseekerId
+        || (candidate as any)?.seekerId
+        || (candidate as any)?.id
+        || "").toString()
+    }))
+    try {
+      const sid = (candidate as any)?.seeker_id || (candidate as any)?.jobseeker_id || (candidate as any)?.seeker?.id
+      console.log('[Jobs] openEmployeeFormWithCandidate -> candidate id:', candidate?.id, 'derived seeker_id:', sid)
+    } catch {}
+    setShowEmployeeForm(true)
+  }
+
+  const submitEmployeeForm = async (redirectAfter: boolean) => {
+    try {
+      setEmployeeSubmitting(true)
+
+      // Resolve department/designation IDs by name (like Employees page)
+      const dept = departments.find((d) => d.name === employeeForm.department)
+      const desig = designations.find((x) => x.name === employeeForm.position && (!dept || x.department_id === dept.id))
+
+      // Try to extract jobseeker id from the selected candidate object
+      const seekerId = (selectedCandidate as any)?.seeker_id
+        || (selectedCandidate as any)?.jobseeker_id
+        || (selectedCandidate as any)?.seeker?.id
+        || (selectedCandidate as any)?.id
+        || null
+
+      const payload: any = {
+        emp_name: employeeForm.name,
+        email: employeeForm.email,
+        mobile: employeeForm.mobile,
+        emp_type: employeeForm.empType,
+        working_hours: employeeForm.workingHours,
+        salary: employeeForm.salary,
+        income: employeeForm.income,
+        joining_date: employeeForm.joiningDate,
+        emp_id: employeeForm.empId,
+        image: employeeForm.image,
+        emergency_contact_name: employeeForm.emergencyContactName,
+        emergency_contact_phone: employeeForm.emergencyContactNumber,
+        emergency_contact: employeeForm.emergencyContact,
+        work_status: 'active',
+        department_id: dept ? dept.id : null,
+        designation_id: desig ? desig.id : null,
+      }
+      const seekerIdFromForm = (employeeForm.seekerId || '').toString().trim()
+      const fallbackSelectedId = seekerId ? String(seekerId) : (selectedCandidate?.id ? String((selectedCandidate as any).id) : '')
+      const seekerIdFinal = seekerIdFromForm || fallbackSelectedId
+      if (seekerIdFinal) {
+        const n = Number(seekerIdFinal)
+        if (!Number.isNaN(n) && n > 0) payload.seeker_id = n
+      }
+      try {
+        console.log('[Jobs] submitEmployeeForm -> seekerIdFromForm:', seekerIdFromForm, 'selectedCandidate.seeker_id:', (selectedCandidate as any)?.seeker_id, 'final payload.seeker_id:', (payload as any)?.seeker_id)
+      } catch {}
+      if (selectedCandidate?.id) {
+        payload.candidate_id = selectedCandidate.id
+      }
+
+      const url = getBaseUrl('/company-employees')
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || json?.message || 'Failed to add employee')
+      }
+
+      toast({ title: 'Employee created', description: 'Candidate added to employee management.' })
+      setShowEmployeeForm(false)
+      setEmployeeForm({
+        name: "",
+        email: "",
+        mobile: "",
+        empType: "",
+        workingHours: "",
+        salary: "",
+        income: "",
+        joiningDate: "",
+        empId: "",
+        image: "",
+        emergencyContactName: "",
+        emergencyContactNumber: "",
+        emergencyContact: "",
+        department: "",
+        position: "",
+        seekerId: "",
+      })
+      if (redirectAfter) {
+        router.push('/employers/dashboard/employee-managment/employees')
+      }
+    } catch (e: any) {
+      console.error(e)
+      toast({ title: 'Error', description: e?.message || 'Failed to add employee.', variant: 'destructive' })
+    } finally {
+      setEmployeeSubmitting(false)
+    }
+  }
+
+  const handleEmployeeImageUpload = async (file: File) => {
+    try {
+      if (!file) return
+      setImageUploading(true)
+      const res = await employerApiService.uploadProfilePicture(file)
+      if (res?.success && res?.file_path) {
+        setEmployeeForm((p) => ({ ...p, image: String(res.file_path || '') }))
+        toast({ title: 'Uploaded', description: 'Profile picture uploaded.' })
+      } else {
+        toast({ title: 'Upload failed', description: res?.message || 'Could not upload image.', variant: 'destructive' })
+      }
+    } catch (e: any) {
+      console.error(e)
+      toast({ title: 'Error', description: e?.message || 'Failed to upload image.', variant: 'destructive' })
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
   const handleInputChange = (field: string, value: string | boolean) => {
     setJobForm((prev) => ({ ...prev, [field]: value }))
-    
+   
     // Handle dynamic dropdowns
     if (field === 'country' && typeof value === 'string' && value) {
       fetchStates(value)
       // Reset province and city when country changes
-      setJobForm((prev) => ({ 
-        ...prev, 
+      setJobForm((prev) => ({
+        ...prev,
         country: value,
         province: '',
         city: ''
@@ -375,8 +556,8 @@ interface Candidate {
     } else if (field === 'province' && typeof value === 'string' && value) {
       fetchCities(value)
       // Reset city when province changes
-      setJobForm((prev) => ({ 
-        ...prev, 
+      setJobForm((prev) => ({
+        ...prev,
         province: value,
         city: ''
       }))
@@ -413,7 +594,7 @@ interface Candidate {
         positions: parseInt(jobForm.positions) || 1,
         experience_level: jobForm.experience
       }
-      
+     
       if (editingJob) {
         // Update existing job
         setLoading(true)
@@ -422,7 +603,7 @@ interface Candidate {
           title: "Success",
           description: "Job updated successfully",
         })
-        
+       
         // Refresh jobs list
         const updatedJobsResponse = await jobsApiService.getJobs()
         setJobs(updatedJobsResponse.data.jobs || [])
@@ -435,7 +616,7 @@ interface Candidate {
           title: "Success",
           description: "You have created a job.",
         })
-        
+       
         // Refresh jobs list
         const updatedJobs = await jobsApiService.getJobs()
         setJobs(updatedJobs.data.jobs || [])
@@ -522,7 +703,7 @@ interface Candidate {
       // Get detailed job information from API
       const jobDetail: any = await employerApiService.getJobById(job.id)
       setEditingJob(jobDetail)
-      
+     
       // Parse salary range if available
       let salaryMin = ""
       let salaryMax = ""
@@ -533,12 +714,12 @@ interface Candidate {
           salaryMax = salaryMatch[2].replace(/,/g, '')
         }
       }
-      
+     
       // Convert skills array to comma-separated string if needed
-      const skillsString = Array.isArray(jobDetail.skills) 
+      const skillsString = Array.isArray(jobDetail.skills)
         ? jobDetail.skills.join(', ')
         : jobDetail.skills || ''
-      
+     
       setJobForm({
         title: jobDetail.title || "",
         location: jobDetail.location || "",
@@ -553,7 +734,7 @@ interface Candidate {
         requirements: jobDetail.requirements || "",
         country: jobDetail.country || "",
         province: jobDetail.province || "",
-        city: jobDetail.city || "",
+        city: jobForm.city || "",
         fullAddress: jobDetail.full_address || "",
         expiryDate: jobDetail.expiry_date || "",
         applicationSettings: jobDetail.application_method || "email",
@@ -574,7 +755,7 @@ interface Candidate {
         description: "Failed to load job details. Please try again.",
         variant: "destructive",
       })
-      
+     
       // Fallback to basic job info
       setEditingJob(job)
       setJobForm({
@@ -618,7 +799,7 @@ interface Candidate {
         title: "Success",
         description: "Job deleted successfully",
       })
-      
+     
       // Refresh jobs list using the employer API to get updated list
       const updatedJobsResponse = await employerApiService.getEmployerJobs()
       setJobs(updatedJobsResponse.jobs || [])
@@ -638,10 +819,10 @@ interface Candidate {
     try {
       setLoading(true)
       setSelectedJob(job)
-      
+     
       // Fetch candidates from API
       const candidatesData: any = await employerApiService.getJobCandidates(job.id)
-      
+     
       // Initialize organized candidates structure
       const organizedCandidates: Record<string, Candidate[]> = {
         applied: [],
@@ -651,32 +832,58 @@ interface Candidate {
         rejected: [],
         hired: []
       }
-      
+     
       // Check if we have valid data from the API
       if (candidatesData && typeof candidatesData === 'object') {
         // Process the API response - structure may vary based on your API
         if (Array.isArray(candidatesData)) {
           candidatesData.forEach((candidate: any) => {
             const status = candidate.status?.toLowerCase() || 'applied'
+            const normalized = {
+              ...candidate,
+              seeker_id:
+                candidate?.seeker_id ||
+                candidate?.jobseeker_id ||
+                candidate?.seeker?.id ||
+                candidate?.js_id ||
+                candidate?.user_id ||
+                candidate?.seekerId ||
+                candidate?.jobseekerId ||
+                candidate?.id ||
+                null,
+            }
             if (organizedCandidates[status]) {
-              organizedCandidates[status].push(candidate)
+              organizedCandidates[status].push(normalized as any)
             } else {
-              organizedCandidates.applied.push(candidate)
+              organizedCandidates.applied.push(normalized as any)
             }
           })
         } else if (candidatesData.data && Array.isArray(candidatesData.data)) {
           // If the API returns already categorized candidates
           candidatesData.data.forEach((candidate: any) => {
             const status = candidate.status?.toLowerCase() || 'applied'
+            const normalized = {
+              ...candidate,
+              seeker_id:
+                candidate?.seeker_id ||
+                candidate?.jobseeker_id ||
+                candidate?.seeker?.id ||
+                candidate?.js_id ||
+                candidate?.user_id ||
+                candidate?.seekerId ||
+                candidate?.jobseekerId ||
+                candidate?.id ||
+                null,
+            }
             if (organizedCandidates[status]) {
-              organizedCandidates[status].push(candidate)
+              organizedCandidates[status].push(normalized as any)
             } else {
-              organizedCandidates.applied.push(candidate)
+              organizedCandidates.applied.push(normalized as any)
             }
           })
         }
       }
-      
+     
       // Always set candidates to ensure the state is properly initialized
       setCandidates(organizedCandidates)
       setActiveTab('manage')
@@ -687,7 +894,7 @@ interface Candidate {
         description: "Failed to load candidates. Please try again.",
         variant: "destructive",
       })
-      
+     
       // Set empty candidates structure on error to prevent undefined access
       setCandidates({
         applied: [],
@@ -852,40 +1059,59 @@ interface Candidate {
                   <Eye className="h-3 w-3 mr-1" />
                   <span className="hidden xs:inline">View</span>
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-green-600 border-green-600 hover:bg-green-50 px-2 py-1 h-7 bg-transparent"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const nextStatus = (candidate.status === 'shortlisted' || candidate.status === 'contacted') ? 'hired' : 'shortlisted'
-                    moveCandidateToStatus(candidate.id, nextStatus)
-                  }}
-                >
-                  <Check className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-red-600 border-red-600 hover:bg-red-50 px-2 py-1 h-7 bg-transparent"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    moveCandidateToStatus(candidate.id, "rejected")
-                  }}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-yellow-600 border-yellow-600 hover:bg-yellow-50 px-2 py-1 h-7 bg-transparent"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    moveCandidateToStatus(candidate.id, "reviewed")
-                  }}
-                >
-                  <HelpCircle className="h-3 w-3" />
-                </Button>
+               
+                {/* For Hired candidates: Show only View and + buttons */}
+                {candidate.status === "hired" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-blue-600 border-blue-600 hover:bg-blue-50 px-2 py-1 h-7 bg-transparent"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openEmployeeFormWithCandidate(candidate)
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                ) : (
+                  /* For non-Hired candidates: Show the regular action buttons */
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-green-600 border-green-600 hover:bg-green-50 px-2 py-1 h-7 bg-transparent"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const nextStatus = (candidate.status === 'shortlisted' || candidate.status === 'contacted') ? 'hired' : 'shortlisted'
+                        moveCandidateToStatus(candidate.id, nextStatus)
+                      }}
+                    >
+                      <Check className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-red-600 border-red-600 hover:bg-red-50 px-2 py-1 h-7 bg-transparent"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        moveCandidateToStatus(candidate.id, "rejected")
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-yellow-600 border-yellow-600 hover:bg-yellow-50 px-2 py-1 h-7 bg-transparent"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        moveCandidateToStatus(candidate.id, "reviewed")
+                      }}
+                    >
+                      <HelpCircle className="h-3 w-3" />
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
             <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
@@ -909,7 +1135,7 @@ interface Candidate {
               )}
             </div>
           </div>
-          
+         
         </div>
         {extraFooter && (
           <div className="mt-3">
@@ -1208,7 +1434,21 @@ interface Candidate {
                           <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
                         </div>
                       </div>
-                      <Button className="bg-emerald-600 hover:bg-emerald-700">Finalize Hiring</Button>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => openEmployeeFormWithCandidate(selectedCandidate)}
+                        >
+                          Add to Employee Management
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                          onClick={() => openEmployeeFormWithCandidate(selectedCandidate)}
+                        >
+                          Open Employee Form
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1236,7 +1476,7 @@ interface Candidate {
           {error}
         </div>
       )}
-      
+     
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 h-auto">
           <TabsTrigger value="post" className="flex items-center justify-center space-x-2 p-3">
@@ -1540,8 +1780,8 @@ interface Candidate {
                     <Label htmlFor="province" className="text-sm font-medium">
                       Province/State *
                     </Label>
-                    <Select 
-                      value={jobForm.province} 
+                    <Select
+                      value={jobForm.province}
                       onValueChange={(value) => handleInputChange("province", value)}
                       disabled={!jobForm.country || loadingStates}
                     >
@@ -1561,8 +1801,8 @@ interface Candidate {
                     <Label htmlFor="city" className="text-sm font-medium">
                       City *
                     </Label>
-                    <Select 
-                      value={jobForm.city} 
+                    <Select
+                      value={jobForm.city}
                       onValueChange={(value) => handleInputChange("city", value)}
                       disabled={!jobForm.province || loadingCities}
                     >
@@ -2220,7 +2460,188 @@ interface Candidate {
 
       {/* Candidate Profile Modal */}
       <CandidateProfileModal />
+
+      {/* Employee Management Form Modal (mirrors Employees page form) */}
+      <Dialog open={showEmployeeForm} onOpenChange={setShowEmployeeForm}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogTitle>Add Employee</DialogTitle>
+          <div className="space-y-6">
+            {/* Row 1 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="emp_name">Full Name *</Label>
+                <Input id="emp_name" value={employeeForm.name} onChange={(e) => setEmployeeForm((p) => ({ ...p, name: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="emp_email">Email Address *</Label>
+                <Input id="emp_email" type="email" value={employeeForm.email} onChange={(e) => setEmployeeForm((p) => ({ ...p, email: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="emp_mobile">Mobile Number</Label>
+                <Input id="emp_mobile" type="tel" value={employeeForm.mobile} onChange={(e) => setEmployeeForm((p) => ({ ...p, mobile: e.target.value }))} className="mt-1" />
+              </div>
+            </div>
+
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="emp_code">Employee ID *</Label>
+                <Input id="emp_code" value={employeeForm.empId} onChange={(e) => setEmployeeForm((p) => ({ ...p, empId: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="emp_type">Employment Type *</Label>
+                <Select value={employeeForm.empType} onValueChange={(v) => setEmployeeForm((p) => ({ ...p, empType: v }))}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select employment type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fulltime">Full Time</SelectItem>
+                    <SelectItem value="parttime">Part Time</SelectItem>
+                    <SelectItem value="internship">Internship</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Seeker ID handled silently via state/payload */}
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="emp_department">Department *</Label>
+                <Select
+                  value={employeeForm.department}
+                  onValueChange={(value) => {
+                    setEmployeeForm((p) => ({ ...p, department: value, position: "" }))
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="emp_position">Position *</Label>
+                <Select
+                  value={employeeForm.position}
+                  onValueChange={(value) => setEmployeeForm((p) => ({ ...p, position: value }))}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select designation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      const selectedDept = departments.find((d) => d.name === employeeForm.department)
+                      const filtered = selectedDept ? designations.filter((des) => des.department_id === selectedDept.id) : []
+                      return filtered.map((des) => (
+                        <SelectItem key={des.id} value={des.name}>{des.name}</SelectItem>
+                      ))
+                    })()}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Row 4 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="emp_salary">Salary *</Label>
+                <Input id="emp_salary" type="number" value={employeeForm.salary} onChange={(e) => setEmployeeForm((p) => ({ ...p, salary: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="emp_income">Annual Income *</Label>
+                <Input id="emp_income" type="number" value={employeeForm.income} onChange={(e) => setEmployeeForm((p) => ({ ...p, income: e.target.value }))} className="mt-1" />
+              </div>
+            </div>
+
+            {/* Row 5 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="emp_working_hours">Working Hours</Label>
+                <Input id="emp_working_hours" value={employeeForm.workingHours} onChange={(e) => setEmployeeForm((p) => ({ ...p, workingHours: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="emp_joining">Joining Date *</Label>
+                <Input id="emp_joining" type="date" value={employeeForm.joiningDate} onChange={(e) => setEmployeeForm((p) => ({ ...p, joiningDate: e.target.value }))} className="mt-1" />
+              </div>
+            </div>
+
+            {/* Row 6 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="emp_ec_name">Emergency Contact Name *</Label>
+                <Input id="emp_ec_name" value={employeeForm.emergencyContactName} onChange={(e) => setEmployeeForm((p) => ({ ...p, emergencyContactName: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="emp_ec_number">Emergency Contact Number *</Label>
+                <Input id="emp_ec_number" value={employeeForm.emergencyContactNumber} onChange={(e) => setEmployeeForm((p) => ({ ...p, emergencyContactNumber: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="emp_ec_email">Emergency Contact Email</Label>
+                <Input id="emp_ec_email" type="email" value={employeeForm.emergencyContact} onChange={(e) => setEmployeeForm((p) => ({ ...p, emergencyContact: e.target.value }))} className="mt-1" />
+              </div>
+            </div>
+
+            {/* Row 7: Profile picture upload */}
+            <div className="space-y-2">
+              <Label htmlFor="emp_image">Profile Picture</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  id="emp_image_file"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) handleEmployeeImageUpload(f)
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={imageUploading}
+                  onClick={() => {
+                    const el = document.getElementById('emp_image_file') as HTMLInputElement | null
+                    el?.click()
+                  }}
+                >
+                  {imageUploading ? 'Uploading...' : 'Upload'}
+                </Button>
+              </div>
+              {employeeForm.image && (
+                <p className="text-xs text-gray-600 break-all">Uploaded: {employeeForm.image}</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setShowEmployeeForm(false)}>Cancel</Button>
+              <Button
+                variant="outline"
+                className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                disabled={employeeSubmitting}
+                onClick={() => submitEmployeeForm(false)}
+              >
+                {employeeSubmitting ? 'Saving...' : 'Add Employee'}
+              </Button>
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700"
+                disabled={employeeSubmitting}
+                onClick={() => submitEmployeeForm(true)}
+              >
+                {employeeSubmitting ? 'Saving...' : 'Add & Go to Employees'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     )
   }
+
+
 

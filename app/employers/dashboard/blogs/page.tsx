@@ -125,7 +125,7 @@ export default function BlogsPage() {
         title: newPost.title,
         content: newPost.content,
         excerpt: newPost.excerpt,
-        summary: newPost.excerpt, // basic summary from excerpt
+        summary: newPost.excerpt,
         keywords: "",
         category_id: categoryId as any,
         status,
@@ -142,20 +142,19 @@ export default function BlogsPage() {
     }
   }
 
-  const handleUpdatePost = async () => {
-    if (!editingPost) return
+  const handleUpdatePost = async (data: BlogPostUI, imageFile?: File | null) => {
     try {
       setLoading(true)
-      const res = await blogsApiService.updateBlog(editingPost.id, {
-        title: editingPost.title,
-        content: editingPost.content,
-        excerpt: editingPost.excerpt,
-        summary: editingPost.excerpt,
+      const res = await blogsApiService.updateBlog(data.id, {
+        title: data.title,
+        content: data.content,
+        excerpt: data.excerpt,
+        summary: data.excerpt,
         keywords: "",
-        category_id: editingPost.categoryId as any,
-        status: editingPost.status,
-        tags: editingPost.tags.join(","),
-        imageFile: newPost.imageFile,
+        category_id: data.categoryId as any,
+        status: data.status,
+        tags: data.tags.join(","),
+        imageFile: imageFile || null,
       })
       if (!res.success) throw new Error(res.message || "Update failed")
       await loadBlogs()
@@ -182,10 +181,10 @@ export default function BlogsPage() {
 
   const filteredPosts = blogPosts.filter((post) => {
     const matchesSearch =
-      (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (post.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.category.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === "all" || post.status === statusFilter
     const matchesTab = activeTab === "all" || post.status === activeTab
@@ -254,7 +253,6 @@ export default function BlogsPage() {
                   {new Date(post.publishDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
               </span>
-              {/* Read Time removed */}
             </div>
             {post.status === "published" && (
               <div className="flex items-center">
@@ -298,195 +296,379 @@ export default function BlogsPage() {
     </Card>
   )
 
-  const PostForm = ({ isEditing = false }: { isEditing?: boolean }) => (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="title">Blog Title *</Label>
-          <Input
-            id="title"
-            value={isEditing ? editingPost?.title || "" : newPost.title}
-            onChange={(e) => {
-              const v = e.target.value
-              if (isEditing && editingPost) {
-                setEditingPost({ ...editingPost, title: v })
-              } else {
-                setNewPost((prev) => ({ ...prev, title: v }))
-              }
-            }}
-            placeholder="Enter blog post title"
-          />
+  const CreatePostForm = ({
+    onCancel,
+    categories,
+  }: {
+    onCancel: () => void
+    categories: { id: number; name: string }[]
+  }) => {
+    const [title, setTitle] = useState("")
+    const [excerpt, setExcerpt] = useState("")
+    const [category, setCategory] = useState("")
+    const [tagsInput, setTagsInput] = useState("")
+    const [content, setContent] = useState("")
+    const [aiLoading, setAiLoading] = useState(false)
+    const [imageFile, setImageFile] = useState<File | null>(null)
+
+    const parseTags = (val: string) =>
+      val
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+
+    const handleSubmit = async (status: "draft" | "published") => {
+      try {
+        setLoading(true)
+        const tags = tagsInput
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t)
+          .join(",")
+        
+        const selectedCategory = categories.find(c => c.name === category)
+        const categoryId = selectedCategory ? selectedCategory.id : undefined
+
+        const res = await blogsApiService.createBlog({
+          title: title,
+          content: content,
+          excerpt: excerpt,
+          summary: excerpt,
+          keywords: "",
+          category_id: categoryId as any,
+          status,
+          tags,
+          imageFile: imageFile,
+        })
+        
+        if (!res.success) throw new Error(res.message || "Create failed")
+        await loadBlogs()
+        setTitle("")
+        setExcerpt("")
+        setCategory("")
+        setTagsInput("")
+        setContent("")
+        onCancel()
+      } catch (e) {
+        setError((e as any)?.message || "Failed to create blog")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    const handleAIGenerate = async () => {
+      if (!title || !category) {
+        alert('Please enter a title and select a category before generating.')
+        return
+      }
+      try {
+        setAiLoading(true)
+        const res = await blogsApiService.aiGenerateContent({ title, category })
+        const ai = res && (res as any).data ? (res as any).data : undefined
+        if (res.success && ai) {
+          setContent(ai.content)
+          setExcerpt(ai.excerpt)
+        } else {
+          alert(res?.message || 'AI generation failed')
+        }
+      } catch (e: any) {
+        alert(e?.message || 'AI generation error')
+      } finally {
+        setAiLoading(false)
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="title">Blog Title *</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoComplete="off"
+              placeholder="Enter blog post title"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="excerpt">Excerpt *</Label>
+            <Textarea
+              id="excerpt"
+              rows={2}
+              value={excerpt}
+              onChange={(e) => setExcerpt(e.target.value)}
+              autoComplete="off"
+              placeholder="Brief description of the blog post"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <Label htmlFor="category">Category *</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAIGenerate}
+                disabled={aiLoading}
+                className="w-full border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+              >
+                Generate with AI
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="tags">Tags</Label>
+            <Input
+              id="tags"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              autoComplete="off"
+              placeholder="Enter tags separated by commas"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="image">Featured Image</Label>
+            <Input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files && e.target.files[0] ? e.target.files[0] : null
+                setImageFile(file)
+              }}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="content">Content *</Label>
+            <Textarea
+              id="content"
+              rows={12}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              autoComplete="off"
+              placeholder="Write your blog post content here..."
+            />
+          </div>
         </div>
 
-        <div>
-          <Label htmlFor="excerpt">Excerpt *</Label>
-          <Textarea
-            id="excerpt"
-            rows={2}
-            value={isEditing ? editingPost?.excerpt || "" : newPost.excerpt}
-            onChange={(e) => {
-              const v = e.target.value
-              if (isEditing && editingPost) {
-                setEditingPost({ ...editingPost, excerpt: v })
-              } else {
-                setNewPost((prev) => ({ ...prev, excerpt: v }))
-              }
-            }}
-            placeholder="Brief description of the blog post"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="category">Category *</Label>
-            <Select
-              value={isEditing ? (editingPost?.categoryId ? String(editingPost.categoryId) : "") : (newPost.categoryId ? String(newPost.categoryId) : "")}
-              onValueChange={(value) => handleInputChange("categoryId", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={String(category.id)}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            {/* Read Time removed */}
-          </div>
-        </div>
-        <div className="flex justify-end">
+        <div className="flex flex-col xs:flex-row justify-end gap-2 xs:space-x-3">
           <Button
-            type="button"
             variant="outline"
-            onClick={async () => {
-              const title = isEditing ? (editingPost?.title || "") : newPost.title
-              const categoryId = isEditing ? editingPost?.categoryId : (newPost.categoryId ? Number(newPost.categoryId) : undefined)
-              const categoryName = categoryId ? (categories.find((c) => c.id === categoryId)?.name || "") : ""
-              if (!title || !categoryName) {
-                alert('Please enter a title and select a category before generating.');
-                return
-              }
-              try {
-                setLoading(true)
-                const res = await blogsApiService.aiGenerateContent({ title, category: categoryName })
-                const ai = res && (res as any).data ? (res as any).data : undefined
-                if (res.success && ai) {
-                  if (isEditing && editingPost) {
-                    setEditingPost({ ...editingPost, content: ai.content, excerpt: ai.excerpt })
-                  } else {
-                    setNewPost((prev) => ({ ...prev, content: ai.content, excerpt: ai.excerpt }))
-                  }
-                } else {
-                  alert(res?.message || 'AI generation failed')
-                }
-              } catch (e: any) {
-                alert(e?.message || 'AI generation error')
-              } finally {
-                setLoading(false)
-              }
-            }}
-            aria-label="Generate content with AI"
-            disabled={loading}
+            onClick={onCancel}
+            className="order-3 xs:order-1"
           >
-            Generate with AI
+            Cancel
           </Button>
-        </div>
-
-        <div>
-          <Label htmlFor="tags">Tags</Label>
-          <Input
-            id="tags"
-            value={isEditing ? editingPost?.tags?.join(", ") || "" : newPost.tags}
-            onChange={(e) => {
-              const v = e.target.value
-              if (isEditing && editingPost) {
-                const arr = v.split(",").map((t) => t.trim()).filter((t) => t)
-                setEditingPost({ ...editingPost, tags: arr })
-              } else {
-                setNewPost((prev) => ({ ...prev, tags: v }))
-              }
-            }}
-            placeholder="Enter tags separated by commas"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="image">Featured Image</Label>
-          <Input
-            id="image"
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files && e.target.files[0] ? e.target.files[0] : null
-              setNewPost((prev) => ({ ...prev, imageFile: file }))
-            }}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="content">Content *</Label>
-          <Textarea
-            id="content"
-            rows={12}
-            value={isEditing ? editingPost?.content || "" : newPost.content}
-            onChange={(e) => {
-              const v = e.target.value
-              if (isEditing && editingPost) {
-                setEditingPost({ ...editingPost, content: v })
-              } else {
-                setNewPost((prev) => ({ ...prev, content: v }))
-              }
-            }}
-            placeholder="Write your blog post content here..."
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col xs:flex-row justify-end gap-2 xs:space-x-3">
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (isEditing) {
-              setEditingPost(null)
-            } else {
-              setIsAddingPost(false)
-              setNewPost({
-                title: "",
-                content: "",
-                excerpt: "",
-                categoryId: "",
-                tags: "",
-                imageFile: null,
-              })
-            }
-          }}
-          className="order-3 xs:order-1"
-        >
-          Cancel
-        </Button>
-        {!isEditing && (
           <Button
             variant="outline"
-            onClick={() => handleAddPost("draft")}
+            onClick={() => handleSubmit("draft")}
             className="border-yellow-600 text-yellow-600 hover:bg-yellow-50 order-2"
+            disabled={loading}
           >
             Save as Draft
           </Button>
-        )}
-        <Button
-          onClick={isEditing ? handleUpdatePost : () => handleAddPost("published")}
-          className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 order-1 xs:order-3"
-        >
-          {isEditing ? "Update Post" : "Publish Post"}
-        </Button>
+          <Button
+            onClick={() => handleSubmit("published")}
+            className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 order-1 xs:order-3"
+            disabled={loading}
+          >
+            Publish Post
+          </Button>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  const EditPostForm = ({
+    onCancel,
+    onSubmit,
+    categories,
+    post,
+  }: {
+    onCancel: () => void
+    onSubmit: (data: BlogPostUI, imageFile?: File | null) => void
+    categories: { id: number; name: string }[]
+    post: BlogPostUI
+  }) => {
+    const [title, setTitle] = useState(post.title)
+    const [excerpt, setExcerpt] = useState(post.excerpt)
+    const [category, setCategory] = useState(post.category)
+    const [tagsInput, setTagsInput] = useState(post.tags.join(", "))
+    const [content, setContent] = useState(post.content)
+    const [aiLoading, setAiLoading] = useState(false)
+    const [imageFile, setImageFile] = useState<File | null>(null)
+
+    const parseTags = (val: string) =>
+      val
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+
+    const handleAIGenerate = async () => {
+      if (!title || !category) {
+        alert('Please enter a title and select a category before generating.')
+        return
+      }
+      try {
+        setAiLoading(true)
+        const res = await blogsApiService.aiGenerateContent({ title, category })
+        const ai = res && (res as any).data ? (res as any).data : undefined
+        if (res.success && ai) {
+          setContent(ai.content)
+          setExcerpt(ai.excerpt)
+        } else {
+          alert(res?.message || 'AI generation failed')
+        }
+      } catch (e: any) {
+        alert(e?.message || 'AI generation error')
+      } finally {
+        setAiLoading(false)
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="edit-title">Blog Title *</Label>
+            <Input
+              id="edit-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoComplete="off"
+              placeholder="Enter blog post title"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="edit-excerpt">Excerpt *</Label>
+            <Textarea
+              id="edit-excerpt"
+              rows={2}
+              value={excerpt}
+              onChange={(e) => setExcerpt(e.target.value)}
+              autoComplete="off"
+              placeholder="Brief description of the blog post"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div>
+              <Label htmlFor="edit-category">Category *</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAIGenerate}
+                disabled={aiLoading}
+                className="w-full border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+              >
+                Generate with AI
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="edit-tags">Tags</Label>
+            <Input
+              id="edit-tags"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              autoComplete="off"
+              placeholder="Enter tags separated by commas"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="edit-image">Featured Image</Label>
+            <Input
+              id="edit-image"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files && e.target.files[0] ? e.target.files[0] : null
+                setImageFile(file)
+              }}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="edit-content">Content *</Label>
+            <Textarea
+              id="edit-content"
+              rows={12}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              autoComplete="off"
+              placeholder="Write your blog post content here..."
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col xs:flex-row justify-end gap-2 xs:space-x-3">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            className="order-3 xs:order-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              const selectedCategory = categories.find(c => c.name === category)
+              const categoryId = selectedCategory ? selectedCategory.id : post.categoryId
+              const updatedPost: BlogPostUI = {
+                ...post,
+                title,
+                excerpt,
+                category,
+                categoryId,
+                tags: parseTags(tagsInput),
+                content,
+              }
+              onSubmit(updatedPost, imageFile)
+            }}
+            className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 order-1 xs:order-3"
+            disabled={loading}
+          >
+            Update Post
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -591,7 +773,10 @@ export default function BlogsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <PostForm />
+              <CreatePostForm
+                categories={categories}
+                onCancel={() => setIsAddingPost(false)}
+              />
             </CardContent>
           </Card>
         )}
@@ -605,7 +790,14 @@ export default function BlogsPage() {
                 <span>Edit Blog Post</span>
               </DialogTitle>
             </DialogHeader>
-            <PostForm isEditing={true} />
+            {editingPost && (
+              <EditPostForm
+                categories={categories}
+                onCancel={() => setEditingPost(null)}
+                onSubmit={(data, img) => handleUpdatePost(data, img)}
+                post={editingPost}
+              />
+            )}
           </DialogContent>
         </Dialog>
 
@@ -665,7 +857,6 @@ export default function BlogsPage() {
                         })}
                       </span>
                     </div>
-                    {/* Read Time removed */}
                     {previewingPost.status === "published" && (
                       <div className="flex items-center">
                         <Eye className="h-4 w-4 mr-2" />
@@ -724,10 +915,10 @@ export default function BlogsPage() {
             {publishedPosts
               .filter((post) => {
                 const matchesSearch =
-                  (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+                  post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.category.toLowerCase().includes(searchTerm.toLowerCase())
                 return matchesSearch
               })
               .map((post) => (
@@ -742,10 +933,10 @@ export default function BlogsPage() {
             {draftPosts
               .filter((post) => {
                 const matchesSearch =
-                  (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+                  post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.category.toLowerCase().includes(searchTerm.toLowerCase())
                 return matchesSearch
               })
               .map((post) => (
@@ -767,10 +958,10 @@ export default function BlogsPage() {
             {archivedPosts
               .filter((post) => {
                 const matchesSearch =
-                  (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.content || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  (post.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+                  post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  post.category.toLowerCase().includes(searchTerm.toLowerCase())
                 return matchesSearch
               })
               .map((post) => (
