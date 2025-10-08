@@ -157,7 +157,7 @@ export default function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: Mail, text: "info@careeradvance.ca", label: "Email Us", gradient: "from-emerald-500 to-green-500" },
-              { icon: Phone, text: "+1 (555) 123-4567", label: "Call Us", gradient: "from-green-500 to-teal-500" },
+              { icon: Phone, text: "+1 365 990 2111", label: "Call Us", gradient: "from-green-500 to-teal-500" },
               { icon: MapPin, text: "Toronto, ON, Canada", label: "Visit Us", gradient: "from-teal-500 to-lime-500" },
             ].map((contact, idx) => (
               <div
