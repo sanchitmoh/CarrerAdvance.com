@@ -385,7 +385,7 @@ export default function EmployerDashboardPage() {
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex justify-between items-center mx-auto">
             <Link href="/employers/dashboard/jobs">
               <Button
                 variant="outline"
@@ -395,15 +395,7 @@ export default function EmployerDashboardPage() {
                 <span>Post New Job</span>
               </Button>
             </Link>
-            <Link href="/employers/dashboard/interviews">
-              <Button
-                variant="outline"
-                className="h-20 flex flex-col items-center justify-center space-y-2 hover:bg-blue-50 hover:border-blue-300 bg-transparent"
-              >
-                <Calendar className="h-6 w-6 text-blue-600" />
-                <span>Schedule Interview</span>
-              </Button>
-            </Link>
+           
             <Link href="/employers/dashboard/jobs">
               <Button
                 variant="outline"

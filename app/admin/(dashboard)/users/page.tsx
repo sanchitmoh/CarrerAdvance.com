@@ -57,7 +57,7 @@ const getRoleColor = (role: string) => {
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
-  const [selectedUser, setSelectedUser] = useState<(typeof users)[0] | null>(null)
+  const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
   const [usersData, setUsersData] = useState<any[]>([])
@@ -111,7 +111,7 @@ export default function UsersPage() {
   const indexOfFirstUser = indexOfLastUser - usersPerPage
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser)
 
-  const handleViewProfile = (user: (typeof users)[0]) => { setSelectedUser(user); setIsProfileDialogOpen(true) }
+  const handleViewProfile = (user: any) => { setSelectedUser(user); setIsProfileDialogOpen(true) }
   const handleSuspendUser = async (user: any) => {
     try {
       const role = (user.role || '').toLowerCase()
@@ -130,7 +130,7 @@ export default function UsersPage() {
       }
     } catch (_) {}
   }
-  const handleUserLogin = (user: (typeof users)[0]) => { setSelectedUser(user); setIsLoginDialogOpen(true) }
+  const handleUserLogin = (user: any) => { setSelectedUser(user); setIsLoginDialogOpen(true) }
 
   const impersonateSelectedUser = async () => {
     if (!selectedUser) return
@@ -175,23 +175,19 @@ export default function UsersPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-4 sm:px-6 pt-4">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden max-w-[100vw]">
+      <div className="px-4 sm:px-6 pt-4 overflow-x-hidden">
         <BackButton />
       </div>
 
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="bg-white shadow-sm border-b overflow-x-hidden">
+        <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 overflow-x-hidden">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
             <p className="text-gray-600 text-sm sm:text-base">Manage and monitor all platform users</p>
           </div>
-          <Link href="/admin/users/add">
-            <Button className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto text-sm sm:text-base">
-              <Plus className="h-4 w-4 mr-2" /> Add User
-            </Button>
-          </Link>
+          
         </div>
       </div>
 
@@ -250,7 +246,7 @@ export default function UsersPage() {
       </Card>
 
       {/* Users List */}
-      <div className="p-4 sm:p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4 overflow-x-hidden">
         {/* Results count */}
         <div className="flex justify-between items-center">
           <p className="text-sm text-gray-600">
@@ -259,23 +255,23 @@ export default function UsersPage() {
         </div>
 
         {/* Mobile Cards */}
-        <div className="sm:hidden space-y-4">
+        <div className="sm:hidden space-y-4 overflow-x-hidden">
           {currentUsers.map((user) => (
             <Card key={user.id} className="p-4 shadow-sm border border-gray-200">
-              <div className="flex justify-between items-start">
-                <div className="flex gap-3">
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                    <span className="text-emerald-600 font-bold">{user.avatar}</span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-emerald-600 font-bold text-sm">{user.avatar}</span>
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium text-gray-900 truncate">{user.name}</div>
-                    <div className="text-sm text-gray-500 break-words">{user.email}</div>
+                    <div className="font-medium text-gray-900 truncate text-sm">{user.name}</div>
+                    <div className="text-xs text-gray-500 break-words break-all">{user.email}</div>
                   </div>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
+                    <Button variant="ghost" className="h-7 w-7 p-0 -mr-1">
+                      <MoreHorizontal className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -291,11 +287,11 @@ export default function UsersPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Badge className={`${getRoleColor(user.role)} px-2 py-1 text-xs`}>{user.role}</Badge>
-                <Badge className={`${getStatusColor(user.status)} px-2 py-1 text-xs`}>{user.status}</Badge>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <Badge className={`${getRoleColor(user.role)} px-1.5 py-0.5 text-[10px]`}>{user.role}</Badge>
+                <Badge className={`${getStatusColor(user.status)} px-1.5 py-0.5 text-[10px]`}>{user.status}</Badge>
               </div>
-              {user.stats && <p className="text-sm text-gray-600 mt-2 whitespace-pre-line">{user.stats}</p>}
+              {user.stats && <p className="text-xs text-gray-600 mt-2 whitespace-pre-line">{user.stats}</p>}
             </Card>
           ))}
         </div>
@@ -320,9 +316,9 @@ export default function UsersPage() {
                       <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
                         <span className="text-emerald-600 font-medium">{user.avatar}</span>
                       </div>
-                      <div className="min-w-0">
+                       <div className="min-w-0">
                         <div className="font-medium text-gray-900 truncate">{user.name}</div>
-                        <div className="text-sm text-gray-500 break-words">{user.email}</div>
+                         <div className="text-sm text-gray-500 break-words break-all">{user.email}</div>
                       </div>
                     </div>
                   </TableCell>
@@ -357,52 +353,72 @@ export default function UsersPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6">
-            <div className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </div>
-            <div className="flex items-center gap-2">
+          <>
+            {/* Mobile: only Prev/Next */}
+            <div className="flex sm:hidden items-center justify-between mt-6">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handlePrevPage}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 text-xs"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3.5 w-3.5" />
                 Previous
               </Button>
-              
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageClick(page)}
-                    className={`h-8 w-8 p-0 ${
-                      currentPage === page 
-                        ? "bg-emerald-600 text-white" 
-                        : "hover:bg-emerald-50 hover:text-emerald-700"
-                    }`}
-                  >
-                    {page}
-                  </Button>
-                ))}
-              </div>
-
+              <span className="text-xs text-gray-600">{currentPage} / {totalPages}</span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 text-xs"
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
-          </div>
+
+            {/* Desktop: full controls */}
+            <div className="hidden sm:flex items-center justify-between mt-6">
+              <div className="text-sm text-gray-600">Page {currentPage} of {totalPages}</div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageClick(page)}
+                      className={`h-8 w-8 p-0 ${currentPage === page ? "bg-emerald-600 text-white" : "hover:bg-emerald-50 hover:text-emerald-700"}`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center gap-1"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

@@ -252,9 +252,7 @@ export default function CoursesPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Course Management</h1>
           <p className="text-xs sm:text-sm text-gray-600">Review and manage all platform courses</p>
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 w-full text-xs sm:text-sm flex items-center justify-center py-2 sm:py-2.5">
-          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> Add Course
-        </Button>
+       
       </div>
 
       {/* Stats Dashboard */}

@@ -85,12 +85,14 @@ export default function EmployeesPage() {
   })
 
   const filteredEmployees = employees.filter((employee) => {
-    const matchesSearch =
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.empId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesDepartment = selectedDepartment === "all" || employee.department === selectedDepartment
-    const matchesType = selectedType === "all" || employee.empType === selectedType
+    const q = (searchTerm || '').toLowerCase()
+    const name = ((employee as any)?.name ?? '').toString().toLowerCase()
+    const empId = ((employee as any)?.empId ?? '').toString().toLowerCase()
+    const email = ((employee as any)?.email ?? '').toString().toLowerCase()
+    const matchesSearch = name.includes(q) || empId.includes(q) || email.includes(q)
+    const empDept = ((employee as any)?.department ?? '').toString()
+    const matchesDepartment = selectedDepartment === "all" || empDept === selectedDepartment
+    const matchesType = selectedType === "all" || ((employee as any)?.empType === selectedType)
     return matchesSearch && matchesDepartment && matchesType
   })
 
@@ -129,7 +131,7 @@ export default function EmployeesPage() {
 
   const saveEdit = async () => {
     if (!editEmployee) return
-    const url = getBaseUrl(`/api/company-employees/${editEmployee.id}`)
+    const url = getBaseUrl(`/company-employees/${editEmployee.id}`)
     const payload: any = {
       emp_name: editForm.name,
       email: editForm.email,
@@ -174,7 +176,7 @@ export default function EmployeesPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const url = getBaseUrl('/api/company-employees')
+        const url = getBaseUrl('/company-employees')
         const res = await fetch(url, { credentials: 'include' })
         const json = await res.json().catch(() => ({}))
         if (res.ok && json?.success) {
@@ -232,7 +234,7 @@ export default function EmployeesPage() {
     }
 
     try {
-      const url = getBaseUrl('/api/company-employees')
+      const url = getBaseUrl('/company-employees')
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -247,7 +249,7 @@ export default function EmployeesPage() {
           setEmployees((prev) => [created as any, ...prev])
         } else {
           // fallback: refetch list
-          const listRes = await fetch(getBaseUrl('/api/company-employees'), { credentials: 'include' })
+          const listRes = await fetch(getBaseUrl('/company-employees'), { credentials: 'include' })
           const listJson = await listRes.json().catch(() => ({}))
           if (listRes.ok && listJson?.success) setEmployees(listJson.data as EmployeeRow[])
         }
@@ -281,7 +283,7 @@ export default function EmployeesPage() {
     const ok = confirm('Are you sure you want to delete this employee?')
     if (!ok) return
     try {
-      const url = getBaseUrl(`/api/company-employees/${id}`)
+      const url = getBaseUrl(`/company-employees/${id}`)
       const res = await fetch(url, { method: 'DELETE', credentials: 'include' })
       const json = await res.json().catch(() => ({}))
       if (res.ok && json?.success) {

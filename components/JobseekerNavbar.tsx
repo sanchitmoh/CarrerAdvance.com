@@ -88,6 +88,18 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
+
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onMenuToggle}
+              className="text-gray-700 hover:text-emerald-600 hover:bg-emerald-50"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
+
           <Link href="/" className="flex items-center space-x-3 group">
             <div 
               className="relative transition-transform duration-300 hover:scale-105 active:scale-95"
@@ -111,17 +123,7 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
           </Link>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMenuToggle}
-              className="text-gray-700 hover:text-emerald-600 hover:bg-emerald-50"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
-
+          
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-6">
             

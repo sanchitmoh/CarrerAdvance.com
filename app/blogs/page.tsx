@@ -40,15 +40,30 @@ export default function BlogsPage() {
         const posts = data.data || [];
         
         // Normalize posts array
-        const normalizedPosts = posts.map((p: any) => ({
-          ...p,
-          image: p.image || p.image_default,
-          image_url: p.image_url,
-          author: p.author_name || p.author,
-          category: p.category_name || p.category,
-          created_date: p.created_at || p.created_date,
-          views: p.views_count || p.views,
-        }));
+        const normalizedPosts = posts.map((p: any) => {
+          const authorCandidate = (
+            p.author_name ||
+            p.author ||
+            p.company_name ||
+            (p && p.company && (p.company.name || p.company.company_name)) ||
+            p.company ||
+            p.employer_name ||
+            (p && p.employer && (p.employer.name || p.employer.company_name)) ||
+            (p as any).company_name ||
+            // handle common misspelling just in case
+            (p as any).compnay_name ||
+            (p && p.organization)
+          );
+          return {
+            ...p,
+            image: p.image || p.image_default,
+            image_url: p.image_url,
+            author: (authorCandidate && String(authorCandidate).trim()) || 'Unknown Company',
+            category: p.category_name || p.category,
+            created_date: p.created_at || p.created_date,
+            views: p.views_count || p.views,
+          };
+        });
 
         setBlogs(normalizedPosts);
         setTotal(data.total || 0);

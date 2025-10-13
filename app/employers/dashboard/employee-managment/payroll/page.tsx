@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { API_BASE_URL } from "@/lib/api-config"
+import { getBaseUrl } from "@/lib/api-config"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -126,137 +126,12 @@ export default function PayrollManagementPage() {
     return "pending"
   }, [cycleForm.startDate, cycleForm.endDate])
 
-  // Sample employee salary data
-  const employees = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah@company.com",
-      department: "Engineering",
-      position: "Senior Developer",
-      employeeId: "EMP001",
-      salaryType: "monthly",
-      baseSalary: 8000,
-      hourlyRate: 50,
-      hoursWorked: 160,
-      overtime: 8,
-      bonus: 500,
-      deductions: 200,
-      tax: 1200,
-      netSalary: 7108,
-      bankAccount: "****1234",
-      avatar: "/placeholder.svg?height=40&width=40",
-      individualOvertimeRate: 1.6,
-      individualOvertimeThreshold: 45,
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      email: "michael@company.com",
-      department: "Marketing",
-      position: "Marketing Manager",
-      employeeId: "EMP002",
-      salaryType: "monthly",
-      baseSalary: 6500,
-      hourlyRate: 40,
-      hoursWorked: 152,
-      overtime: 0,
-      bonus: 300,
-      deductions: 150,
-      tax: 980,
-      netSalary: 5670,
-      bankAccount: "****5678",
-      avatar: "/placeholder.svg?height=40&width=40",
-      individualOvertimeRate: 1.5,
-      individualOvertimeThreshold: 40,
-    },
-    {
-      id: 3,
-      name: "Emily Davis",
-      email: "emily@company.com",
-      department: "Design",
-      position: "UX Designer",
-      employeeId: "EMP003",
-      salaryType: "hourly",
-      baseSalary: 0,
-      hourlyRate: 45,
-      hoursWorked: 144,
-      overtime: 4,
-      bonus: 200,
-      deductions: 100,
-      tax: 950,
-      netSalary: 5630,
-      bankAccount: "****9012",
-      avatar: "/placeholder.svg?height=40&width=40",
-      individualOvertimeRate: 1.75,
-      individualOvertimeThreshold: 38,
-    },
-    {
-      id: 4,
-      name: "David Wilson",
-      email: "david@company.com",
-      department: "Sales",
-      position: "Sales Representative",
-      employeeId: "EMP004",
-      salaryType: "monthly",
-      baseSalary: 5500,
-      hourlyRate: 35,
-      hoursWorked: 168,
-      overtime: 12,
-      bonus: 800,
-      deductions: 120,
-      tax: 920,
-      netSalary: 5260,
-      bankAccount: "****3456",
-      avatar: "/placeholder.svg?height=40&width=40",
-      individualOvertimeRate: 1.5,
-      individualOvertimeThreshold: 40,
-    },
-  ]
+  // Removed static sample employee data
 
-  // Sample payroll history
-  const [payrollHistory] = useState([
-    {
-      id: 1,
-      month: "2024-01",
-      totalEmployees: 24,
-      totalGrossPay: 156000,
-      totalDeductions: 18500,
-      totalTax: 23400,
-      totalNetPay: 114100,
-      status: "processed",
-      processedDate: "2024-01-31",
-    },
-    {
-      id: 2,
-      month: "2023-12",
-      totalEmployees: 23,
-      totalGrossPay: 148000,
-      totalDeductions: 17200,
-      totalTax: 22200,
-      totalNetPay: 108600,
-      status: "processed",
-      processedDate: "2023-12-31",
-    },
-    {
-      id: 3,
-      month: "2023-11",
-      totalEmployees: 22,
-      totalGrossPay: 142000,
-      totalDeductions: 16800,
-      totalTax: 21300,
-      totalNetPay: 103900,
-      status: "processed",
-      processedDate: "2023-11-30",
-    },
-  ])
+  // Removed static payroll history
 
   // Pagination logic
-  const currentEmployees = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return employees.slice(startIndex, endIndex)
-  }, [currentPage, itemsPerPage, employees])
+  // Removed currentEmployees derived from static data
 
   const currentPayroll = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -265,9 +140,9 @@ export default function PayrollManagementPage() {
   }, [currentPage, itemsPerPage, payroll])
 
   const totalPages = useMemo(() => {
-    const dataLength = payroll.length > 0 ? payroll.length : employees.length
-    return Math.ceil(dataLength / itemsPerPage)
-  }, [payroll.length, employees.length, itemsPerPage])
+    const dataLength = payroll.length
+    return Math.max(1, Math.ceil((dataLength || 0) / itemsPerPage))
+  }, [payroll.length, itemsPerPage])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -392,7 +267,7 @@ export default function PayrollManagementPage() {
     setIsSavingCycle(true)
     try {
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/payroll-cycles/create${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl('/payroll-cycles/create')}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -426,7 +301,7 @@ export default function PayrollManagementPage() {
     setIsSavingBaseTax(true)
     try {
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/tax-settings/save-base${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl('/tax-settings/save-base')}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -456,7 +331,7 @@ export default function PayrollManagementPage() {
     setIsSavingCustomTax(true)
     try {
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/tax-settings/add-custom${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl('/tax-settings/add-custom')}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -484,11 +359,25 @@ export default function PayrollManagementPage() {
     return match ? decodeURIComponent(match[1]) : ""
   }
 
+  async function fetchCyclesOnce(): Promise<any[]> {
+    try {
+      const companyId = getEmployerId()
+      const url = `${getBaseUrl('/api/payroll-cycles')}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const res = await fetch(url, { credentials: 'include' })
+      const contentType = res.headers.get('content-type') || ''
+      if (!res.ok || !contentType.includes('application/json')) return []
+      const json = await res.json()
+      return Array.isArray(json?.data) ? json.data : []
+    } catch {
+      return []
+    }
+  }
+
   async function fetchCurrentTaxes() {
     try {
       setLoadingTaxes(true)
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/tax-settings/current${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl('/tax-settings/current')}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       const res = await fetch(url, { credentials: "include" })
       const json = await res.json()
       if (json && json.success && json.data) {
@@ -505,7 +394,7 @@ export default function PayrollManagementPage() {
     try {
       setLoadingBaseTaxes(true)
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/tax-settings/base-list${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl('/tax-settings/base-list')}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       const res = await fetch(url, { credentials: "include" })
       const json = await res.json()
       if (json && json.success) {
@@ -522,7 +411,7 @@ export default function PayrollManagementPage() {
     try {
       setLoadingCycles(true)
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/payroll-cycles${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl('payroll-cycles')}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       const res = await fetch(url, { credentials: "include" })
       const json = await res.json()
       if (json && json.success) {
@@ -544,7 +433,7 @@ export default function PayrollManagementPage() {
     setIsUpdatingCustomTax(true)
     try {
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/tax-settings/custom/${encodeURIComponent(editCustomTax.id)}/update${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl(`/tax-settings/custom/${encodeURIComponent(editCustomTax.id)}/update`)}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -569,7 +458,7 @@ export default function PayrollManagementPage() {
     if (!confirm(`Delete custom tax "${tax.tax_name}"?`)) return
     try {
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/tax-settings/custom/${encodeURIComponent(tax.id)}/delete${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl(`/tax-settings/custom/${encodeURIComponent(tax.id)}/delete`)}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       await fetch(url, { method: "POST", credentials: "include" })
       await fetchCurrentTaxes()
     } catch (e) {
@@ -589,7 +478,7 @@ export default function PayrollManagementPage() {
     setIsUpdatingBaseTax(true)
     try {
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/tax-settings/base/${encodeURIComponent(editBaseTax.id)}/update${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl(`/tax-settings/base/${encodeURIComponent(editBaseTax.id)}/update`)}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -616,7 +505,7 @@ export default function PayrollManagementPage() {
     if (!confirm("Delete this base tax setting?")) return
     try {
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/tax-settings/base/${encodeURIComponent(tax.id)}/delete${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${getBaseUrl(`/tax-settings/base/${encodeURIComponent(tax.id)}/delete`)}${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       await fetch(url, { method: "POST", credentials: "include" })
       await fetchBaseTaxes()
     } catch (e) {
@@ -624,10 +513,71 @@ export default function PayrollManagementPage() {
     }
   }
 
-  const totalGrossPay = employees.reduce((sum, emp) => sum + calculateGrossSalary(emp), 0)
-  const totalDeductions = employees.reduce((sum, emp) => sum + emp.deductions, 0)
-  const totalTax = employees.reduce((sum, emp) => sum + emp.tax, 0)
-  const totalNetPay = employees.reduce((sum, emp) => sum + emp.netSalary, 0)
+  const totalGrossPay = payroll.reduce((sum, row) => sum + Number(row.gross_salary || 0), 0)
+  const totalDeductions = payroll.reduce((sum, row) => sum + Number(row.deductions || 0), 0)
+  const totalTax = payroll.reduce((sum, row) => sum + Number(row.tax || 0), 0)
+  const totalNetPay = payroll.reduce((sum, row) => sum + Number(row.net_salary || 0), 0)
+
+  const [isCalculating, setIsCalculating] = useState(false)
+  function getLatestCycleId() {
+    if (!cycles || cycles.length === 0) return null
+    const latest = cycles.reduce((acc: any, cur: any) => {
+      const accEnd = new Date(acc?.end_date || acc?.endDate || 0).getTime()
+      const curEnd = new Date(cur?.end_date || cur?.endDate || 0).getTime()
+      return curEnd > accEnd ? cur : acc
+    }, cycles[0])
+    return latest?.id ?? latest?.cycle_id ?? null
+  }
+
+  async function handleCalculatePayroll() {
+    try {
+      let sourceCycles = cycles
+      if (!sourceCycles || sourceCycles.length === 0) {
+        sourceCycles = await fetchCyclesOnce()
+        if (sourceCycles.length > 0) setCycles(sourceCycles)
+      }
+      let latestId: string | number | null = null
+      if (sourceCycles && sourceCycles.length > 0) {
+        const latest = sourceCycles.reduce((acc: any, cur: any) => {
+          const accEnd = new Date(acc?.end_date || acc?.endDate || 0).getTime()
+          const curEnd = new Date(cur?.end_date || cur?.endDate || 0).getTime()
+          return curEnd > accEnd ? cur : acc
+        }, sourceCycles[0])
+        latestId = latest?.id ?? latest?.cycle_id ?? null
+      }
+      if (!latestId) {
+        alert("No payroll cycle found. Please create a cycle first.")
+        return
+      }
+      setIsCalculating(true)
+      const url = `${getBaseUrl('/employers/payroll/calculate_payroll')}`
+      const body = new URLSearchParams()
+      body.set('cycle_id', String(latestId))
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        credentials: 'include',
+        body: body.toString()
+      })
+      const contentType = res.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        const json = await res.json()
+        if (res.ok && json && json.success) {
+          alert(`Payroll calculated. Finalized: ${json.finalized_employees || 0}, Deductions: ${json.itemized_deductions || 0}`)
+          await fetchEmployeePayroll()
+        } else {
+          alert(json?.message || 'Failed to calculate payroll')
+        }
+      } else {
+        const text = await res.text()
+        alert(`Unexpected response. Status ${res.status}. ${text.slice(0, 180)}`)
+      }
+    } catch (e) {
+      alert('Network error while calculating payroll')
+    } finally {
+      setIsCalculating(false)
+    }
+  }
 
   async function fetchEmployeePayroll() {
     try {
@@ -635,10 +585,10 @@ export default function PayrollManagementPage() {
       setPayrollError("")
       setPayrollFetchAttempted(true)
       const companyId = getEmployerId()
-      const params = new URLSearchParams()
-      params.set('page', '1')
-      params.set('per_page', '50')
-      if (companyId) params.set('company_id', companyId)
+      const searchParams = new URLSearchParams()
+      searchParams.set('page', '1')
+      searchParams.set('per_page', '50')
+      if (companyId) searchParams.set('company_id', companyId)
       const candidatePaths = [
         '/employee-payroll',
         '/employers/Payroll/employee-payroll',
@@ -646,7 +596,7 @@ export default function PayrollManagementPage() {
       ]
       let succeeded = false
       for (const path of candidatePaths) {
-        const url = `${API_BASE_URL}${path}?${params.toString()}`
+        const url = `${getBaseUrl(path)}?${searchParams.toString()}`
         try {
           const res = await fetch(url, { credentials: 'include' })
           const contentType = res.headers.get('content-type') || ''
@@ -780,7 +730,7 @@ export default function PayrollManagementPage() {
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 px-2 py-4">
         <div className="text-sm text-gray-600 text-center sm:text-left">
-          Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, payroll.length > 0 ? payroll.length : employees.length)} of {payroll.length > 0 ? payroll.length : employees.length} entries
+          Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, payroll.length)} of {payroll.length} entries
         </div>
         <div className="flex items-center space-x-1">
           <Button
@@ -884,10 +834,15 @@ export default function PayrollManagementPage() {
               <span className="hidden sm:inline">Payroll Cycle</span>
               <span className="sm:hidden">Cycle</span>
             </Button>
-            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-sm w-full sm:w-auto justify-center">
-              <Download className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Export Report</span>
-              <span className="sm:hidden">Export</span>
+            <Button
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-sm w-full sm:w-auto justify-center"
+              onClick={handleCalculatePayroll}
+              disabled={isCalculating}
+            >
+              <Calculator className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">{isCalculating ? 'Calculating…' : 'Calculate Payroll'}</span>
+              <span className="sm:hidden">{isCalculating ? '…' : 'Calculate'}</span>
             </Button>
           </div>
         </div>
@@ -1086,7 +1041,7 @@ export default function PayrollManagementPage() {
                                       className="h-7 w-7 p-0 bg-transparent"
                                       onClick={() => {
                                         if (!row.id) return
-                                        const url = `${API_BASE_URL}/employee-payroll/download?payroll_id=${row.id}`
+                                        const url = `${getBaseUrl('/employee-payroll/download')}?payroll_id=${row.id}`
                                         window.open(url, '_blank')
                                       }}
                                       title="Download Payslip"
@@ -1101,85 +1056,16 @@ export default function PayrollManagementPage() {
                           ))}
                         </>
                       ) : (
-                        <>
-                          {currentEmployees.map((employee, index) => (
-                            <TableRow key={employee.id} className="text-xs sm:text-sm">
-                              <TableCell>
-                                <div className="flex items-center space-x-2 min-w-0">
-                                  <Avatar className="h-8 w-8 flex-shrink-0">
-                                    <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={employee.name} />
-                                    <AvatarFallback className="bg-emerald-100 text-emerald-600 text-xs">
-                                      {employee.name
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")
-                                        .slice(0, 2)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="min-w-0 flex-1">
-                                    <UserInfoPopover employee={employee}>
-                                      <p className="font-medium hover:text-blue-600 transition-colors cursor-pointer truncate">
-                                        {employee.name}
-                                      </p>
-                                    </UserInfoPopover>
-                                    <p className="text-xs text-gray-600 truncate">{employee.employeeId}</p>
-                                    <div className="sm:hidden mt-1">
-                                      <Badge
-                                        variant="outline"
-                                        className={`text-xs ${employee.salaryType === "monthly" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}`}
-                                      >
-                                        {employee.salaryType}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="hidden sm:table-cell">
-                                <Badge
-                                  variant="outline"
-                                  className={`text-xs ${employee.salaryType === "monthly" ? "bg-blue-50 text-blue-700" : "bg-green-50 text-green-700"}`}
-                                >
-                                  {employee.salaryType}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="hidden lg:table-cell">${employee.baseSalary.toLocaleString()}</TableCell>
-                              <TableCell className="hidden md:table-cell">{employee.hoursWorked}h</TableCell>
-                              <TableCell className="hidden lg:table-cell">{employee.overtime}h</TableCell>
-                              <TableCell className="font-medium">
-                                ${calculateGrossSalary(employee).toLocaleString()}
-                              </TableCell>
-                              <TableCell className="hidden md:table-cell text-red-600">${employee.deductions}</TableCell>
-                              <TableCell className="font-bold text-emerald-600">
-                                ${employee.netSalary.toLocaleString()}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex space-x-1">
-                                  <div className="hidden sm:flex space-x-1">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 w-7 p-0 bg-transparent"
-                                      onClick={() => generatePayslip(employee)}
-                                      title="View Payslip"
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-7 w-7 p-0 bg-transparent"
-                                      onClick={() => generatePayslip(employee)}
-                                      title="Download Payslip"
-                                    >
-                                      <Download className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                  <MobileActionsMenu employee={employee} index={index} />
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </>
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center py-10">
+                            <div className="space-y-3">
+                              <p className="text-sm text-gray-600">No payroll found for the selected period.</p>
+                              <Button variant="outline" onClick={() => setShowCycleDialog(true)}>
+                                <Calendar className="h-4 w-4 mr-2" /> Add Payroll Cycle
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       )}
                     </TableBody>
                   </Table>
@@ -1201,53 +1087,36 @@ export default function PayrollManagementPage() {
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
               <div className="space-y-3 sm:space-y-4">
-                {payrollHistory.map((record) => (
-                  <div key={record.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg space-y-3 sm:space-y-0">
-                    <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
-                      <div className="p-2 sm:p-3 bg-emerald-100 rounded-lg flex-shrink-0">
-                        <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
+                {cycles.length === 0 ? (
+                  <p className="text-sm text-gray-600">No history available.</p>
+                ) : (
+                  cycles.map((c) => (
+                    <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg space-y-3 sm:space-y-0">
+                      <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
+                        <div className="p-2 sm:p-3 bg-emerald-100 rounded-lg flex-shrink-0">
+                          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 text-sm sm:text-base">
+                            {new Date(c.start_date).toLocaleDateString()} - {new Date(c.end_date).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-600">Status: {c.status}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900 text-sm sm:text-base">
-                          {new Date(record.month + "-01").toLocaleDateString("en-US", {
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-600">{record.totalEmployees} employees</p>
-                        <div className="sm:hidden mt-2 space-y-1">
-                          <p className="text-xs text-gray-600">Gross: ${(record.totalGrossPay / 1000).toFixed(0)}k</p>
-                          <p className="text-xs text-gray-600">Net: ${(record.totalNetPay / 1000).toFixed(0)}k</p>
+                      <div className="w-full sm:w-auto">
+                        <div className="flex items-center justify-between sm:justify-end space-x-2 mt-2 sm:mt-1">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${c.status === 'processed' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            {c.status}
+                          </Badge>
                         </div>
                       </div>
                     </div>
-                    <div className="w-full sm:w-auto">
-                      <div className="hidden sm:flex sm:items-center sm:space-x-4 text-sm">
-                        <div className="space-y-1">
-                          <p className="text-gray-600">Gross: ${(record.totalGrossPay / 1000).toFixed(0)}k</p>
-                          <p className="text-gray-600">Deductions: ${(record.totalDeductions / 1000).toFixed(0)}k</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-gray-600">Tax: ${(record.totalTax / 1000).toFixed(0)}k</p>
-                          <p className="font-medium text-emerald-600">Net: ${(record.totalNetPay / 1000).toFixed(0)}k</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between sm:justify-end space-x-2 mt-2 sm:mt-1">
-                        <Badge
-                          variant="outline"
-                          className={record.status === "processed" ? "bg-green-50 text-green-700 text-xs" : "bg-yellow-50 text-yellow-700 text-xs"}
-                        >
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          {record.status}
-                        </Badge>
-                        <Button size="sm" variant="outline" className="text-xs h-7">
-                          <Download className="h-3 w-3 mr-1" />
-                          <span className="hidden sm:inline">Export</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -1472,48 +1341,7 @@ export default function PayrollManagementPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">Individual Settings</h4>
-                    <div className="space-y-3 max-h-60 overflow-y-auto">
-                      {employees.map((employee) => (
-                        <div key={employee.id} className="p-3 border rounded-lg">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={employee.avatar || "/placeholder.svg"} alt={employee.name} />
-                              <AvatarFallback className="bg-emerald-100 text-emerald-600 text-xs">
-                                {employee.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm truncate">{employee.name}</p>
-                              <p className="text-xs text-gray-600 truncate">{employee.position}</p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label htmlFor={`threshold-${employee.id}`} className="text-xs">OT Threshold</Label>
-                              <Input
-                                id={`threshold-${employee.id}`}
-                                type="number"
-                                defaultValue={employee.individualOvertimeThreshold}
-                                className="text-sm h-7"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor={`rate-${employee.id}`} className="text-xs">OT Multiplier</Label>
-                              <Input
-                                id={`rate-${employee.id}`}
-                                type="number"
-                                step="0.1"
-                                defaultValue={employee.individualOvertimeRate}
-                                className="text-sm h-7"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <div className="p-3 border rounded-lg text-xs text-gray-600">No employees loaded.</div>
                 )}
 
                 <Button className="w-full text-sm h-9">Update Settings</Button>
@@ -1959,4 +1787,4 @@ export default function PayrollManagementPage() {
       </Dialog>
     </div>
   )
-}
+} 

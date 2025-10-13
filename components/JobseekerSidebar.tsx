@@ -77,7 +77,8 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
   const shouldExpand = !collapsed
 
   // Hide sidebar on specific jobseeker tools pages where a full-width layout is desired
-  const hideOnRoutes = ['/job-seekers/dashboard/time-tracker']
+  // Note: Allow sidebar on time-tracker page as requested
+  const hideOnRoutes: string[] = []
   const shouldHideSidebar = hideOnRoutes.some((route) => pathname?.startsWith(route))
   if (shouldHideSidebar) return null
 
