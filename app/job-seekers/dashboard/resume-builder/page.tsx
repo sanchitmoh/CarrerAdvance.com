@@ -34,43 +34,43 @@ function ResumeBuilderContent() {
   }, [searchParams])
 
   const templates = [
-    {
-      id: "modern",
-      name: "Modern Professional",
-      description: "Clean and professional design perfect for corporate roles",
-      preview: "/placeholder.svg?height=300&width=200&text=Modern",
-    },
-    {
-      id: "creative",
-      name: "Creative",
-      description: "Eye-catching design for creative and design roles",
-      preview: "/placeholder.svg?height=300&width=200&text=Creative",
-    },
-    {
-      id: "minimal",
-      name: "Minimal",
-      description: "Simple and elegant design that focuses on content",
-      preview: "/placeholder.svg?height=300&width=200&text=Minimal",
-    },
-    {
-      id: "executive",
-      name: "Executive",
-      description: "Sophisticated design for senior-level positions",
-      preview: "/placeholder.svg?height=300&width=200&text=Executive",
-    },
-    {
-      id: "technical",
-      name: "Technical",
-      description: "Structured layout ideal for technical roles",
-      preview: "/placeholder.svg?height=300&width=200&text=Technical",
-    },
-    {
-      id: "academic",
-      name: "Academic",
-      description: "Traditional format suitable for academic positions",
-      preview: "/placeholder.svg?height=300&width=200&text=Academic",
-    },
-  ]
+  {
+    id: "modern",
+    name: "Modern Professional",
+    description: "Clean and professional design perfect for corporate roles",
+    preview: "/resume6.jpeg",
+  },
+  {
+    id: "creative",
+    name: "Creative",
+    description: "Eye-catching design for creative and design roles",
+    preview: "/resume1.jpeg",
+  },
+  {
+    id: "minimal",
+    name: "Minimal",
+    description: "Simple and elegant design that focuses on content",
+    preview: "/resume4.jpeg",
+  },
+  {
+    id: "executive",
+    name: "Executive",
+    description: "Sophisticated design for senior-level positions",
+    preview: "/resume2.jpeg",
+  },
+  {
+    id: "technical",
+    name: "Technical",
+    description: "Structured layout ideal for technical roles",
+    preview: "/resume3.jpeg",
+  },
+  {
+    id: "academic",
+    name: "Academic",
+    description: "Traditional format suitable for academic positions",
+    preview: "/resume5.jpeg",
+  },
+]
 
   const handleCreateResume = (templateId: string) => {
     // Generate a unique identifier for new resumes (not a database ID)

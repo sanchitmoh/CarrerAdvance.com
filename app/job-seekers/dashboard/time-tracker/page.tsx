@@ -98,8 +98,7 @@ export default function JobSeekerTimeTrackerPage() {
   const [sessions, setSessions] = useState<TimeTrackingSession[]>([])
   const [loading, setLoading] = useState(false)
   const breakOptions = [
-    { type: "Lunch", duration: "1 hour" },
-    { type: "Coffee", duration: "15 mins" }
+    { type: "Lunch", duration: "1 hour" }
   ]
   const [leaveReason, setLeaveReason] = useState("")
   const [leaveFrom, setLeaveFrom] = useState<string>("")
@@ -107,6 +106,33 @@ export default function JobSeekerTimeTrackerPage() {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
 
   // API functions
+  const mapBackendLeaveToUI = (row: any): LeaveRequest => {
+    // Support both snake_case (DB-like) and camelCase (API-normalized) payloads
+    const rawStatus = row?.status
+    let status: LeaveStatus = 'Pending'
+    if (typeof rawStatus === 'number') {
+      status = rawStatus === 1 ? 'Approved' : rawStatus === 2 ? 'Cancelled' : 'Pending'
+    } else if (typeof rawStatus === 'string') {
+      const s = rawStatus.toLowerCase()
+      status = s === 'approved' ? 'Approved' : s === 'rejected' ? 'Cancelled' : 'Pending'
+    }
+
+    const createdAtStr = row?.created_at ?? row?.createdAt
+    const fromStr = row?.apply_strt_date ?? row?.applyStartDate ?? row?.from
+    const toStr = row?.apply_end_date ?? row?.applyEndDate ?? row?.to
+    const daysNum = row?.num_aprv_day ?? row?.numApprovedDays ?? row?.days
+
+    return {
+      id: String(row?.leave_appl_id ?? row?.id ?? Math.random()),
+      reason: String(row?.reason ?? ''),
+      from: String(fromStr ?? ''),
+      to: String(toStr ?? ''),
+      days: Number(daysNum ?? 0) || 0,
+      status,
+      createdAt: createdAtStr ? new Date(createdAtStr).getTime() : Date.now(),
+    }
+  }
+
   const loadActiveSession = async () => {
     try {
       const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
@@ -141,6 +167,62 @@ export default function JobSeekerTimeTrackerPage() {
     } catch (error) {
       console.error('Error loading sessions:', error)
     }
+  }
+
+  const loadLeaves = async () => {
+    try {
+      const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
+      if (!jsId) return
+
+      const res = await fetch(`/api/seeker/leaves/list?jobseeker_id=${encodeURIComponent(jsId)}`, {
+        credentials: 'include'
+      })
+      const data = await res.json().catch(() => ({} as any))
+      if (data?.success && Array.isArray(data?.data)) {
+        setLeaveRequests(data.data.map(mapBackendLeaveToUI))
+      } else if (Array.isArray(data)) {
+        setLeaveRequests(data.map(mapBackendLeaveToUI))
+      }
+    } catch (error) {
+      console.error('Error loading leaves:', error)
+    }
+  }
+
+  const resolveCompanyId = async (jobseekerId: string): Promise<string | null> => {
+    // 1) From localStorage
+    const fromStorage = typeof window !== 'undefined' ? (window.localStorage.getItem('company_id') || '') : ''
+    if (fromStorage) return fromStorage
+    // 2) From active time-tracking session
+    if (activeSession?.company_id) return String(activeSession.company_id)
+    // 3) From hiring employers endpoint
+    try {
+      const res = await fetch(`/api/seeker/profile/get_hiring_employers?jobseeker_id=${encodeURIComponent(jobseekerId)}`, { credentials: 'include' })
+      const data = await res.json().catch(() => ({} as any))
+      const first = Array.isArray(data?.data) && data.data.length ? data.data[0] : null
+      if (first?.company_id) return String(first.company_id)
+    } catch {
+      // ignore
+    }
+    return null
+  }
+
+  const resolveEmployeeId = async (jobseekerId: string): Promise<string | null> => {
+    // Prefer active session mapping (ew_companyemp.id)
+    if (activeSession?.employee_id) return String(activeSession.employee_id)
+    // Try hiring employers list if it contains mapping
+    try {
+      const res = await fetch(`/api/seeker/profile/get_hiring_employers?jobseeker_id=${encodeURIComponent(jobseekerId)}`, { credentials: 'include' })
+      const data = await res.json().catch(() => ({} as any))
+      // Accept common shapes: data[0].employee_id or data.employee_id
+      if (Array.isArray(data?.data) && data.data.length) {
+        const first = data.data[0]
+        if (first?.employee_id) return String(first.employee_id)
+      }
+      if (data?.data?.employee_id) return String(data.data.employee_id)
+    } catch {
+      // ignore
+    }
+    return null
   }
 
   const convertSessionsToEntries = (sessions: TimeTrackingSession[]) => {
@@ -305,25 +387,12 @@ export default function JobSeekerTimeTrackerPage() {
     }
   }, [leaveFrom, leaveTo])
 
-  // Load/persist leave requests to localStorage (global, not per day)
+  // Load leaves from backend
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("leave-requests:v1")
-      if (raw) {
-        const parsed: LeaveRequest[] = JSON.parse(raw)
-        if (Array.isArray(parsed)) setLeaveRequests(parsed)
-      }
-    } catch {
-      // ignore
+    if (isHired) {
+      loadLeaves()
     }
-  }, [])
-  useEffect(() => {
-    try {
-      localStorage.setItem("leave-requests:v1", JSON.stringify(leaveRequests))
-    } catch {
-      // ignore
-    }
-  }, [leaveRequests])
+  }, [isHired])
 
   const handleClockIn = async () => {
     if (!isSelectedToday) return
@@ -484,23 +553,53 @@ export default function JobSeekerTimeTrackerPage() {
     }
   }
 
-  const handleSubmitLeave = (e: React.FormEvent) => {
+  const handleSubmitLeave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!leaveReason.trim() || !leaveFrom || !leaveTo) return
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const req: LeaveRequest = {
-      id,
-      reason: leaveReason.trim(),
-      from: leaveFrom,
-      to: leaveTo,
-      days: derivedDays ?? 1,
-      status: "Pending",
-      createdAt: Date.now(),
+    try {
+      setLoading(true)
+      const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
+      if (!jsId) return
+      const companyId = await resolveCompanyId(jsId)
+      if (!companyId) {
+        alert('Company not found for your account. Please contact support.')
+        return
+      }
+      const employeeId = await resolveEmployeeId(jsId)
+      if (!employeeId) {
+        alert('Employee mapping not found. Please contact support.')
+        return
+      }
+
+      const form = new FormData()
+      form.append('employee_id', employeeId)
+      form.append('company_id', companyId)
+      form.append('leave_type', 'General')
+      form.append('apply_strt_date', leaveFrom)
+      form.append('apply_end_date', leaveTo)
+      form.append('num_aprv_day', String(derivedDays ?? 1))
+      form.append('reason', leaveReason.trim())
+
+      const res = await fetch('/api/seeker/leaves/create', {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      })
+      const data = await res.json().catch(() => ({} as any))
+      if (data?.success) {
+        await loadLeaves()
+        setLeaveReason("")
+        setLeaveFrom("")
+        setLeaveTo("")
+      } else {
+        alert(data?.message || 'Failed to submit leave request')
+      }
+    } catch (err) {
+      console.error('Leave submit error:', err)
+      alert('Failed to submit leave request')
+    } finally {
+      setLoading(false)
     }
-    setLeaveRequests((prev) => [req, ...prev])
-    setLeaveReason("")
-    setLeaveFrom("")
-    setLeaveTo("")
   }
 
   const statusLabel = isClockedIn ? (isOnBreak ? "On Break" : "On the Clock") : "Off the Clock"

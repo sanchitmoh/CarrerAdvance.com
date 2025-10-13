@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const backendUrl = getBackendUrl('seeker/time-tracking/start_break')
+    // Map to backend CI route: api/leave-requests
+    const backendUrl = getBackendUrl('api/leave-requests')
 
     const res = await fetch(backendUrl, {
       method: 'POST',

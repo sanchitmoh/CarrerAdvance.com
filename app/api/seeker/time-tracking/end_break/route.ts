@@ -1,44 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBackendUrl } from '@/lib/api-config'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const jobseeker_id = formData.get('jobseeker_id') as string
-    
-    if (!jobseeker_id) {
-      return NextResponse.json(
-        { success: false, message: 'Jobseeker ID is required' },
-        { status: 400 }
-      )
-    }
+    const backendUrl = getBackendUrl('seeker/time-tracking/end_break')
 
-    // Use the configured backend URL
-    const backendUrl = getBackendUrl('/api/seeker/time-tracking/end_break')
-    
-    // Create FormData for the backend
-    const backendFormData = new FormData()
-    backendFormData.append('jobseeker_id', jobseeker_id)
-    
-    // Forward the request to the PHP backend
-    const response = await fetch(backendUrl, {
+    const res = await fetch(backendUrl, {
       method: 'POST',
+      body: formData,
       headers: {
-        // Forward cookies for authentication
-        'Cookie': request.headers.get('cookie') || '',
+        Cookie: request.headers.get('cookie') || '',
+        Authorization: request.headers.get('authorization') || '',
       },
-      body: backendFormData,
+      cache: 'no-store',
+      credentials: 'include',
     })
 
-    const data = await response.json()
-    
-    return NextResponse.json(data, { status: response.status })
-  } catch (error) {
-    console.error('End break error:', error)
-    return NextResponse.json(
-      { success: false, message: 'Internal server error' },
-      { status: 500 }
-    )
+    let payload: any
+    try {
+      payload = await res.json()
+    } catch {
+      const text = await res.text()
+      payload = { success: false, message: 'Upstream error', detail: text }
+    }
+    return NextResponse.json(payload, { status: res.status })
+  } catch (e) {
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 })
   }
 }
 
