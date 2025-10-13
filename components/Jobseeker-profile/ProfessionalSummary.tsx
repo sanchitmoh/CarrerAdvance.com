@@ -33,6 +33,7 @@ export default function ProfessionalSummary() {
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState("")
   const [skills, setSkills] = useState<string[]>([])
+  const [initialSkills, setInitialSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
 
@@ -54,7 +55,9 @@ export default function ProfessionalSummary() {
         
         if (data?.success && data?.data) {
           setSummary(data.data.summary || "");
-          setSkills(normalizeSkills(data.data.skills));
+          const loadedSkills = normalizeSkills(data.data.skills)
+          setSkills(loadedSkills);
+          setInitialSkills(loadedSkills);
         }
       } catch (error) {
         console.error('Error loading professional summary:', error);
@@ -89,12 +92,35 @@ export default function ProfessionalSummary() {
 
       const data = await response.json();
       
-      if (data.success) {
-        setIsEditing(false);
-        // You can add a toast notification here
-      } else {
+      if (!data.success) {
         console.error('Failed to save:', data.message);
+        return;
       }
+
+      // Backend update_professional_summary ignores skills persistence.
+      // Add only newly added skills via add_skill endpoint.
+      const normalizedCurrent = Array.from(new Set(skills.map((s) => s.trim()).filter(Boolean)))
+      const normalizedInitial = new Set(initialSkills.map((s) => s.trim()).filter(Boolean))
+      const toAdd = normalizedCurrent.filter((s) => !normalizedInitial.has(s))
+
+      if (toAdd.length > 0) {
+        await Promise.all(
+          toAdd.map((skill) =>
+            fetch('/api/seeker/profile/add_skill', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jobseeker_id: jobseekerId,
+                skill_name: skill,
+                experience_level: ''
+              })
+            }).then((r) => r.json()).catch(() => ({}))
+          )
+        )
+      }
+
+      setInitialSkills(normalizedCurrent)
+      setIsEditing(false);
     } catch (error) {
       console.error('Error saving professional summary:', error);
     }

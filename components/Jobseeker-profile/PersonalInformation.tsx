@@ -95,7 +95,6 @@ export default function PersonalInformation() {
     jobCategory: 'Customer Service',
     yourTitle: '',
     experience: 'Entry Level (0-2 years)',
-    bio: '',
     avatar: '/placeholder.svg?height=100&width=100'
   })
 
@@ -119,14 +118,29 @@ export default function PersonalInformation() {
             nationality: data.data.nationality || 'Philippines',
             province: data.data.province || '',
             city: data.data.city || '',
-            dateOfBirth: data.data.date_of_birth || '',
+            dateOfBirth: (data.data.date_of_birth && data.data.date_of_birth !== '0000-00-00') ? data.data.date_of_birth : '',
             gender: data.data.gender || 'male',
             jobCategory: data.data.job_category || 'Customer Service',
             yourTitle: data.data.your_title || '',
             experience: data.data.experience_level || 'Entry Level (0-2 years)',
-            bio: data.data.bio || '',
             avatar: data.data.avatar ? getAssetUrl(data.data.avatar) : '/placeholder.svg?height=100&width=100'
           })
+          // Pre-populate provinces and cities based on API values so the selects have matching options
+          const nat = data.data.nationality || 'Philippines'
+          if (nat && (locationData as any)[nat]) {
+            const provinces = (locationData as any)[nat].provinces as Array<{ name: string; cities: string[] }>
+            setAvailableProvinces(provinces)
+            const prov = data.data.province || ''
+            const selectedProvince = provinces.find(p => p.name === prov)
+            if (selectedProvince) {
+              setAvailableCities(selectedProvince.cities)
+            } else {
+              setAvailableCities([])
+            }
+          } else {
+            setAvailableProvinces([])
+            setAvailableCities([])
+          }
         }
       } catch (error) {
         console.error(error)
@@ -140,8 +154,17 @@ export default function PersonalInformation() {
   // Update provinces when nationality changes
   useEffect(() => {
     if (formData.nationality && locationData[formData.nationality as keyof typeof locationData]) {
-      setAvailableProvinces(locationData[formData.nationality as keyof typeof locationData].provinces)
-      setFormData(prev => ({ ...prev, province: '', city: '' }))
+      const provinces = locationData[formData.nationality as keyof typeof locationData].provinces
+      setAvailableProvinces(provinces)
+      setFormData(prev => {
+        const provinceIsValid = provinces.some(p => p.name === prev.province)
+        const nextProvince = provinceIsValid ? prev.province : ''
+        const cities = provinceIsValid ? (provinces.find(p => p.name === prev.province)?.cities || []) : []
+        const cityIsValid = provinceIsValid && cities.includes(prev.city)
+        return { ...prev, province: nextProvince, city: cityIsValid ? prev.city : '' }
+      })
+    } else {
+      setAvailableProvinces([])
     }
   }, [formData.nationality])
 
@@ -151,8 +174,15 @@ export default function PersonalInformation() {
       const selectedProvince = availableProvinces.find(p => p.name === formData.province)
       if (selectedProvince) {
         setAvailableCities(selectedProvince.cities)
-        setFormData(prev => ({ ...prev, city: '' }))
+        if (!selectedProvince.cities.includes(formData.city)) {
+          setFormData(prev => ({ ...prev, city: '' }))
+        }
+      } else {
+        setAvailableCities([])
+        if (formData.city) setFormData(prev => ({ ...prev, city: '' }))
       }
+    } else {
+      setAvailableCities([])
     }
   }, [formData.province, availableProvinces])
 
@@ -167,7 +197,14 @@ export default function PersonalInformation() {
       const res = await fetch('/api/seeker/profile/update_personal_info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobseeker_id: jobseekerId, ...formData })
+        body: JSON.stringify({
+          jobseeker_id: jobseekerId,
+          ...formData,
+          // Ensure backend gets snake_case DOB field
+          date_of_birth: formData.dateOfBirth || '',
+          // Also send 'dob' because backend maps this key to date_of_birth
+          dob: formData.dateOfBirth || ''
+        })
       })
       const data = await res.json()
       if (data.success) setIsEditing(false)
@@ -468,18 +505,7 @@ export default function PersonalInformation() {
             </Select>
           </div>
 
-          {/* Bio */}
-          <div className="md:col-span-2 space-y-2">
-            <Label htmlFor="bio" className="text-gray-700 font-medium">Bio</Label>
-            <Textarea
-              id="bio"
-              value={formData.bio}
-              onChange={(e) => handleInputChange('bio', e.target.value)}
-              disabled={!isEditing}
-              className={isEditing ? "border-emerald-300 focus:border-emerald-500" : "bg-gray-50"}
-              placeholder="Tell something about yourself..."
-            />
-          </div>
+          {/* Bio removed */}
         </div>
 
         {isEditing && (

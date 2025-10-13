@@ -33,7 +33,13 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
 
-  const links = ['Home', 'Courses', 'Blogs', 'Jobs']
+  const links = ['Home', 'Blogs', 'Jobs', 'Employers', 'Job Seekers']
+
+  const getHrefForNav = (item: string) => {
+    if (item === 'Home') return '/'
+    if (item === 'Job Seekers') return '/job-seekers'
+    return `/${item.toLowerCase().replace(/\s+/g, '-')}`
+  }
 
   const isHome = pathname === '/'
   const showPopoverBehavior =
@@ -116,87 +122,89 @@ export default function Navbar() {
       } animate-slide-down`}
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-        <div className="flex justify-between items-center h-16 sm:h-20">
+        <div className="flex justify-between items-center h-16 sm:h-20 relative">
           {/* Logo - Updated with Image */}
-          <Link href="/" className="flex items-center group transition-transform duration-300 hover:scale-105 active:scale-95">
+          <Link href="/" className="flex items-center group transition-transform duration-300 hover:scale-105 active:scale-95 lg:-ml-2 xl:-ml-4">
             <div className="relative">
               <Image 
                 src="/logo1.png" 
                 alt="Career Advance - Empowering Your Journey"
                 width={200}
-                height={88}
+                height={98}
                 className="h-10 w-auto sm:h-12 object-contain"
                 priority
               />
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-8">
-            {links.map((item, index) => (
-              <div
-                key={item}
-                className="opacity-0 translate-y-[-20px] animate-fade-in-up"
-                style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
-              >
-                <Link 
-                  href={item === 'Home' ? '/' : `/${item.toLowerCase()}`} 
-                  className="text-gray-700 hover:text-emerald-600 transition-all duration-300 font-medium relative group text-lg" // Changed to emerald
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
+            <div className="flex items-center space-x-8">
+              {links.map((item, index) => (
+                <div
+                  key={item}
+                  className="opacity-0 translate-y-[-20px] animate-fade-in-up"
+                  style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
                 >
-                  {item}
-                  <span 
-                    className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full w-0 group-hover:w-full transition-all duration-300" // Changed to emerald/green
-                  />
-                </Link>
-              </div>
-            ))}
-            
-            {/* Login Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-2 font-medium hover:bg-emerald-50 hover:text-emerald-600 rounded-xl px-4 py-2 text-lg"> {/* Changed to emerald */}
-                  <span>Login</span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72 p-3 bg-white/95 backdrop-blur-xl border border-gray-200/50 shadow-2xl rounded-2xl">
-                <div className="grid grid-cols-1 gap-2">
-                  {userRoles.map((role) => (
-                    <DropdownMenuItem key={role.name} asChild>
-                      <Link href={role.name === 'Students' || role.name === 'Teachers' ? '#' : `${role.path}/login`} onClick={(e) => handleRoleNav(e, role.name, `${role.path}/login`)} className="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 transition-all duration-300 group"> {/* Changed to emerald/green */}
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${role.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                          <span className="text-lg">{role.icon}</span>
-                        </div>
-                        <div className="flex-1">
-                          <span className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">{role.name}</span> {/* Changed to emerald */}
-                          <div className="text-xs text-gray-500">Access your dashboard</div>
-                        </div>
-                        {role.name === 'Admin' && (
-                          <Shield className="h-4 w-4 text-orange-500" />
-                        )}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  <Link 
+                    href={getHrefForNav(item)}
+                    className="text-gray-700 hover:text-emerald-600 transition-all duration-300 font-medium relative group text-lg whitespace-nowrap"
+                  >
+                    {item}
+                    <span 
+                      className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full w-0 group-hover:w-full transition-all duration-300"
+                    />
+                  </Link>
                 </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              ))}
 
-            {/* CTA Buttons */}
-            <div
-              className="flex items-center space-x-3 opacity-0 scale-80 animate-fade-in"
-              style={{ animationDelay: '0.6s' }}
-            >
-              <Link href='/employers/login'>
-                <Button className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg hover:shadow-emerald-200 transition-all duration-300 transform hover:scale-105 rounded-xl px-6 py-2.5 font-semibold"> {/* Changed to emerald/green */}
-                  Post Job
-                </Button>
-              </Link>
-              <Link href='/jobs'>
-                <Button variant="outline" className="border-2 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-300 font-semibold rounded-xl px-6 py-2.5"> {/* Changed to emerald */}
-                  Find Jobs
-                </Button>
-              </Link>
+              {/* Login Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2 font-medium hover:bg-emerald-50 hover:text-emerald-600 rounded-xl px-4 py-2 text-lg">
+                    <span>Login</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="w-72 p-3 bg-white/95 backdrop-blur-xl border border-gray-200/50 shadow-2xl rounded-2xl">
+                  <div className="grid grid-cols-1 gap-2">
+                    {userRoles.map((role) => (
+                      <DropdownMenuItem key={role.name} asChild>
+                        <Link href={role.name === 'Students' || role.name === 'Teachers' ? '#' : `${role.path}/login`} onClick={(e) => handleRoleNav(e, role.name, `${role.path}/login`)} className="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 transition-all duration-300 group">
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${role.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                            <span className="text-lg">{role.icon}</span>
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">{role.name}</span>
+                            <div className="text-xs text-gray-500">Access your dashboard</div>
+                          </div>
+                          {role.name === 'Admin' && (
+                            <Shield className="h-4 w-4 text-orange-500" />
+                          )}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+          </div>
+
+          {/* CTA Buttons - Right */}
+          <div
+            className="hidden lg:flex items-center space-x-3 opacity-0 scale-80 animate-fade-in lg:-mr-2 xl:-mr-4"
+            style={{ animationDelay: '0.6s' }}
+          >
+            <Link href='/employers/login'>
+              <Button className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg hover:shadow-emerald-200 transition-all duration-300 transform hover:scale-105 rounded-xl px-6 py-2.5 font-semibold">
+                Post Job
+              </Button>
+            </Link>
+            <Link href='/jobs'>
+              <Button variant="outline" className="border-2 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-300 font-semibold rounded-xl px-6 py-2.5">
+                Find Jobs
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile menu button / popover */}
@@ -260,9 +268,9 @@ export default function Navbar() {
                   {links.map((item, index) => (
                     <div key={item} className="opacity-0 translate-x-[-20px] animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                       <Link
-                        href={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
+                        href={getHrefForNav(item)}
                         onClick={() => setIsOpen(false)}
-                        className="block py-2.5 sm:py-3 text-base sm:text-lg font-semibold text-gray-700 transition-colors hover:text-emerald-600"
+                        className="block py-2.5 sm:py-3 text-base sm:text-lg font-semibold text-gray-700 transition-colors hover:text-emerald-600 whitespace-nowrap"
                       >
                         {item}
                       </Link>

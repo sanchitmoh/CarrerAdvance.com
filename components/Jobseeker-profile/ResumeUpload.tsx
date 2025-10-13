@@ -136,7 +136,7 @@ export default function ResumeUpload() {
             <Upload className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Your Resume</h3>
             <p className="text-gray-600 mb-2">Drag and drop your resume file here, or click to browse</p>
-            <p className="text-sm text-gray-500 mb-4">Supported: PDF, DOC, DOCX (Max size: 5MB)</p>
+            <p className="text-sm text-gray-500 mb-4">Supported: PDF(Max size: 5MB)</p>
 
             <input
               type="file"

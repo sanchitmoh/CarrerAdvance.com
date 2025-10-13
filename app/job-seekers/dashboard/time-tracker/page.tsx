@@ -524,16 +524,16 @@ export default function JobSeekerTimeTrackerPage() {
     <div>
       {/* Header Section - Improved for mobile */}
       <header className="mb-6 sm:mb-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
           <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Time Tracker</h1>
-            <p className="text-sm text-muted-foreground mt-2 sm:mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground text-white">Time Tracker</h1>
+            <p className="text-sm text-muted-foreground mt-2 sm:mt-1 text-white">
               Clock in/out and track breaks. Entries are saved day-wise locally.
             </p>
           </div>
           {/* Date selector - Improved mobile layout */}
           <div className="flex items-center gap-3 bg-muted/50 p-3 rounded-lg sm:bg-transparent sm:p-0">
-            <label htmlFor="tt-date" className="text-sm font-medium text-foreground whitespace-nowrap">
+            <label htmlFor="tt-date" className="text-sm font-medium text-foreground text-white whitespace-nowrap">
               View Date:
             </label>
             <input
@@ -541,7 +541,7 @@ export default function JobSeekerTimeTrackerPage() {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded-md border bg-background px-3 py-2 text-sm flex-1 sm:flex-none"
+              className="rounded-md border bg-background px-3 py-2 text-sm flex-1 sm:flex-none text-black"
               aria-label="Select date to view log"
             />
           </div>

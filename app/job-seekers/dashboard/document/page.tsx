@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Eye, Trash2, FileText, Upload, Download } from "lucide-react"
+import { MoreHorizontal, Eye, Trash2, FileText, Upload, Download, Shield, File } from "lucide-react"
 import { useMemo, useRef, useState, useEffect } from "react"
 
 type DocRecord = {
@@ -285,15 +285,18 @@ export default function JobSeekerDocumentPage() {
   return (
     <main className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-4 sm:mb-6 lg:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Documents</h1>
-        <p className="text-sm text-muted-foreground mt-2">
-          Upload and organize your important documents for applications and profile verification.
-        </p>
+      <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white ">
+        <div className="flex items-center space-x-3 ">
+          <File className="h-8 w-8" />
+          <div>
+            <h1 className="text-2xl font-bold">Documents</h1>
+            <p className="text-emerald-100">Upload and organize your important documents for applications and profile verification.</p>
+          </div>
+        </div>
       </div>
-
+          
       {/* Upload Form */}
-      <form onSubmit={onSubmit} className="rounded-xl border bg-background p-4 sm:p-5 md:p-6 mb-6 sm:mb-8" noValidate>
+      <form onSubmit={onSubmit} className="rounded-xl border bg-background p-4 sm:p-5 md:p-6 mt-6 mb-6 sm:mb-8" noValidate>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Document Details Section */}
           <section aria-labelledby="document-details-title" className="space-y-4 sm:space-y-5">

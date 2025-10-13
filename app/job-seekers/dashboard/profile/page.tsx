@@ -169,7 +169,7 @@ export default function ProfilePage() {
         </Card>
         </Link>
         
-        <Link href={"job-seekers/dashboard/applications"}>
+        <Link href={"/job-seekers/dashboard/applications"}>
         <Card className="hover:shadow-lg transition-shadow cursor-pointer border-green-200">
           <CardContent className="p-4 text-center">
             <Briefcase className="h-8 w-8 text-green-600 mx-auto mb-2" />

@@ -22,9 +22,9 @@ const sidebarItems = [
   { name: 'My Profile', href: '/job-seekers/dashboard/profile', icon: User },
   { name: 'Resume Management', href: '/job-seekers/dashboard/resume', icon: FileText },
   { name: 'Document', href: '/job-seekers/dashboard/document', icon: FileIcon },
-  { name: 'My Applications', href: '/job-seekers/dashboard/applications', icon: Briefcase },
   { name: 'Matching Jobs', href: '/job-seekers/dashboard/matching-jobs', icon: Target },
   { name: 'Saved Jobs', href: '/job-seekers/dashboard/saved-jobs', icon: Heart },
+  { name: 'My Applications', href: '/job-seekers/dashboard/applications', icon: Briefcase },
   { name: 'Time Tracker', href: '/job-seekers/dashboard/time-tracker', icon: Clock },
   { name: 'Change Password', href: '/job-seekers/dashboard/change-password', icon: Lock },
 ]
@@ -111,14 +111,10 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
         )}
 
         {/* Logo (desktop) */}
-        <div className="hidden md:flex items-center justify-center py-4">
-          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">J</span>
-          </div>
-        </div>
+     
 
         {/* Navigation */}
-        <nav className={`${isMobile ? 'p-4' : 'p-2'} flex-1`}>
+        <nav className={`${isMobile ? 'p-4' : 'p-3 pt-5'} flex-1`}>
           <ul className="space-y-2">
             {sidebarItems.map((item) => {
               const isActive = pathname === item.href
@@ -135,7 +131,7 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
                     if (isMobile) onToggle?.()
                   }}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-6 h-6" />
                   {isMobile && !collapsed && <span className="font-medium">{item.name}</span>}
                 </Link>
               )

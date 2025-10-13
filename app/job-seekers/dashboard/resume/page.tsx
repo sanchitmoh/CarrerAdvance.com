@@ -17,6 +17,7 @@ interface ResumeItem {
   pdf_file?: string
   created_at?: string
   updated_at?: string
+  isPrimary?: boolean
 }
 
 export default function ResumeBuilderPage() {
@@ -29,39 +30,69 @@ export default function ResumeBuilderPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    const userId = (typeof window !== 'undefined') ? (localStorage.getItem('jobseeker_id') || localStorage.getItem('user_id')) : null
+  const getCurrentUserId = () => (typeof window !== 'undefined') ? (localStorage.getItem('jobseeker_id') || localStorage.getItem('user_id')) : null
+
+  const fetchResumes = async () => {
+    const userId = getCurrentUserId()
     if (!userId) {
       setLoading(false)
       setResumes([])
       return
     }
-    const fetchResumes = async () => {
-      try {
-        setLoading(true)
-        const url = getApiUrl(`resume/list/${parseInt(userId as string, 10)}`)
-        const res = await fetch(url, { credentials: 'include' })
-        const data = await res.json()
-        if (data && data.success) {
-          setResumes(Array.isArray(data.data) ? data.data : [])
-        } else {
-          setError(data?.message || 'Failed to fetch resumes')
-        }
-      } catch (e: any) {
-        setError(e?.message || 'Network error')
-      } finally {
-        setLoading(false)
+    try {
+      setLoading(true)
+      const url = getApiUrl(`resume/list/${parseInt(userId as string, 10)}`)
+      const res = await fetch(url, { credentials: 'include' })
+      const data = await res.json()
+      if (data && data.success) {
+        const list: ResumeItem[] = Array.isArray(data.data) ? data.data : []
+        const primaryKey = `primary_resume_${userId}`
+        const primaryId = (typeof window !== 'undefined') ? parseInt(localStorage.getItem(primaryKey) || '0', 10) : 0
+        const withPrimary = list.map(r => ({ ...r, isPrimary: primaryId > 0 && r.id === primaryId }))
+        setResumes(withPrimary)
+      } else {
+        setError(data?.message || 'Failed to fetch resumes')
       }
+    } catch (e: any) {
+      setError(e?.message || 'Network error')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchResumes()
   }, [])
 
   const handleSetPrimary = (id: number) => {
-    toast({ title: 'Updated', description: 'Primary resume set (local only).' })
+    const userId = getCurrentUserId()
+    if (!userId) {
+      toast({ title: 'Not logged in', description: 'Please login again.', variant: 'destructive' })
+      return
+    }
+    const primaryKey = `primary_resume_${userId}`
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(primaryKey, String(id))
+    }
+    setResumes(prev => prev.map(r => ({ ...r, isPrimary: r.id === id })))
+    toast({ title: 'Updated', description: 'Primary resume set.' })
   }
 
-  const handleDelete = (id: number) => {
-    setResumes(resumes.filter((resume) => resume.id !== id))
+  const handleDelete = async (id: number) => {
+    const confirmed = window.confirm('Delete this resume? This action cannot be undone.')
+    if (!confirmed) return
+    try {
+      // Call backend delete route (session-based). We include credentials for auth.
+      // Call JSON API endpoint (no redirects, no PHP session dependency)
+      // Note: getApiUrl already prefixes with /api
+      const url = getApiUrl(`resume/delete/${id}`)
+      await fetch(url, { method: 'GET', credentials: 'include' })
+      // Refresh list
+      await fetchResumes()
+      toast({ title: 'Deleted', description: 'Resume deleted successfully.' })
+    } catch (e: any) {
+      toast({ title: 'Delete failed', description: e?.message || 'Unable to delete resume', variant: 'destructive' })
+    }
   }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -396,16 +427,7 @@ export default function ResumeBuilderPage() {
                             </Button>
                           </Link>
 
-                          <Link href={`/job-seekers/dashboard/resume-builder/${resume.id}`}>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 bg-transparent text-xs px-2 py-1.5 flex-shrink-0"
-                            >
-                              <Download className="h-3 w-3 sm:h-4 sm:w-4" />
-                              <span className="sr-only">Download</span>
-                            </Button>
-                          </Link>
+                          {/* Download button removed */}
 
                           <Link href={`/job-seekers/dashboard/resume-builder/${resume.id}`}>
                             <Button

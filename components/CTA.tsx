@@ -103,7 +103,7 @@ export default function CTA() {
             <Button
   size="lg"
   variant="outline"
-  className="border-2 border-emerald-400 text-emerald-200 hover:bg-emerald-500/10 hover:text-white hover:border-emerald-300 px-12 py-4 text-xl font-bold transition-all duration-300 rounded-2xl backdrop-blur-sm"
+  className="border-2 border-emerald-400 text-green-600 hover:bg-emerald-500/10 hover:text-white hover:border-emerald-300 px-12 py-4 text-xl font-bold transition-all duration-300 rounded-2xl backdrop-blur-sm"
   onClick={() => window.location.href = "/learn-more"}
 >
   Learn More
@@ -113,24 +113,7 @@ export default function CTA() {
         </div>
 
         {/* ✅ Trust Badges */}
-        <div
-          className={`grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto text-emerald-200 transition-all duration-600 delay-800 ${
-            isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
-          <div className="flex items-center justify-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-green-400" />
-            <span className="text-sm font-medium">No credit card required</span>
-          </div>
-          <div className="flex items-center justify-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-emerald-400" />
-            <span className="text-sm font-medium">Free forever plan</span>
-          </div>
-          <div className="flex items-center justify-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-teal-400" />
-            <span className="text-sm font-medium">Cancel anytime</span>
-          </div>
-        </div>
+       
       </div>
     </section>
   )

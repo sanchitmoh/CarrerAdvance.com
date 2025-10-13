@@ -269,7 +269,7 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
         body.append('email', formData.email)
         body.append('password', formData.password)
         body.append('confirmpassword', formData.confirmPassword)
-        successMsg = 'Registration successful! Please check your email to verify your account.'
+        successMsg = 'Registration successful! '
         errorMsg = 'Registration failed. Please check your details.'
       } else if (type === 'forgot-password') {
         endpoint = getApiUrl('seeker/auth/api_forgot_password')
@@ -295,6 +295,14 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
         })
         const data = await res.json()
         if (data.success) {
+         
+          if (type === 'register') {
+            toast({ title: 'Registered Successfully, Welcome' })
+            router.push('/job-seekers/login')
+            setIsLoading(false)
+            return
+          }
+          
           toast({ title: 'Success!', description: data.message || successMsg })
                       if (type === 'login' && data.token) {
               localStorage.setItem('jobseeker_jwt', data.token)

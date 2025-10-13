@@ -1,3 +1,4 @@
+"use client"
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog'
 
 interface Blog {
@@ -34,7 +36,6 @@ interface BlogCardProps {
 }
 
 export default function BlogCard({ blog }: BlogCardProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Recently';
@@ -119,80 +120,57 @@ export default function BlogCard({ blog }: BlogCardProps) {
             </div>
           </div>
           
-          <Button 
-            variant="ghost" 
-            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-full group-hover:translate-x-1 transition-all duration-300"
-            onClick={() => setIsDialogOpen(true)}
-          >
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-full group-hover:translate-x-1 transition-all duration-300"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold">{blog.title}</DialogTitle>
+                <DialogDescription>
+                  {blog.excerpt || blog.description || 'Read the full article below.'}
+                </DialogDescription>
+                {blog.category && (
+                  <Badge className="bg-emerald-500 text-white font-semibold px-3 py-1 mt-2 w-fit">
+                    {blog.category}
+                  </Badge>
+                )}
+              </DialogHeader>
+              <div className="space-y-6">
+                {/* Blog Image */}
+                {getImageSrc() && (
+                  <div className="relative overflow-hidden rounded-lg">
+                    <Image
+                      src={getImageSrc()}
+                      alt={blog.title}
+                      width={800}
+                      height={400}
+                      className="w-full h-64 object-cover"
+                    />
+                  </div>
+                )}
+                {/* Blog Content */}
+                <div className="prose prose-gray max-w-none">
+                  {blog.content ? (
+                    <div dangerouslySetInnerHTML={{ __html: blog.content }} />
+                  ) : (
+                    <p className="text-gray-700 leading-relaxed">
+                      {blog.excerpt || blog.description || 'No content available.'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      {/* Blog Detail Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">{blog.title}</DialogTitle>
-            <DialogDescription>
-              {blog.excerpt || blog.description || 'Read the full article below.'}
-            </DialogDescription>
-            {blog.category && (
-              <Badge className="bg-emerald-500 text-white font-semibold px-3 py-1 mt-2 w-fit">
-                {blog.category}
-              </Badge>
-            )}
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Blog Image */}
-            {getImageSrc() && (
-              <div className="relative overflow-hidden rounded-lg">
-                <Image
-                  src={getImageSrc()}
-                  alt={blog.title}
-                  width={800}
-                  height={400}
-                  className="w-full h-64 object-cover"
-                />
-              </div>
-            )}
-            
-            {/* Blog Meta */}
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center">
-                  <User className="h-4 w-4 mr-1" />
-                  <span>{blog.author || 'Author'}</span>
-                </div>
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  <span>{formatDate(blog.date || blog.created_date)}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span>{blog.readTime || blog.read_time || '5 min'}</span>
-                </div>
-                <div className="flex items-center">
-                  <Eye className="h-4 w-4 mr-1" />
-                  <span>{(blog.views || 0).toLocaleString()} views</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Blog Content */}
-            <div className="prose prose-gray max-w-none">
-              {blog.content ? (
-                <div dangerouslySetInnerHTML={{ __html: blog.content }} />
-              ) : (
-                <p className="text-gray-700 leading-relaxed">
-                  {blog.excerpt || blog.description || 'No content available.'}
-                </p>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Dialog moved to the button trigger above for reliability */}
     </article>
   )
 }

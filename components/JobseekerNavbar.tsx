@@ -15,6 +15,7 @@ import {
 import { Zap, Sparkles, User, Settings, LogOut, Home, Briefcase, Menu } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
 import { getApiUrl, getAssetUrl } from '@/lib/api-config'
+import Image from 'next/image'
 
 interface JobSeekerNavbarProps {
   onMenuToggle?: () => void
@@ -85,7 +86,7 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
           : 'bg-white/80 backdrop-blur-sm'
       } animate-slide-down`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-8xl  px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
 
@@ -100,27 +101,12 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
             </Button>
           </div>
 
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div 
-              className="relative transition-transform duration-300 hover:scale-105 active:scale-95"
-            >
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-emerald-200 transition-all duration-300 relative overflow-hidden">
-                <Zap className="h-5 w-5 text-white z-10" />
-                <div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite_linear]"
-                />
-              </div>
-              <div 
-                className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center animate-pulse-slow"
-              >
-                <Sparkles className="h-1.5 w-1.5 text-white" />
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-gray-900 text-lg leading-none tracking-tight">CareerAdvance</span>
-              <span className="text-xs bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent font-semibold">Job Seeker Portal</span>
-            </div>
-          </Link>
+         <Image
+          src="/logo1.png"
+          alt="CareerAdvance"
+          width={160}
+          height={180}
+         />
 
           {/* Mobile Menu Button */}
           

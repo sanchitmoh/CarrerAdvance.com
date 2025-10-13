@@ -303,13 +303,7 @@ export default function JobsPage() {
               </div>
             </div>
             
-            {/* Advanced Filters */}
-            <div className="flex items-end">
-              <Button variant="outline" className="flex items-center gap-2 h-10 px-6 border-2 border-gray-200 hover:border-emerald-300 rounded-xl">
-                <Filter className="h-4 w-4" />
-                More Filters
-              </Button>
-            </div>
+            
           </div>
         </div>
 
@@ -319,10 +313,7 @@ export default function JobsPage() {
             <h2 className="text-2xl font-bold text-gray-900">
               {loading ? 'Loading...' : `${total} Jobs Found`}
             </h2>
-            <div className="flex items-center text-emerald-600">
-              <TrendingUp className="h-5 w-5 mr-1" />
-              <span className="text-sm font-medium">+12% this week</span>
-            </div>
+           
           </div>
           
           <div className="flex items-center space-x-2">
@@ -409,23 +400,7 @@ export default function JobsPage() {
           </div>
         )}
 
-        {/* Test API Connection */}
-        <div className="text-center mt-8">
-          <Button 
-            onClick={async () => {
-              try {
-                const result = await jobsApiService.testConnection();
-                alert(`API Test: ${result.message}`);
-              } catch (error) {
-                alert('API Test Failed: ' + error);
-              }
-            }}
-            variant="outline" 
-            className="px-6 py-2 text-sm border-2 border-blue-300 hover:border-blue-500 hover:bg-blue-50 rounded-lg"
-          >
-            Test API Connection
-          </Button>
-        </div>
+      
       </div>
 
       {/* Job Details Dialog */}
