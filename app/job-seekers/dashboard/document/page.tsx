@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal, Eye, Trash2, FileText, Upload, Download, Shield, File } from "lucide-react"
 import { useMemo, useRef, useState, useEffect } from "react"
+import { getApiUrl } from "@/lib/api-config"
 
 type DocRecord = {
   id: string
@@ -83,7 +84,7 @@ export default function JobSeekerDocumentPage() {
           setIsHired(false)
           return
         }
-        const res = await fetch(`/api/seeker/profile/is_hired?jobseeker_id=${encodeURIComponent(jsId)}`, { credentials: 'include' })
+        const res = await fetch(getApiUrl(`seeker/profile/is_hired?jobseeker_id=${encodeURIComponent(jsId)}`), { credentials: 'include' })
         const data = await res.json().catch(() => ({} as any))
         const hired = !!(data?.data?.is_hired)
         setIsHired(hired)
@@ -106,7 +107,7 @@ export default function JobSeekerDocumentPage() {
           query = `employer_id=${encodeURIComponent(empId)}`
         } else if (jsId) {
           // If only jobseeker_id is present, try to resolve hiring employers first
-          const hiredRes = await fetch(`/api/seeker/profile/get_hiring_employers?jobseeker_id=${encodeURIComponent(jsId)}`, { credentials: 'include' })
+          const hiredRes = await fetch(getApiUrl(`seeker/profile/get_hiring_employers?jobseeker_id=${encodeURIComponent(jsId)}`), { credentials: 'include' })
           const hiredData = await hiredRes.json().catch(() => ({} as any))
           const ids = Array.isArray(hiredData?.data) ? hiredData.data : []
           if (ids.length > 0) {
@@ -118,7 +119,7 @@ export default function JobSeekerDocumentPage() {
           setCategories([])
           return
         }
-        const res = await fetch(`/api/seeker/profile/get_document_categories?${query}`, { credentials: 'include' })
+        const res = await fetch(getApiUrl(`seeker/profile/get_document_categories?${query}`), { credentials: 'include' })
         const data = await res.json().catch(() => ({} as any))
         const names = Array.isArray(data?.data) ? data.data.map((c: BackendCategory) => c?.name).filter((n: any) => typeof n === 'string' && n.trim() !== '') : []
         // Ensure "Other" option exists and uniqueness
@@ -153,7 +154,7 @@ export default function JobSeekerDocumentPage() {
       const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
       if (!jsId) return
 
-      const response = await fetch(`/api/seeker/profile/get_documents?jobseeker_id=${encodeURIComponent(jsId)}`, {
+      const response = await fetch(getApiUrl(`seeker/profile/get_documents?jobseeker_id=${encodeURIComponent(jsId)}`), {
         credentials: 'include'
       })
       const result = await response.json()
@@ -237,7 +238,7 @@ export default function JobSeekerDocumentPage() {
       formData.append('expiry_date', expiry || "")
       formData.append('file', file)
 
-      const response = await fetch('/api/seeker/profile/upload_document', {
+      const response = await fetch(getApiUrl('seeker/profile/upload_document'), {
         method: 'POST',
         body: formData,
         credentials: 'include'
@@ -728,7 +729,7 @@ export default function JobSeekerDocumentPage() {
                       return
                     }
 
-                    const response = await fetch('/api/seeker/profile/delete_document', {
+                    const response = await fetch(getApiUrl('seeker/profile/delete_document'), {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

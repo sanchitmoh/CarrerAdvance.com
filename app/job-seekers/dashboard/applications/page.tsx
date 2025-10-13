@@ -345,13 +345,7 @@ export default function MyApplicationsPage() {
                             </div>
 
                             <div className="flex justify-end pt-4 border-t flex-shrink-0">
-                              <Button
-                                variant="outline"
-                                className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 bg-transparent text-sm px-4 py-2"
-                              >
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                View Original Posting
-                              </Button>
+                              
                             </div>
                           </div>
                         )}
