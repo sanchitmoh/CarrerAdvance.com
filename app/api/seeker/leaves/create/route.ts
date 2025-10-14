@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const effectiveCompanyId = companyIdQP || companyId
     const backendUrl = effectiveCompanyId ? `${baseUrl}?company_id=${encodeURIComponent(effectiveCompanyId)}` : baseUrl
 
-    // If employee_id missing but jobseeker_id provided, try resolving via active_session
+    // If employee_id missing but jobseeker_id provided, try resolving via active_session, then employee_mapping
     const hasEmployeeId = !!formData.get('employee_id')
     const jobseekerId = formData.get('jobseeker_id') || reqUrl.searchParams.get('jobseeker_id')
     if (!hasEmployeeId && jobseekerId) {
@@ -35,6 +35,18 @@ export async function POST(request: NextRequest) {
           }
           if (!effectiveCompanyId && sessionPayload.data.company_id && !formData.get('company_id')) {
             formData.append('company_id', String(sessionPayload.data.company_id))
+          }
+        }
+        // If still missing, call mapping
+        if (!formData.get('employee_id')) {
+          const mappingUrl = `${request.nextUrl.origin}/api/seeker/profile/get_employee_mapping?jobseeker_id=${encodeURIComponent(String(jobseekerId))}${effectiveCompanyId ? `&company_id=${encodeURIComponent(effectiveCompanyId)}` : ''}`
+          const mapRes = await fetch(mappingUrl, { headers: { Cookie: cookieHeader }, cache: 'no-store', credentials: 'include' })
+          const mapPayload = await mapRes.json().catch(() => ({} as any))
+          if (mapPayload?.success && mapPayload?.data?.employee_id) {
+            formData.append('employee_id', String(mapPayload.data.employee_id))
+            if (!formData.get('company_id') && mapPayload.data.company_id) {
+              formData.append('company_id', String(mapPayload.data.company_id))
+            }
           }
         }
       } catch {

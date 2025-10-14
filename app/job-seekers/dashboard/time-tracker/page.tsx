@@ -561,19 +561,13 @@ export default function JobSeekerTimeTrackerPage() {
       const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
       if (!jsId) return
       const companyId = await resolveCompanyId(jsId)
-      if (!companyId) {
-        alert('Company not found for your account. Please contact support.')
-        return
-      }
       const employeeId = await resolveEmployeeId(jsId)
-      if (!employeeId) {
-        alert('Employee mapping not found. Please contact support.')
-        return
-      }
 
       const form = new FormData()
-      form.append('employee_id', employeeId)
-      form.append('company_id', companyId)
+      // Always include jobseeker_id so API proxy can resolve in background if needed
+      form.append('jobseeker_id', jsId)
+      if (employeeId) form.append('employee_id', employeeId)
+      if (companyId) form.append('company_id', companyId)
       form.append('leave_type', 'General')
       form.append('apply_strt_date', leaveFrom)
       form.append('apply_end_date', leaveTo)
