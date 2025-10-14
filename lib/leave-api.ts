@@ -77,19 +77,17 @@ export type LeaveTypeResponse = {
 };
 
 // API Service Class
-class LeaveApiService {
-  private baseUrl: string;
+import { getBackendUrl } from '@/lib/api-config'
 
-  constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/index.php/api';
-  }
+class LeaveApiService {
+  // Use central API-config helper for backend URLs
 
   // Fetch all leave requests for a company
   async getLeaveRequests(companyId?: number): Promise<LeaveRequest[]> {
     const params = new URLSearchParams();
     if (companyId) params.append('company_id', companyId.toString());
-    
-    const response = await fetch(`${this.baseUrl}/leave-requests?${params.toString()}`, {
+    const url = getBackendUrl(`api/leave-requests${params.toString() ? `?${params.toString()}` : ''}`)
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -110,8 +108,11 @@ class LeaveApiService {
   }
 
   // Fetch leave requests for a specific employee
-  async getEmployeeLeaveRequests(employeeId: number): Promise<LeaveRequest[]> {
-    const response = await fetch(`${this.baseUrl}/leave-requests/employee/${employeeId}`, {
+  async getEmployeeLeaveRequests(employeeId: number, companyId?: number): Promise<LeaveRequest[]> {
+    const params = new URLSearchParams();
+    if (companyId) params.append('company_id', String(companyId));
+    const url = getBackendUrl(`api/leave-requests/employee/${employeeId}${params.toString() ? `?${params.toString()}` : ''}`)
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -131,6 +132,27 @@ class LeaveApiService {
     return result.data as LeaveRequest[];
   }
 
+  // Fetch leave requests for a seeker by resolving mapping via Next.js proxy
+  async getSeekerLeaveRequests(jobseekerId: number, companyId?: number): Promise<LeaveRequest[]> {
+    const params = new URLSearchParams();
+    params.append('jobseeker_id', String(jobseekerId));
+    if (companyId) params.append('company_id', String(companyId));
+    const response = await fetch(`/api/seeker/leaves/list?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch seeker leave requests: ${response.statusText}`);
+    }
+    const payload = await response.json();
+    if (!payload?.success) {
+      throw new Error(payload?.error || payload?.message || 'Failed to fetch seeker leave requests');
+    }
+    return (payload.data || []) as LeaveRequest[];
+  }
+
   // Create a new leave request
   async createLeaveRequest(leaveRequest: CreateLeaveRequest): Promise<LeaveRequest> {
     const formData = new FormData();
@@ -144,7 +166,8 @@ class LeaveApiService {
       formData.append('apply_hard_copy', leaveRequest.applyHardCopy);
     }
 
-    const response = await fetch(`${this.baseUrl}/leave-requests`, {
+    const url = getBackendUrl('api/leave-requests')
+    const response = await fetch(url, {
       method: 'POST',
       credentials: 'include',
       body: formData,
@@ -174,7 +197,8 @@ class LeaveApiService {
     if (leaveRequest.reason) payload.reason = leaveRequest.reason;
     if (leaveRequest.status) payload.status = leaveRequest.status;
 
-    const response = await fetch(`${this.baseUrl}/leave-requests/${leaveRequest.id}`, {
+    const url = getBackendUrl(`api/leave-requests/${leaveRequest.id}`)
+    const response = await fetch(url, {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -202,7 +226,8 @@ class LeaveApiService {
       status: 'approved' as const,
     };
 
-    const response = await fetch(`${this.baseUrl}/leave-requests/${approveData.id}/approve`, {
+    const url = getBackendUrl(`api/leave-requests/${approveData.id}/approve`)
+    const response = await fetch(url, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -232,7 +257,8 @@ class LeaveApiService {
       status: 'rejected' as const,
     };
 
-    const response = await fetch(`${this.baseUrl}/leave-requests/${rejectData.id}/reject`, {
+    const url = getBackendUrl(`api/leave-requests/${rejectData.id}/reject`)
+    const response = await fetch(url, {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -253,7 +279,8 @@ class LeaveApiService {
 
   // Delete a leave request
   async deleteLeaveRequest(id: number): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/leave-requests/${id}`, {
+    const url = getBackendUrl(`api/leave-requests/${id}`)
+    const response = await fetch(url, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
@@ -275,8 +302,8 @@ class LeaveApiService {
   async getLeaveTypes(companyId?: number): Promise<LeaveType[]> {
     const params = new URLSearchParams();
     if (companyId) params.append('company_id', companyId.toString());
-    
-    const response = await fetch(`${this.baseUrl}/leave-types?${params.toString()}`, {
+    const url = getBackendUrl(`api/leave-types${params.toString() ? `?${params.toString()}` : ''}`)
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -298,7 +325,8 @@ class LeaveApiService {
 
   // Create a new leave type
   async createLeaveType(leaveType: Omit<LeaveType, 'id'>): Promise<LeaveType> {
-    const response = await fetch(`${this.baseUrl}/leave-types`, {
+    const url = getBackendUrl('api/leave-types')
+    const response = await fetch(url, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -321,7 +349,8 @@ class LeaveApiService {
 
   // Update a leave type
   async updateLeaveType(id: number, leaveType: Partial<LeaveType>): Promise<LeaveType> {
-    const response = await fetch(`${this.baseUrl}/leave-types/${id}`, {
+    const url = getBackendUrl(`api/leave-types/${id}`)
+    const response = await fetch(url, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -344,7 +373,8 @@ class LeaveApiService {
 
   // Delete a leave type
   async deleteLeaveType(id: number): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/leave-types/${id}`, {
+    const url = getBackendUrl(`api/leave-types/${id}`)
+    const response = await fetch(url, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
