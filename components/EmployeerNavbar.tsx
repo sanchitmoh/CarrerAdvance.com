@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { useEmployerLogout } from "@/components/AuthForm"
+import Image from "next/image"
 
 interface EmployerNavbarProps {
   onMobileMenuToggle: () => void
@@ -72,7 +73,7 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3 lg:px-6 shadow-sm">
+    <header className="bg-white border-b border-gray-200 px-4 py-3 lg:px-6 z-100 shadow-sm">
       <div className="flex items-center justify-between">
         {/* Left side */}
         <div className="flex items-center space-x-4">
@@ -82,10 +83,13 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
           </Button>
 
           {/* Logo/Title */}
-          <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-              Company Dashboard
-            </h1>
+          <div className="flex items-center ">
+            <Image
+            src={"/logo1.png"}
+            height={200}
+            width={200}
+            alt="CareerAdvance"
+            />
           </div>
         </div>
 
@@ -95,20 +99,12 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
         {/* Right side */}
         <div className="flex items-center space-x-4">
           {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="h-5 w-5" />
-            {notifications > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500 text-xs">
-                {notifications}
-              </Badge>
-            )}
-          </Button>
-
+        
           {/* User menu */}
           <DropdownMenu>
                          <DropdownMenuTrigger asChild>
                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                 <Avatar className="h-8 w-8">
+                 <Avatar className="h-10 w-10">
                    <AvatarImage src={user.avatar || "/placeholder.svg?height=32&width=32"} alt="User" />
                    <AvatarFallback className="bg-emerald-500 text-white">
                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'EM'}

@@ -11,6 +11,7 @@ import {
   FileText,
   Lock,
   X,
+  Home,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -19,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { getApiUrl, getAssetUrl } from "@/lib/api-config"
 
 const menuItems = [
+  { href: "/employers/dashboard/", label: "Dashboard", icon: Home },
   { href: "/employers/dashboard/profile", label: "Profile", icon: User },
   { href: "/employers/dashboard/jobs", label: "Jobs", icon: Briefcase },
   { href: "/employers/dashboard/interview-tracker", label: "Interview Tracker", icon: Calendar },
@@ -83,16 +85,12 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
   return (
     <TooltipProvider>
       {/* Desktop/Tablet sidebar */}
-      <div className="hidden md:flex fixed left-0 top-0 h-full w-20 bg-white border-r border-gray-200 flex-col items-center py-4 z-40">
+      <div className="hidden  md:flex fixed left-0 top-0 h-full w-20 bg-white border-r border-gray-200 flex-col items-center py-4 z-20">
         {/* Logo */}
-        <div className="mb-8">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">C</span>
-          </div>
-        </div>
+        
 
         {/* Navigation */}
-        <nav className="flex-1 flex flex-col space-y-2">
+        <nav className="flex-1 flex flex-col space-y-6 my-32">
           {menuItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -105,7 +103,7 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
                   ${isActive ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
                 `}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-6 h-6" />
                 <div className="absolute left-full ml-2 px-1.5 py-0.5 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
                   {item.label}
                 </div>

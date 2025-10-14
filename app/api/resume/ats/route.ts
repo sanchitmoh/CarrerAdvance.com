@@ -9,14 +9,18 @@ export async function POST(request: NextRequest) {
 
     let res: Response
     if (contentType.includes('multipart/form-data')) {
-      const form = await request.formData()
+      // Clone the request to avoid "Body has already been read" error
+      const clonedRequest = request.clone()
+      const form = await clonedRequest.formData()
       // Forward FormData directly; fetch will set proper boundaries
       res = await fetch(backendUrl, {
         method: 'POST',
         body: form as any
       })
     } else {
-      const body = await request.json().catch(() => ({}))
+      // Clone the request to avoid "Body has already been read" error
+      const clonedRequest = request.clone()
+      const body = await clonedRequest.json().catch(() => ({}))
       const { resumeText, industry } = body || {}
       res = await fetch(backendUrl, {
         method: 'POST',

@@ -2,7 +2,7 @@
 import { useEffect, useState, Suspense } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FileText, Plus, Palette, Upload } from "lucide-react"
+import { FileText, Plus, Palette, Upload, ArrowLeft } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
 
@@ -88,6 +88,17 @@ function ResumeBuilderContent() {
     <div className="min-h-screen w-full overflow-x-hidden">
       <div className="container mx-auto max-w-6xl px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         <div className="space-y-4 sm:space-y-6">
+      {/* Back Button */}
+      <div>
+        <Button
+          variant="ghost"
+          onClick={() => router.back()}
+          className="px-0 text-emerald-700 hover:text-emerald-800"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+      </div>
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div className="flex items-center space-x-3">

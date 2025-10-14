@@ -1144,10 +1144,6 @@ export default function ResumeBuilderPage() {
     }
   }
 
-  const handleAIDescription = () => {
-    // AI functionality for generating education description
-    console.log("AI description generation for education")
-  }
 
   const saveProject = () => {
     if (projectForm.name && projectForm.description) {
@@ -1196,6 +1192,13 @@ export default function ResumeBuilderPage() {
     setResumeData((prev) => ({
       ...prev,
       certifications: prev.certifications?.filter((cert) => cert.id !== id) || [],
+    }))
+  }
+
+  const removeEducation = (id: string) => {
+    setResumeData((prev) => ({
+      ...prev,
+      education: prev.education.filter((ed) => ed.id !== id),
     }))
   }
 
@@ -1748,26 +1751,15 @@ export default function ResumeBuilderPage() {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
-                            <div className="flex space-x-2">
-                              <Textarea
-                                id="description"
-                                value={educationFormData.description}
-                                onChange={(e) =>
-                                  setEducationFormData((prev) => ({ ...prev, description: e.target.value }))
-                                }
-                                placeholder="Describe relevant coursework, achievements, or activities..."
-                                rows={3}
-                                className="flex-1"
-                              />
-                              <Button
-                                onClick={handleAIDescription}
-                                size="sm"
-                                variant="outline"
-                                className="border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent px-3"
-                              >
-                                AI
-                              </Button>
-                            </div>
+                            <Textarea
+                              id="description"
+                              value={educationFormData.description}
+                              onChange={(e) =>
+                                setEducationFormData((prev) => ({ ...prev, description: e.target.value }))
+                              }
+                              placeholder="Describe relevant coursework, achievements, or activities..."
+                              rows={3}
+                            />
                           </div>
                           <div className="flex justify-end">
                             <Button
@@ -1792,6 +1784,7 @@ export default function ResumeBuilderPage() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => removeEducation(edu.id)}
                             className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent"
                           >
                             <X className="h-4 w-4" />
@@ -2242,13 +2235,6 @@ export default function ResumeBuilderPage() {
                             placeholder="Describe your project, its features, and your role"
                             className="border-emerald-300 focus:border-emerald-500 min-h-[100px]"
                           />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="px-3 py-2 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 bg-transparent"
-                          >
-                            AI
-                          </Button>
                         </div>
                       </div>
 
