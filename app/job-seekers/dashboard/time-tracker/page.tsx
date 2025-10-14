@@ -560,13 +560,18 @@ export default function JobSeekerTimeTrackerPage() {
       setLoading(true)
       const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
       if (!jsId) return
-      const companyId = await resolveCompanyId(jsId)
+      let companyId = await resolveCompanyId(jsId)
       const employeeId = await resolveEmployeeId(jsId)
 
       const form = new FormData()
       // Always include jobseeker_id so API proxy can resolve in background if needed
       form.append('jobseeker_id', jsId)
       if (employeeId) form.append('employee_id', employeeId)
+      // Fallback: read employer_id cookie on client if not resolved
+      if (!companyId && typeof document !== 'undefined') {
+        const m = document.cookie.match(/(?:^|; )employer_id=([^;]+)/)
+        if (m) companyId = decodeURIComponent(m[1])
+      }
       if (companyId) form.append('company_id', companyId)
       form.append('leave_type', 'General')
       form.append('apply_strt_date', leaveFrom)
