@@ -770,7 +770,13 @@ export default function JobSeekerTimeTrackerPage() {
                 id="leave-from"
                 type="date"
                 value={leaveFrom}
-                onChange={(e) => setLeaveFrom(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setLeaveFrom(v)
+                  if (leaveTo && leaveTo < v) {
+                    setLeaveTo(v)
+                  }
+                }}
                 className="w-full rounded-lg border bg-background px-4 py-3 text-sm"
                 required
               />
@@ -784,6 +790,7 @@ export default function JobSeekerTimeTrackerPage() {
                 id="leave-to"
                 type="date"
                 value={leaveTo}
+                min={leaveFrom || undefined}
                 onChange={(e) => setLeaveTo(e.target.value)}
                 className="w-full rounded-lg border bg-background px-4 py-3 text-sm"
                 required
