@@ -219,7 +219,7 @@ export default function ResumeCheckerPage() {
                       Drag and drop your resume file here, or click to browse
                     </p>
                     <p className="text-sm text-gray-500 mb-4">
-                      Supported formats: PDF, DOC, DOCX (Max size: 5MB)
+                      Supported formats: PDF (Max size: 5MB)
                     </p>
                     
                     <input
