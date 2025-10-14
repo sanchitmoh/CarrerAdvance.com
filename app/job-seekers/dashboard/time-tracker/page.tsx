@@ -574,7 +574,12 @@ export default function JobSeekerTimeTrackerPage() {
       form.append('num_aprv_day', String(derivedDays ?? 1))
       form.append('reason', leaveReason.trim())
 
-      const res = await fetch('/api/seeker/leaves/create', {
+      const qs: string[] = []
+      if (companyId) qs.push(`company_id=${encodeURIComponent(companyId)}`)
+      qs.push(`jobseeker_id=${encodeURIComponent(jsId)}`)
+      const createUrl = `/api/seeker/leaves/create${qs.length ? `?${qs.join('&')}` : ''}`
+
+      const res = await fetch(createUrl, {
         method: 'POST',
         credentials: 'include',
         body: form,
@@ -846,7 +851,6 @@ export default function JobSeekerTimeTrackerPage() {
                       <th className="py-3 pr-4 font-medium whitespace-nowrap">Reason</th>
                       <th className="py-3 pr-4 font-medium whitespace-nowrap hidden sm:table-cell">From</th>
                       <th className="py-3 pr-4 font-medium whitespace-nowrap hidden sm:table-cell">To</th>
-                      <th className="py-3 pr-4 font-medium whitespace-nowrap">Days</th>
                       <th className="py-3 pr-4 font-medium whitespace-nowrap">Status</th>
                       <th className="py-3 pr-4 font-medium whitespace-nowrap hidden xs:table-cell">Requested</th>
                     </tr>
@@ -864,7 +868,6 @@ export default function JobSeekerTimeTrackerPage() {
                         </td>
                         <td className="py-3 pr-4 align-top text-sm hidden sm:table-cell">{lr.from}</td>
                         <td className="py-3 pr-4 align-top text-sm hidden sm:table-cell">{lr.to}</td>
-                        <td className="py-3 pr-4 align-top text-sm font-medium">{lr.days}</td>
                         <td className="py-3 pr-4 align-top">
                           <span
                             className={[
