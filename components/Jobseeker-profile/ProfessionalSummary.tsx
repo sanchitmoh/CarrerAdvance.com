@@ -102,6 +102,7 @@ export default function ProfessionalSummary() {
       const normalizedCurrent = Array.from(new Set(skills.map((s) => s.trim()).filter(Boolean)))
       const normalizedInitial = new Set(initialSkills.map((s) => s.trim()).filter(Boolean))
       const toAdd = normalizedCurrent.filter((s) => !normalizedInitial.has(s))
+      const toRemove = Array.from(normalizedInitial).filter((s) => !normalizedCurrent.includes(s))
 
       if (toAdd.length > 0) {
         await Promise.all(
@@ -119,7 +120,36 @@ export default function ProfessionalSummary() {
         )
       }
 
-      setInitialSkills(normalizedCurrent)
+      if (toRemove.length > 0) {
+        await Promise.all(
+          toRemove.map((skill) =>
+            fetch('/api/seeker/profile/delete_skill', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jobseeker_id: jobseekerId,
+                skill_name: skill
+              })
+            }).then((r) => r.json()).catch(() => ({}))
+          )
+        )
+      }
+
+      // Re-fetch from server to ensure UI reflects backend state
+      try {
+        const refresh = await fetch(`/api/seeker/profile/get_professional_summary?jobseeker_id=${jobseekerId}`)
+        const refreshed = await refresh.json()
+        if (refreshed?.success && refreshed?.data) {
+          setSummary(refreshed.data.summary || "")
+          const loadedSkills = normalizeSkills(refreshed.data.skills)
+          setSkills(loadedSkills)
+          setInitialSkills(loadedSkills)
+        } else {
+          setInitialSkills(normalizedCurrent)
+        }
+      } catch {
+        setInitialSkills(normalizedCurrent)
+      }
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving professional summary:', error);
@@ -174,7 +204,7 @@ export default function ProfessionalSummary() {
             variant={isEditing ? "destructive" : "outline"}
             size="sm"
             onClick={isEditing ? handleCancel : () => setIsEditing(true)}
-            className={isEditing ? "border-red-200 text-red-600 hover:bg-red-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}
+            className={isEditing ? "border-red-200 text-white hover:bg-red-50 hover:text-red-500" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}
           >
             {isEditing ? <X className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
             {isEditing ? 'Cancel' : 'Edit'}
@@ -294,7 +324,3 @@ export default function ProfessionalSummary() {
     </Card>
   )
 }
-
-
-
-

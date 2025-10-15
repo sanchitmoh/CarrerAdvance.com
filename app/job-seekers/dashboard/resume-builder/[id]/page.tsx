@@ -24,8 +24,10 @@ import {
   Lightbulb,
   Heart,
   CheckCircle,
+  ArrowLeft,
 } from "lucide-react"
 import { useParams, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { getApiUrl } from "@/lib/api-config"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
@@ -93,6 +95,7 @@ interface ResumeData {
 }
 
 export default function ResumeBuilderPage() {
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const params = useParams()
   const resumeIdParam = params?.id as string | undefined
@@ -283,14 +286,14 @@ export default function ResumeBuilderPage() {
       setPendingNav(null)
       // Allow back to proceed
       ignoreNextPopRef.current = true
-      window.history.back()
+      try { window.history.go(-2) } catch (_) { try { window.history.back() } catch (_) { try { router.back() } catch (_) { try { router.push('/job-seekers/dashboard') } catch (_) {} } } }
       return
     }
     if (action === 'discard') {
       setShowLeaveConfirm(false)
       setPendingNav(null)
       ignoreNextPopRef.current = true
-      window.history.back()
+      try { window.history.go(-2) } catch (_) { try { window.history.back() } catch (_) { try { router.back() } catch (_) { try { router.push('/job-seekers/dashboard') } catch (_) {} } } }
       return
     }
     // cancel
@@ -1246,6 +1249,21 @@ export default function ResumeBuilderPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2 lg:gap-3">
+              <Button
+                onClick={() => {
+                  if (isDirty) {
+                    setPendingNav('back')
+                    setShowLeaveConfirm(true)
+                  } else {
+                    try { window.history.go(-2) } catch (_) { try { window.history.back() } catch (_) { try { router.back() } catch (_) { try { router.push('/job-seekers/dashboard') } catch (_) {} } } }
+                  }
+                }}
+                variant="outline"
+                className="border-gray-200 text-gray-700 hover:bg-gray-50"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
               <Button
                 onClick={handleSave}
                 className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"

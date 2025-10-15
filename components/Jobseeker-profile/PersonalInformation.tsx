@@ -203,7 +203,11 @@ export default function PersonalInformation() {
           // Ensure backend gets snake_case DOB field
           date_of_birth: formData.dateOfBirth || '',
           // Also send 'dob' because backend maps this key to date_of_birth
-          dob: formData.dateOfBirth || ''
+          dob: formData.dateOfBirth || '',
+          // Backend expects snake_case for these fields
+          job_category: formData.jobCategory,
+          experience_level: formData.experience,
+          your_title: formData.yourTitle
         })
       })
       const data = await res.json()

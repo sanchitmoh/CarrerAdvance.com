@@ -14,6 +14,7 @@ export default function JobsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [employerNameCache, setEmployerNameCache] = useState<Record<string, string>>({});
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -66,7 +67,80 @@ export default function JobsPage() {
       
       const data = await jobsApiService.getJobs(params);
       if (data.success) {
-        setJobs(data.data.jobs || []);
+        const rawJobs: any[] = data.data.jobs || [];
+        const toText = (v: any) => {
+          if (v === null || v === undefined) return '';
+          if (typeof v === 'string') return v;
+          if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+          return '';
+        };
+        const toNum = (v: any) => {
+          const n = parseFloat(v);
+          return isNaN(n) ? undefined : n;
+        };
+        const normalized = rawJobs.map((j: any) => {
+          // Derive company name from multiple shapes
+          let companyName: any = '';
+          const cn = j?.company_name;
+          if (typeof cn === 'string') companyName = cn;
+          else if (cn && typeof cn === 'object') companyName = cn.company_name || cn.name || '';
+          if (!companyName) companyName = j?.company || j?.companyName || j?.employer_name || '';
+          if (!companyName && j?.employer && typeof j.employer === 'object') {
+            companyName = j.employer.company_name || j.employer.name || '';
+          }
+          const salaryMin = j?.salary_min ?? j?.min_salary ?? j?.minSalary;
+          const salaryMax = j?.salary_max ?? j?.max_salary ?? j?.maxSalary;
+          const loc = j?.location || j?.city_name || j?.city || '';
+          return {
+            ...j,
+            company_name: toText(companyName),
+            title: toText(j?.title),
+            location: toText(loc),
+            job_type: toText(j?.job_type),
+            description: toText(j?.description),
+            requirements: toText(j?.requirements),
+            benefits: toText(j?.benefits),
+            posted_date: toText(j?.posted_date || j?.created_date),
+            salary_min: toNum(salaryMin),
+            salary_max: toNum(salaryMax),
+          };
+        });
+
+        // Find employer IDs that need lookup
+        const idsToLookup = Array.from(
+          new Set(
+            normalized
+              .filter((j: any) => (!j.company_name || j.company_name.trim() === '') && j.company_id)
+              .map((j: any) => String(j.company_id))
+          )
+        ).filter((id) => !(id in employerNameCache));
+
+        if (idsToLookup.length > 0) {
+          try {
+            const results = await Promise.all(
+              idsToLookup.map(async (id) => ({ id, name: await fetchEmployerName(id) }))
+            );
+            const update: Record<string, string> = { ...employerNameCache };
+            for (const r of results) {
+              if (r.name) update[r.id] = r.name;
+            }
+            setEmployerNameCache(update);
+            const enriched = normalized.map((j: any) => ({
+              ...j,
+              company_name: j.company_name || (j.company_id ? update[String(j.company_id)] || '' : '')
+            }));
+            setJobs(enriched);
+          } catch (_) {
+            setJobs(normalized);
+          }
+        } else {
+          // Use cache to fill any missing names
+          const enriched = normalized.map((j: any) => ({
+            ...j,
+            company_name: j.company_name || (j.company_id ? employerNameCache[String(j.company_id)] || '' : '')
+          }));
+          setJobs(enriched);
+        }
         setTotal(data.data.total || 0);
         setTotalPages(data.data.total_pages || 1);
         setCurrentPage(page);
