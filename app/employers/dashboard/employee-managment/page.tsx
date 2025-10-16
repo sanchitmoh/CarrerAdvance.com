@@ -23,6 +23,7 @@ import {
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { getBaseUrl } from "@/lib/api-config"
+import BackButton from "@/components/back-button"
 
 export default function EmploymentManagementPage() {
   const [mounted, setMounted] = useState(false)
@@ -84,8 +85,209 @@ export default function EmploymentManagementPage() {
           continue
         }
       }
+      // If no unified stats endpoint, stitch minimal stats from available APIs
       if (!success) {
-        throw new Error('Stats endpoint not found. Please confirm API route.')
+        const stitched = { ...stats }
+        try {
+          // Pending leaves count from leave-requests endpoint
+          const leavesRes = await fetch(getBaseUrl('/leave-requests'), { credentials: 'include' })
+          if (leavesRes.ok) {
+            const leavesJson = await leavesRes.json().catch(() => ({} as any))
+            const list: any[] = Array.isArray(leavesJson?.data) ? leavesJson.data : (Array.isArray(leavesJson) ? leavesJson : [])
+            const pending = list.filter((r: any) => {
+              const s = (r?.status ?? r?.leave_status ?? '').toString().toLowerCase()
+              return s === 'pending' || s === '0' || s === '1' // depending on backend mapping; adjust as needed
+            }).length
+            stitched.pendingLeaves = pending
+          }
+        } catch (_) {}
+
+        try {
+          // Recent activities from time-tracking records
+          const recRes = await fetch(getBaseUrl('/time-tracking/records'), { credentials: 'include' })
+          if (recRes.ok) {
+            const recJson = await recRes.json().catch(() => ({} as any))
+            const recData: any[] = Array.isArray(recJson?.data) ? recJson.data : []
+            const activities = recData.slice(0, 5).map((r: any) => {
+              const who = r?.emp_name || r?.employee_name || `Employee ${r?.employee_id ?? ''}`
+              let title = `${who} activity`
+              if (r?.clock_in_time && !r?.clock_out_time) title = `${who} clocked in`
+              if (r?.clock_out_time) title = `${who} clocked out`
+              if (r?.break_start_time && !r?.break_end_time) title = `${who} started break`
+              if (r?.break_end_time) title = `${who} ended break`
+              return { type: 'attendance', title, meta: 'Attendance', time: r?.updated_at || r?.clock_in_time || r?.date || '' }
+            })
+            stitched.recentActivities = activities
+          }
+        } catch (_) {}
+
+        try {
+          // Interviews recent
+          const intRes = await fetch(getBaseUrl('/interviews'), { credentials: 'include' })
+          if (intRes.ok) {
+            const intJson = await intRes.json().catch(() => ({} as any))
+            const items: any[] = Array.isArray(intJson?.data) ? intJson.data : []
+            const acts = items.slice(0, 5).map((it: any) => ({
+              type: 'interview',
+              title: it?.candidate_name ? `Interview scheduled with ${it.candidate_name}` : 'Interview activity',
+              meta: it?.status ? `Interview • ${it.status}` : 'Interview',
+              time: it?.scheduled_at || it?.created_at || ''
+            }))
+            stitched.recentActivities = [ ...(stitched.recentActivities || []), ...acts ].slice(0, 5)
+          }
+        } catch (_) {}
+
+        try {
+          // Documents pending/expiring
+          const docRes = await fetch(getBaseUrl('/documents'), { credentials: 'include' })
+          if (docRes.ok) {
+            const docJson = await docRes.json().catch(() => ({} as any))
+            const docs: any[] = Array.isArray(docJson?.data) ? docJson.data : []
+            const now = new Date()
+            const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+            const pendingDocs = docs.filter((d: any) => {
+              const s = (d?.status ?? '').toString().toLowerCase()
+              const expStr = d?.expiry_date || d?.expiryDate
+              const exp = expStr ? new Date(expStr) : null
+              return s === 'pending' || s === 'awaiting' || (exp && exp > now && exp < in30)
+            }).length
+            stitched.pendingActions = [
+              ...(stitched.pendingActions || []),
+              { title: `${pendingDocs} Documents Pending/Expiring`, subtitle: 'Within 30 days', action: 'Review', type: 'documents' },
+            ]
+          }
+        } catch (_) {}
+
+        try {
+          // Performance reviews pending
+          const perfRes = await fetch(getBaseUrl('/performance-reviews'), { credentials: 'include' })
+          if (perfRes.ok) {
+            const perfJson = await perfRes.json().catch(() => ({} as any))
+            const rows: any[] = Array.isArray(perfJson?.data) ? perfJson.data : []
+            const pendingPerf = rows.filter((r: any) => {
+              const s = (r?.status ?? '').toString().toLowerCase()
+              return s === 'pending' || s === 'due' || s === 'open'
+            }).length
+            stitched.pendingActions = [
+              ...(stitched.pendingActions || []),
+              { title: `${pendingPerf} Performance Reviews Due`, subtitle: 'Due by end of week', action: 'Review', type: 'performance' },
+            ]
+          }
+        } catch (_) {}
+
+        if (!aborted) {
+          setStats({
+            totalEmployees: stitched.totalEmployees ?? 24,
+            presentToday: stitched.presentToday ?? 22,
+            pendingLeaves: stitched.pendingLeaves ?? 0,
+            avgPerformance: stitched.avgPerformance ?? 4.2,
+            performanceScore: stitched.performanceScore ?? 4.2,
+            payrollExpensesMonth: stitched.payrollExpensesMonth ?? 48250,
+            documentCompliancePercent: stitched.documentCompliancePercent ?? 87,
+            monthlyAttendanceTrend: stitched.monthlyAttendanceTrend ?? [
+              { date: '2025-01-01', attendancePercent: 93 },
+              { date: '2025-02-01', attendancePercent: 95 },
+            ],
+            recentActivities: stitched.recentActivities ?? [],
+            pendingActions: stitched.pendingActions ?? [
+              { title: `${stitched.pendingLeaves ?? 0} Leave Requests Pending`, subtitle: 'Awaiting approval', action: 'Approve', type: 'leave' },
+            ],
+          })
+        }
+      }
+      // Augment unified stats with detailed activities/actions if available
+      if (success && !aborted) {
+        try {
+          const [leavesRes, recRes, intRes, docRes, perfRes] = await Promise.all([
+            fetch(getBaseUrl('/leave-requests'), { credentials: 'include' }),
+            fetch(getBaseUrl('/time-tracking/records'), { credentials: 'include' }),
+            fetch(getBaseUrl('/interviews'), { credentials: 'include' }),
+            fetch(getBaseUrl('/documents'), { credentials: 'include' }),
+            fetch(getBaseUrl('/performance-reviews'), { credentials: 'include' }),
+          ])
+
+          let pendingLeaves = stats.pendingLeaves
+          try {
+            if (leavesRes.ok) {
+              const leavesJson = await leavesRes.json().catch(() => ({} as any))
+              const list: any[] = Array.isArray(leavesJson?.data) ? leavesJson.data : (Array.isArray(leavesJson) ? leavesJson : [])
+              pendingLeaves = list.filter((r: any) => {
+                const s = (r?.status ?? r?.leave_status ?? '').toString().toLowerCase()
+                return s === 'pending' || s === '0' || s === 'awaiting'
+              }).length
+            }
+          } catch (_) {}
+
+          const activities: any[] = []
+          try {
+            if (recRes.ok) {
+              const recJson = await recRes.json().catch(() => ({} as any))
+              const recData: any[] = Array.isArray(recJson?.data) ? recJson.data : []
+              activities.push(...recData.slice(0, 5).map((r: any) => {
+                const who = r?.emp_name || r?.employee_name || `Employee ${r?.employee_id ?? ''}`
+                let title = `${who} activity`
+                if (r?.clock_in_time && !r?.clock_out_time) title = `${who} clocked in`
+                if (r?.clock_out_time) title = `${who} clocked out`
+                if (r?.break_start_time && !r?.break_end_time) title = `${who} started break`
+                if (r?.break_end_time) title = `${who} ended break`
+                return { type: 'attendance', title, meta: 'Attendance', time: r?.updated_at || r?.clock_in_time || r?.date || '' }
+              }))
+            }
+          } catch (_) {}
+
+          try {
+            if (intRes.ok) {
+              const intJson = await intRes.json().catch(() => ({} as any))
+              const items: any[] = Array.isArray(intJson?.data) ? intJson.data : []
+              activities.push(...items.slice(0, 5).map((it: any) => ({
+                type: 'interview',
+                title: it?.candidate_name ? `Interview scheduled with ${it.candidate_name}` : 'Interview activity',
+                meta: it?.status ? `Interview • ${it.status}` : 'Interview',
+                time: it?.scheduled_at || it?.created_at || ''
+              })))
+            }
+          } catch (_) {}
+
+          const pendingActions: any[] = []
+          pendingActions.push({ title: `${pendingLeaves ?? 0} Leave Requests Pending`, subtitle: 'Awaiting approval', action: 'Approve', type: 'leave' })
+
+          try {
+            if (docRes.ok) {
+              const docJson = await docRes.json().catch(() => ({} as any))
+              const docs: any[] = Array.isArray(docJson?.data) ? docJson.data : []
+              const now = new Date()
+              const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+              const pendingDocs = docs.filter((d: any) => {
+                const s = (d?.status ?? '').toString().toLowerCase()
+                const expStr = d?.expiry_date || d?.expiryDate
+                const exp = expStr ? new Date(expStr) : null
+                return s === 'pending' || s === 'awaiting' || (exp && exp > now && exp < in30)
+              }).length
+              pendingActions.push({ title: `${pendingDocs} Documents Pending/Expiring`, subtitle: 'Within 30 days', action: 'Review', type: 'documents' })
+            }
+          } catch (_) {}
+
+          try {
+            if (perfRes.ok) {
+              const perfJson = await perfRes.json().catch(() => ({} as any))
+              const rows: any[] = Array.isArray(perfJson?.data) ? perfJson.data : []
+              const pendingPerf = rows.filter((r: any) => {
+                const s = (r?.status ?? '').toString().toLowerCase()
+                return s === 'pending' || s === 'due' || s === 'open'
+              }).length
+              pendingActions.push({ title: `${pendingPerf} Performance Reviews Due`, subtitle: 'Due by end of week', action: 'Review', type: 'performance' })
+            }
+          } catch (_) {}
+
+          if (!aborted) {
+            setStats(prev => ({
+              ...prev,
+              pendingLeaves: pendingLeaves ?? prev.pendingLeaves,
+              recentActivities: activities.slice(0, 5),
+              pendingActions,
+            }))
+          }
+        } catch (_) {}
       }
     } catch (err: any) {
       if (!aborted) {
@@ -109,9 +311,7 @@ export default function EmploymentManagementPage() {
             { type: 'performance', title: 'Review reminder sent', meta: 'Performance', time: '3 hr ago' },
           ],
           pendingActions: [
-            { title: '5 Performance Reviews Due', subtitle: 'Due by end of week', action: 'Review', type: 'performance' },
             { title: '3 Leave Requests Pending', subtitle: 'Awaiting approval', action: 'Approve', type: 'leave' },
-            { title: '2 Documents Expiring Soon', subtitle: 'Within 30 days', action: 'Update', type: 'documents' },
           ],
         })
       }
@@ -224,7 +424,8 @@ export default function EmploymentManagementPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
+      <BackButton/>
+      <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">Employment Management Analytics</h1>
@@ -349,34 +550,19 @@ export default function EmploymentManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+              {(stats.recentActivities && stats.recentActivities.length > 0) ? (
+                stats.recentActivities.map((act, idx) => (
+                  <div key={idx} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
                 <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Sarah Johnson clocked in</p>
-                  <p className="text-xs text-gray-500">2 minutes ago • Attendance</p>
+                      <p className="text-sm font-medium">{act.title}</p>
+                      <p className="text-xs text-gray-500">{act.time || ''} • {act.meta}</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Monthly payroll processed</p>
-                  <p className="text-xs text-gray-500">1 hour ago • Payroll</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Performance review reminder sent</p>
-                  <p className="text-xs text-gray-500">3 hours ago • Performance</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                <div className="h-2 w-2 bg-purple-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New document uploaded</p>
-                  <p className="text-xs text-gray-500">5 hours ago • Documents</p>
-                </div>
-              </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">No recent activities.</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -390,33 +576,21 @@ export default function EmploymentManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+              {(stats.pendingActions && stats.pendingActions.length > 0) ? (
+                stats.pendingActions.map((pa, idx) => (
+                  <div key={idx} className={`flex items-center justify-between p-3 rounded-lg border ${pa.type === 'performance' ? 'bg-red-50 border-red-200' : pa.type === 'leave' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}>
                 <div>
-                  <p className="text-sm font-medium text-red-800">5 Performance Reviews Due</p>
-                  <p className="text-xs text-red-600">Due by end of week</p>
+                      <p className={`text-sm font-medium ${pa.type === 'performance' ? 'text-red-800' : pa.type === 'leave' ? 'text-yellow-800' : 'text-blue-800'}`}>{pa.title}</p>
+                      <p className={`text-xs ${pa.type === 'performance' ? 'text-red-600' : pa.type === 'leave' ? 'text-yellow-600' : 'text-blue-600'}`}>{pa.subtitle}</p>
                 </div>
-                <Button size="sm" variant="outline" className="text-red-600 border-red-300 bg-transparent">
-                  Review
+                    <Button size="sm" variant="outline" className={`${pa.type === 'performance' ? 'text-red-600 border-red-300' : pa.type === 'leave' ? 'text-yellow-600 border-yellow-300' : 'text-blue-600 border-blue-300'} bg-transparent`}>
+                      {pa.action}
                 </Button>
               </div>
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                <div>
-                  <p className="text-sm font-medium text-yellow-800">3 Leave Requests Pending</p>
-                  <p className="text-xs text-yellow-600">Awaiting approval</p>
-                </div>
-                <Button size="sm" variant="outline" className="text-yellow-600 border-yellow-300 bg-transparent">
-                  Approve
-                </Button>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div>
-                  <p className="text-sm font-medium text-blue-800">2 Documents Expiring Soon</p>
-                  <p className="text-xs text-blue-600">Within 30 days</p>
-                </div>
-                <Button size="sm" variant="outline" className="text-blue-600 border-blue-300 bg-transparent">
-                  Update
-                </Button>
-              </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">No pending actions.</div>
+              )}
             </div>
           </CardContent>
         </Card>

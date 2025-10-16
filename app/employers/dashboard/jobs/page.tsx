@@ -45,6 +45,7 @@ import { employerApiService, Job, AddJobRequest } from "@/lib/employer-api"
 import { fetchDepartments, fetchDesignations, type Department, type Designation } from "@/lib/hrms-api"
 import { getAssetUrl, getBaseUrl, getMeetUrl, getBackendUrl, GOOGLE_LOGIN_PATH } from "@/lib/api-config"
 import { jobsApiService } from "@/lib/jobs-api"
+import BackButton from "@/components/back-button"
 
 interface Candidate {
   id: number
@@ -86,6 +87,7 @@ interface Candidate {
   const [error, setError] = useState<string | null>(null)
   const [aiGeneratingJD, setAiGeneratingJD] = useState(false)
   const [states, setStates] = useState<any[]>([])
+  const [countries, setCountries] = useState<any[]>([])
   const [cities, setCities] = useState<any[]>([])
   const [loadingStates, setLoadingStates] = useState(false)
   const [loadingCities, setLoadingCities] = useState(false)
@@ -203,7 +205,7 @@ interface Candidate {
   const fetchStates = async (countryId: string) => {
     try {
       setLoadingStates(true)
-      const response = await fetch(getBaseUrl(`/api/common_api/state?country_id=${countryId}`), {
+      const response = await fetch(getBaseUrl(`/common_api/state?country_id=${countryId}`), {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
@@ -222,10 +224,36 @@ interface Candidate {
     }
   }
 
+  const fetchCountries = async () => {
+    try {
+      const response = await fetch(getBaseUrl('/api/common_api/country'), {
+        method: 'GET',
+        credentials: 'include'
+      })
+      if (!response.ok) {
+        setCountries([])
+        return
+      }
+      const data = await response.json().catch(() => ({}))
+      if (Array.isArray(data?.data)) {
+        // Expecting rows with id and name
+        setCountries(data.data)
+      } else {
+        setCountries([])
+      }
+    } catch (e) {
+      setCountries([])
+    }
+  }
+
+  useEffect(() => {
+    fetchCountries()
+  }, [])
+
   const fetchCities = async (stateId: string) => {
     try {
       setLoadingCities(true)
-      const response = await fetch(getBaseUrl(`/api/common_api/cities?state_id=${stateId}`), {
+      const response = await fetch(getBaseUrl(`/common_api/cities?state_id=${stateId}`), {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
@@ -611,12 +639,13 @@ interface Candidate {
       } else {
         // Add new job
         setLoading(true)
-        const newJob = await employerApiService.addJob(jobData)
-        toast({
-          title: "Success",
-          description: "You have created a job.",
-        })
-       
+        const res = await employerApiService.addJob(jobData).catch((e: any) => ({ success: false, message: e?.message }))
+        if (res && typeof res === 'object' && 'success' in res && res.success === false) {
+          toast({ title: 'Error', description: res?.message || 'Failed to post job.', variant: 'destructive' })
+          return
+        }
+        toast({ title: 'Success', description: 'Job posted successfully.' })
+        
         // Refresh jobs list
         const updatedJobs = await jobsApiService.getJobs()
         setJobs(updatedJobs.data.jobs || [])
@@ -724,7 +753,7 @@ interface Candidate {
         title: jobDetail.title || "",
         location: jobDetail.location || "",
         type: jobDetail.type?.toLowerCase() || "full-time",
-        positions: jobDetail.positions?.toString() || "1",
+        positions: (jobDetail.total_positions != null ? String(jobDetail.total_positions) : (jobDetail.positions?.toString() || "1")),
         experience: jobDetail.experience_level || "entry",
         salaryMin: jobDetail.salary_min?.toString() || salaryMin,
         salaryMax: jobDetail.salary_max?.toString() || salaryMax,
@@ -733,20 +762,27 @@ interface Candidate {
         description: jobDetail.description || "",
         requirements: jobDetail.requirements || "",
         country: jobDetail.country || "",
-        province: jobDetail.province || "",
-        city: jobForm.city || "",
+        province: (jobDetail.province || jobDetail.state || "").toString(),
+        city: (jobDetail.city || "").toString(),
         fullAddress: jobDetail.full_address || "",
         expiryDate: jobDetail.expiry_date || "",
         applicationSettings: jobDetail.application_method || "email",
         hoursPerWeek: jobDetail.hours_per_week?.toString() || "40",
         schedule: jobDetail.schedule || "flexible",
-        urgency: jobDetail.urgency || "medium",
-        startDate: jobDetail.start_date || "",
-        deadline: jobDetail.deadline || "",
-        notificationEmail: jobDetail.notification_email || "",
-        allowCalls: jobDetail.allow_calls || false,
-        phoneNumber: jobDetail.phone_number || "",
+        urgency: (jobDetail.quickly_need_hire || jobDetail.urgency || "medium").toString(),
+        startDate: (jobDetail.planned_start_job_date || jobDetail.start_date || "").toString(),
+        deadline: (jobDetail.setting_deadline_date || jobDetail.deadline || "").toString(),
+        notificationEmail: (jobDetail.setting_dailyupdate || jobDetail.notification_email || "").toString(),
+        allowCalls: Boolean(jobDetail.allow_calls || jobDetail.allow_direct_calls || false),
+        phoneNumber: (jobDetail.shared_phone_number || jobDetail.phone_number || "").toString(),
       })
+      // Ensure dependent dropdowns are populated when editing existing job
+      if (jobDetail.country) {
+        fetchStates(String(jobDetail.country))
+      }
+      if (jobDetail.province || jobDetail.state) {
+        fetchCities(String(jobDetail.province || jobDetail.state))
+      }
       setActiveTab("post")
     } catch (err) {
       console.error("Error fetching job details:", err)
@@ -1463,10 +1499,11 @@ interface Candidate {
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+     <BackButton/>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Jobs Management</h1>
-          <p className="text-sm sm:text-base text-gray-600">Post new jobs and manage applications</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Jobs Management</h1>
+          <p className="text-sm sm:text-base text-white">Post new jobs and manage applications</p>
         </div>
       </div>
 
@@ -1765,14 +1802,11 @@ interface Candidate {
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="231">United States</SelectItem>
-                        <SelectItem value="38">Canada</SelectItem>
-                        <SelectItem value="230">United Kingdom</SelectItem>
-                        <SelectItem value="13">Australia</SelectItem>
-                        <SelectItem value="82">Germany</SelectItem>
-                        <SelectItem value="75">France</SelectItem>
-                        <SelectItem value="101">India</SelectItem>
-                        <SelectItem value="196">Singapore</SelectItem>
+                        {countries.map((c) => (
+                          <SelectItem key={c.id} value={c.id.toString()}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -2052,12 +2086,7 @@ interface Candidate {
                     Cancel
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 bg-transparent"
-                >
-                  Save as Draft
-                </Button>
+               
                 <Button
                   onClick={handleSubmitJob}
                   className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"

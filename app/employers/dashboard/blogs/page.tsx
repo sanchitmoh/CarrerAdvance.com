@@ -675,13 +675,13 @@ export default function BlogsPage() {
       <BackButton />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Blog Management</h1>
-          <p className="text-gray-600">Create and manage your blog content</p>
+          <h1 className="text-2xl font-bold text-white">Blog Management</h1>
+          <p className="text-white">Create and manage your blog content</p>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <div className="flex items-center space-x-2 text-sm text-white">
             <FileText className="h-4 w-4" />
             <span>{publishedPosts.length} Published</span>
           </div>

@@ -328,20 +328,13 @@ export default function EmployerProfilePage() {
       <BackButton />
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Profile Management</h1>
-          <p className="text-gray-600">Manage your personal and company information</p>
+          <h1 className="text-2xl font-bold text-white">Profile Management</h1>
+          <p className="text-white">Manage your personal and company information</p>
         </div>
         <div className="flex space-x-2">
-          <Button
-            variant={isPreviewMode ? "default" : "outline"}
-            onClick={() => setIsPreviewMode(true)}
-            className={isPreviewMode ? "bg-emerald-600 hover:bg-emerald-700" : ""}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Preview Mode
-          </Button>
+          
         </div>
       </div>
 
@@ -460,7 +453,7 @@ export default function EmployerProfilePage() {
 
             {/* Company Details */}
             <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>3
+              <div>
                 
                 <Label htmlFor="companyName">Company Name</Label>
                 {editingSection === "company" ? (
@@ -513,11 +506,13 @@ export default function EmployerProfilePage() {
               <div>
                 <Label htmlFor="foundedDate">Founded Date</Label>
                 {editingSection === "company" ? (
-                  <Input
-                    id="foundedDate"
-                    value={profileData.foundedDate}
-                    onChange={(e) => handleInputChange("foundedDate", e.target.value)}
-                  />
+                 <Input
+                 id="foundedDate"
+                 type="date"
+                 value={profileData.foundedDate ? new Date(profileData.foundedDate).toISOString().split("T")[0] : ""}
+                 onChange={(e) => handleInputChange("foundedDate", e.target.value)}
+               />
+               
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.foundedDate}</p>
                 )}

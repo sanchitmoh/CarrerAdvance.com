@@ -44,6 +44,7 @@ export default function PerformanceReviewPage() {
   const [showViewReviewDialog, setShowViewReviewDialog] = useState(false)
   const [showEditReviewDialog, setShowEditReviewDialog] = useState(false)
   const [showCycleDialog, setShowCycleDialog] = useState(false)
+  const [editingCycleId, setEditingCycleId] = useState<number | null>(null)
   const [selectedReview, setSelectedReview] = useState<any>(null)
   const [mobileActionMenu, setMobileActionMenu] = useState<number | null>(null)
   const [newReviewForm, setNewReviewForm] = useState({
@@ -464,7 +465,13 @@ export default function PerformanceReviewPage() {
                 </div>
               </DialogContent>
             </Dialog>
-            <Dialog open={showCycleDialog} onOpenChange={setShowCycleDialog}>
+            <Dialog open={showCycleDialog} onOpenChange={(open) => {
+              setShowCycleDialog(open)
+              if (!open) {
+                setEditingCycleId(null)
+                setCycleForm({ name: "", startDate: "", endDate: "", reviewType: "quarterly", status: "active" })
+              }
+            }}>
               <DialogTrigger asChild>
                 <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-sm">
                   <Plus className="h-4 w-4 mr-2" />
@@ -588,12 +595,20 @@ export default function PerformanceReviewPage() {
                             review_type: cycleForm.reviewType,
                             status: cycleForm.status,
                           }
-                          const res = await createReviewPeriod(payload)
+                          let res: any = null
+                          if (editingCycleId) {
+                            res = await updateReviewPeriod(editingCycleId, payload as any)
+                          } else {
+                            res = await createReviewPeriod(payload)
+                          }
                           if (res?.success) {
                             const list = await fetchReviewPeriods()
                             setReviewPeriods(list)
                             setShowCycleDialog(false)
+                            setEditingCycleId(null)
                             setCycleForm({ name: "", startDate: "", endDate: "", reviewType: "quarterly", status: "active" })
+                          } else {
+                            alert(res?.message || 'Failed to save cycle')
                           }
                         } finally {
                           setSavingCycle(false)
@@ -816,6 +831,8 @@ export default function PerformanceReviewPage() {
                               })
                               setShowCycleDialog(true)
                               ;(setSelectedReview as any)({ id: rp.id })
+                              setEditingCycleId(Number(rp.id))
+                              setEditingCycleId(Number(rp.id))
                             }}
                           >
                             <Edit className="h-4 w-4" />

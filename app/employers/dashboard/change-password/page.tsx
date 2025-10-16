@@ -135,9 +135,9 @@ export default function ChangePasswordPage() {
       <BackButton />
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Change Password</h1>
-        <p className="text-gray-600">Update your account password to keep your account secure</p>
+      <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
+        <h1 className="text-2xl font-bold text-white">Change Password</h1>
+        <p className="text-white">Update your account password to keep your account secure</p>
       </div>
 
       {/* Security Tips */}

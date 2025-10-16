@@ -83,11 +83,12 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
           </Button>
 
           {/* Logo/Title */}
-          <div className="flex items-center ">
+          <div className="flex items-center  ">
             <Image
             src={"/logo1.png"}
             height={200}
             width={200}
+            
             alt="CareerAdvance"
             />
           </div>
@@ -104,7 +105,7 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
           <DropdownMenu>
                          <DropdownMenuTrigger asChild>
                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                 <Avatar className="h-10 w-10">
+                 <Avatar className="h-12 w-12">
                    <AvatarImage src={user.avatar || "/placeholder.svg?height=32&width=32"} alt="User" />
                    <AvatarFallback className="bg-emerald-500 text-white">
                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'EM'}

@@ -25,6 +25,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { fetchInterviews, updateInterviewStatus, saveInterviewReview, type Interview } from "@/lib/interviews-api"
+import BackButton from "@/components/back-button"
 
 export default function InterviewTrackerPage() {
   const [activeTab, setActiveTab] = useState("scheduled")
@@ -467,10 +468,11 @@ export default function InterviewTrackerPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+      <BackButton/>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Interview Tracker</h1>
-          <p className="text-gray-600">Schedule and manage candidate interviews with rounds and reviews</p>
+          <h1 className="text-2xl font-bold text-white">Interview Tracker</h1>
+          <p className="text-white">Schedule and manage candidate interviews with rounds and reviews</p>
         </div>
         
       </div>

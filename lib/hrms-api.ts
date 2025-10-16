@@ -120,7 +120,7 @@ export interface CreatePerformanceReviewPayload {
 }
 
 export async function createPerformanceReview(payload: CreatePerformanceReviewPayload): Promise<{ success: boolean; data?: any; message?: string }> {
-  const url = getBaseUrl('/api/performance-reviews')
+  const url = getBaseUrl('/performance-reviews')
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -158,7 +158,7 @@ export interface PerformanceReviewRow {
 export async function fetchPerformanceReviews(reviewPeriodId?: number): Promise<PerformanceReviewRow[]> {
   const q = new URLSearchParams()
   if (reviewPeriodId) q.set('review_period_id', String(reviewPeriodId))
-  const url = getBaseUrl(`/api/performance-reviews${q.toString() ? `?${q.toString()}` : ''}`)
+  const url = getBaseUrl(`/performance-reviews${q.toString() ? `?${q.toString()}` : ''}`)
   const res = await fetch(url, { credentials: 'include' })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json?.success) return []
@@ -184,7 +184,7 @@ export interface ReviewPeriodRow {
 export type ReviewPeriod = ReviewPeriodRow
 
 export async function fetchReviewPeriods(): Promise<ReviewPeriod[]> {
-  const url = getBaseUrl('/api/review-periods')
+  const url = getBaseUrl('/review-periods')
   const res = await fetch(url, { credentials: 'include' })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json?.success) return []
@@ -198,7 +198,7 @@ export async function createReviewPeriod(payload: {
   review_type: ReviewType
   status: ReviewPeriodStatus
 }): Promise<{ success: boolean; data?: ReviewPeriod; message?: string }> {
-  const url = getBaseUrl('/api/review-periods')
+  const url = getBaseUrl('/review-periods')
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -216,7 +216,7 @@ export async function updateReviewPeriod(id: number, payload: Partial<{
   review_type: ReviewType
   status: ReviewPeriodStatus
 }>): Promise<{ success: boolean; data?: ReviewPeriod; message?: string }> {
-  const url = getBaseUrl(`/api/review-periods/${id}/update`)
+  const url = getBaseUrl(`/review-periods/${id}/update`)
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -228,7 +228,7 @@ export async function updateReviewPeriod(id: number, payload: Partial<{
 }
 
 export async function deleteReviewPeriod(id: number): Promise<{ success: boolean; message?: string }> {
-  const url = getBaseUrl(`/api/review-periods/${id}/delete`)
+  const url = getBaseUrl(`/review-periods/${id}/delete`)
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
