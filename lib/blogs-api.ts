@@ -120,6 +120,15 @@ class BlogsApiService {
     const form = new FormData();
     form.append('title', payload.title);
     form.append('category', payload.category);
+    // Help backend auth by including employer_id when available
+    try {
+      if (typeof window !== 'undefined') {
+        // Prefer cookie value, fallback to localStorage
+        const cookieMatch = document.cookie.match(/(?:^|; )employer_id=([^;]+)/);
+        const employerId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : (localStorage.getItem('employer_id') || '');
+        if (employerId) form.append('employer_id', employerId);
+      }
+    } catch {}
     const res = await fetch(`${this.baseUrl}/ai-generate`, { method: 'POST', body: form, credentials: 'include' });
     return res.json();
   }

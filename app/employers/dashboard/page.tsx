@@ -129,9 +129,9 @@ export default function EmployerDashboardPage() {
         // ignore
       }
 
-      // Fetch interviews and take most recent 4
+      // Fetch interviews for this employer/company and take most recent 4
       try {
-        const ivRes = await fetch(getBackendUrl('/index.php/api/Interview_api'), { credentials: 'include' })
+        const ivRes = await fetch(getBackendUrl('/index.php/api/Interview_api' + (employerId ? `?employer_id=${employerId}` : '')), { credentials: 'include' })
         const ivJson = await ivRes.json()
         if (ivJson && ivJson.success && Array.isArray(ivJson.data)) {
           const mapped = (ivJson.data as Array<any>)
