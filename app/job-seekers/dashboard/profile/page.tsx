@@ -18,9 +18,11 @@ import Education from '@/components/Jobseeker-profile/Education'
 import Languages from '@/components/Jobseeker-profile/Languages'
 import ResumeUpload from '@/components/Jobseeker-profile/ResumeUpload'
 import Link from 'next/link'
+import { useToast } from '@/hooks/use-toast'
 
 export default function ProfilePage() {
   const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || ''
+  const { toast } = useToast()
   const [profileCompletion, setProfileCompletion] = useState(0)
   const [loading, setLoading] = useState(true)
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null)
@@ -28,6 +30,7 @@ export default function ProfilePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Load profile completion on component mount
   useEffect(() => {
@@ -63,6 +66,42 @@ export default function ProfilePage() {
 
     loadProfileCompletion();
   }, []);
+
+  // Global save loader + toasts that child components can trigger via window.ProfileSave
+  useEffect(() => {
+    const handlerStart = (e: any) => {
+      setIsSaving(true)
+      const msg = (e && e.detail && e.detail.message) || 'Saving your changes...'
+      toast({ title: 'Saving', description: msg })
+    }
+    const handlerSuccess = (e: any) => {
+      setIsSaving(false)
+      const msg = (e && e.detail && e.detail.message) || 'Saved successfully.'
+      toast({ title: 'Success', description: msg })
+    }
+    const handlerError = (e: any) => {
+      setIsSaving(false)
+      const msg = (e && e.detail && e.detail.message) || 'Failed to save. Please try again.'
+      toast({ title: 'Error', description: msg, variant: 'destructive' })
+    }
+
+    window.addEventListener('js-profile-save:start', handlerStart as any)
+    window.addEventListener('js-profile-save:success', handlerSuccess as any)
+    window.addEventListener('js-profile-save:error', handlerError as any)
+
+    // Expose helpers for components to call without importing toast here
+    ;(window as any).ProfileSave = {
+      start: (message?: string) => window.dispatchEvent(new CustomEvent('js-profile-save:start', { detail: { message } })),
+      success: (message?: string) => window.dispatchEvent(new CustomEvent('js-profile-save:success', { detail: { message } })),
+      error: (message?: string) => window.dispatchEvent(new CustomEvent('js-profile-save:error', { detail: { message } })),
+    }
+
+    return () => {
+      window.removeEventListener('js-profile-save:start', handlerStart as any)
+      window.removeEventListener('js-profile-save:success', handlerSuccess as any)
+      window.removeEventListener('js-profile-save:error', handlerError as any)
+    }
+  }, [toast])
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setUploadMessage(null)
@@ -140,6 +179,14 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      {isSaving && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-lg p-6 flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent"></div>
+            <div className="text-sm text-gray-700">Saving...</div>
+          </div>
+        </div>
+      )}
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
         <div className="flex items-center justify-between">

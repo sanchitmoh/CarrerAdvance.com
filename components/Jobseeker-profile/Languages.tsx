@@ -132,6 +132,7 @@ export default function Languages() {
       return
     }
 
+    try { (window as any).ProfileSave?.start('Adding language...') } catch {}
     const res = await fetch('/api/seeker/profile/add_language', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -156,18 +157,21 @@ export default function Languages() {
       setNewLanguageId('')
       setNewLanguageLevel('Beginner')
       setIsAdding(false)
+      try { (window as any).ProfileSave?.success('Language added.') } catch {}
     }
   }
 
   const handleDelete = async (rowId: number) => {
     const target = languages.find(l => l.id === rowId)
     if (!target) return
+    try { (window as any).ProfileSave?.start('Deleting language...') } catch {}
     await fetch('/api/seeker/profile/delete_language', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: target.id }),
     })
     setLanguages(prev => prev.filter(lang => lang.id !== rowId))
+    try { (window as any).ProfileSave?.success('Language deleted.') } catch {}
   }
 
   const updateProficiency = async (rowId: number, uiLevel: UILanguageLevel) => {
@@ -175,6 +179,7 @@ export default function Languages() {
     if (!target) return
 
     const backendLevel = uiLevelToBackend(uiLevel)
+    try { (window as any).ProfileSave?.start('Updating language...') } catch {}
     const res = await fetch('/api/seeker/profile/update_language', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -187,6 +192,7 @@ export default function Languages() {
     const payload = await res.json()
     if (payload?.success) {
       setLanguages(prev => prev.map(l => (l.id === rowId ? { ...l, proficiencyLevel: backendLevel } : l)))
+      try { (window as any).ProfileSave?.success('Language updated.') } catch {}
     }
   }
 

@@ -106,6 +106,7 @@ export default function Education() {
 
   const handleSave = async (id: string) => {
     try {
+      try { (window as any).ProfileSave?.start('Saving education...') } catch {}
       if (!editingEducation) return;
       const jobseekerId = localStorage.getItem('jobseeker_id');
       if (!jobseekerId) {
@@ -152,11 +153,14 @@ export default function Education() {
         }
         setEditingId(null);
         setEditingEducation(null);
+        try { (window as any).ProfileSave?.success('Education saved.') } catch {}
       } else {
         console.error('Failed to update education:', data.message);
+        try { (window as any).ProfileSave?.error(data.message || 'Failed to update education.') } catch {}
       }
     } catch (error) {
       console.error('Error updating education:', error);
+      try { (window as any).ProfileSave?.error('Failed to update education.') } catch {}
     }
   }
 
@@ -167,6 +171,7 @@ export default function Education() {
 
   const handleDelete = async (id: string) => {
     try {
+      try { (window as any).ProfileSave?.start('Deleting education...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
       if (!jobseekerId) {
         console.error('No jobseeker ID found. Please login again.');
@@ -177,18 +182,17 @@ export default function Education() {
         method: 'GET',
       });
       const data = await response.json();
-      if (data.success) {
-        setEducations(educations.filter(edu => edu.id !== id));
-      } else {
-        console.error('Failed to delete education:', data.message);
-      }
+      if (data.success) { setEducations(educations.filter(edu => edu.id !== id)); try { (window as any).ProfileSave?.success('Education deleted.') } catch {} }
+      else { console.error('Failed to delete education:', data.message); try { (window as any).ProfileSave?.error(data.message || 'Failed to delete education.') } catch {} }
     } catch (error) {
       console.error('Error deleting education:', error);
+      try { (window as any).ProfileSave?.error('Failed to delete education.') } catch {}
     }
   }
 
   const handleAdd = async () => {
     try {
+      try { (window as any).ProfileSave?.start('Adding education...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
       if (!jobseekerId) {
         console.error('No jobseeker ID found. Please login again.');
@@ -244,11 +248,14 @@ export default function Education() {
           achievements: []
         });
         setIsAdding(false);
+        try { (window as any).ProfileSave?.success('Education added.') } catch {}
       } else {
         console.error('Failed to add education:', data.message);
+        try { (window as any).ProfileSave?.error(data.message || 'Failed to add education.') } catch {}
       }
     } catch (error) {
       console.error('Error adding education:', error);
+      try { (window as any).ProfileSave?.error('Failed to add education.') } catch {}
     }
   }
 

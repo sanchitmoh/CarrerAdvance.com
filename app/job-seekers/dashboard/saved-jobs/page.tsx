@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -40,22 +39,17 @@ export default function SavedJobsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [searchTerm, setSearchTerm] = useState("")
-  const [industryFilter, setIndustryFilter] = useState("all")
-  const [jobTypeFilter, setJobTypeFilter] = useState("all")
   const [selectedJob, setSelectedJob] = useState<SavedJob | null>(null)
 
-  const industries = ["all", "Technology", "Design", "Finance", "Healthcare", "Marketing"]
-  const jobTypes = ["all", "full-time", "part-time", "contract", "internship"]
+  
 
   const filteredJobs = savedJobs
     .filter((job) => {
       const matchesSearch =
         (job.title?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
         (job.company?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-      const matchesIndustry = industryFilter === "all" || job.industry === industryFilter
-      const matchesJobType = jobTypeFilter === "all" || job.jobType === jobTypeFilter
 
-      return matchesSearch && matchesIndustry && matchesJobType
+      return matchesSearch
     })
     .sort((a, b) => new Date(b.savedDate).getTime() - new Date(a.savedDate).getTime())
 
@@ -217,33 +211,7 @@ export default function SavedJobsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-2 md:w-auto md:flex-none">
-              <Select value={industryFilter} onValueChange={setIndustryFilter}>
-                <SelectTrigger className="w-full text-sm border-emerald-300 focus:border-emerald-500">
-                  <SelectValue placeholder="Industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  {industries.map((industry) => (
-                    <SelectItem key={industry} value={industry}>
-                      {industry === "all" ? "All Industries" : industry}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
-                <SelectTrigger className="w-full text-sm border-emerald-300 focus:border-emerald-500">
-                  <SelectValue placeholder="Job Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type === "all" ? "All Types" : type.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Filters removed as requested; keeping only search bar */}
           </div>
         </CardContent>
       </Card>
@@ -431,9 +399,9 @@ export default function SavedJobsPage() {
           <Card className="border-2 border-dashed border-emerald-300 bg-emerald-50/50">
             <CardContent className="p-8 sm:p-12 text-center">
               <Heart className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">{searchTerm || industryFilter !== "all" || jobTypeFilter !== "all" ? "No saved jobs match your filters" : "No saved jobs yet"}</h3>
-              <p className="text-sm sm:text-base text-gray-600 mb-6">{searchTerm || industryFilter !== "all" || jobTypeFilter !== "all" ? "Try adjusting your search or filter criteria" : "Start saving jobs you're interested in to keep track of them here"}</p>
-              {!searchTerm && industryFilter === "all" && jobTypeFilter === "all" && (
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">{searchTerm ? "No saved jobs match your search" : "No saved jobs yet"}</h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-6">{searchTerm ? "Try adjusting your search" : "Start saving jobs you're interested in to keep track of them here"}</p>
+              {!searchTerm && (
                 <Button asChild className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white">
                   <Link href="/job-seekers/dashboard/matching-jobs">Browse Jobs</Link>
                 </Button>

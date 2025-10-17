@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Edit, Save, X, Eye, Upload, MapPin, Globe, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { employerApiService, type EmployerProfile, type UpdateProfileRequest } from "@/lib/employer-api"
-import { getBackendUrl } from "@/lib/api-config"
+import { getBackendUrl, getBaseUrl } from "@/lib/api-config"
 import { useToast } from "@/hooks/use-toast"
 import BackButton from "@/components/back-button"
 
@@ -54,6 +54,28 @@ export default function EmployerProfilePage() {
     instagram: "",
     linkedin: "",
   })
+  const [countries, setCountries] = useState<any[]>([])
+  const [states, setStates] = useState<any[]>([])
+  const [cities, setCities] = useState<any[]>([])
+  const [loadingStates, setLoadingStates] = useState(false)
+  const [loadingCities, setLoadingCities] = useState(false)
+
+  // Helpers to render names instead of numeric IDs in preview mode
+  const getCountryName = (id: string | number | null | undefined) => {
+    if (!id) return "";
+    const match = countries.find((c: any) => String(c.id) === String(id));
+    return match ? match.name : String(id);
+  };
+  const getStateName = (id: string | number | null | undefined) => {
+    if (!id) return "";
+    const match = states.find((s: any) => String(s.id) === String(id));
+    return match ? match.name : String(id);
+  };
+  const getCityName = (id: string | number | null | undefined) => {
+    if (!id) return "";
+    const match = cities.find((ci: any) => String(ci.id) === String(id));
+    return match ? match.name : String(id);
+  };
 
   // Fetch profile data on component mount (guard against React StrictMode double invoke)
   const hasFetchedRef = useRef(false)
@@ -120,6 +142,16 @@ export default function EmployerProfilePage() {
           instagram: company?.instagram || "",
           linkedin: company?.linkedin_link || "",
         })
+
+        try {
+          await fetchCountries()
+          const countryId = company?.country ? String(company.country) : ""
+          if (countryId) {
+            await fetchStates(countryId)
+            const stateId = company?.state ? String(company.state) : ""
+            if (stateId) await fetchCities(stateId)
+          }
+        } catch {}
       } else {
         toast({
           title: "Error",
@@ -136,6 +168,64 @@ export default function EmployerProfilePage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchCountries = async () => {
+    try {
+      const response = await fetch(getBaseUrl('/api/common_api/country'), { credentials: 'include' })
+      const data = await response.json()
+      if (data.status === 1 && Array.isArray(data.data)) {
+        setCountries(data.data)
+      } else {
+        setCountries([])
+      }
+    } catch (error) {
+      setCountries([])
+    }
+  }
+
+  const fetchStates = async (countryId: string) => {
+    try {
+      setLoadingStates(true)
+      const response = await fetch(getBaseUrl(`/common_api/state?country_id=${countryId}`), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (data.success && Array.isArray(data.data)) {
+        setStates(data.data)
+      } else if (data.status === 1 && Array.isArray(data.data)) {
+        setStates(data.data)
+      } else {
+        setStates([])
+      }
+    } catch (error) {
+      setStates([])
+    } finally {
+      setLoadingStates(false)
+    }
+  }
+
+  const fetchCities = async (stateId: string) => {
+    try {
+      setLoadingCities(true)
+      const response = await fetch(getBaseUrl(`/common_api/cities?state_id=${stateId}`), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+      const data = await response.json()
+      if (data.status === 1 && Array.isArray(data.data)) {
+        setCities(data.data)
+      } else {
+        setCities([])
+      }
+    } catch (error) {
+      setCities([])
+    } finally {
+      setLoadingCities(false)
     }
   }
 
@@ -573,41 +663,68 @@ export default function EmployerProfilePage() {
               <Label htmlFor="country">Country</Label>
               {editingSection === "address" ? (
                 <Select 
-                  value={profileData.country || ""} 
-                  onValueChange={(value) => handleInputChange("country", value)}
+                  value={profileData.country || ""}
+                  onValueChange={async (value) => {
+                    handleInputChange("country", value)
+                    setProfileData((prev) => ({ ...prev, province: "", city: "" }))
+                    if (value) await fetchStates(value)
+                  }}
                 >
                   <SelectTrigger id="country-trigger">
                     <SelectValue placeholder="Select a country" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="United States">United States</SelectItem>
-                    <SelectItem value="Canada">Canada</SelectItem>
-                    <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                    <SelectItem value="Australia">Australia</SelectItem>
+                    {countries.map((c: any) => (
+                      <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="mt-1 text-sm text-gray-900">{profileData.country}</p>
+                <p className="mt-1 text-sm text-gray-900">{getCountryName(profileData.country)}</p>
               )}
             </div>
             <div>
               <Label htmlFor="province">Province/State</Label>
               {editingSection === "address" ? (
-                <Input
-                  id="province"
+                <Select
                   value={profileData.province || ""}
-                  onChange={(e) => handleInputChange("province", e.target.value)}
-                />
+                  onValueChange={async (value) => {
+                    handleInputChange("province", value)
+                    setProfileData((prev) => ({ ...prev, city: "" }))
+                    if (value) await fetchCities(value)
+                  }}
+                >
+                  <SelectTrigger id="province-trigger">
+                    <SelectValue placeholder={loadingStates ? "Loading..." : "Select a state"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {states.map((s: any) => (
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
-                <p className="mt-1 text-sm text-gray-900">{profileData.province}</p>
+                <p className="mt-1 text-sm text-gray-900">{getStateName(profileData.province)}</p>
               )}
             </div>
             <div>
               <Label htmlFor="city">City</Label>
               {editingSection === "address" ? (
-                <Input id="city" value={profileData.city || ""} onChange={(e) => handleInputChange("city", e.target.value)} />
+                <Select
+                  value={profileData.city || ""}
+                  onValueChange={(value) => handleInputChange("city", value)}
+                >
+                  <SelectTrigger id="city-trigger">
+                    <SelectValue placeholder={loadingCities ? "Loading..." : "Select a city"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cities.map((ci: any) => (
+                      <SelectItem key={ci.id} value={String(ci.id)}>{ci.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
-                <p className="mt-1 text-sm text-gray-900">{profileData.city}</p>
+                <p className="mt-1 text-sm text-gray-900">{getCityName(profileData.city)}</p>
               )}
             </div>
             <div>

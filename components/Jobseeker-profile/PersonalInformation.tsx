@@ -192,6 +192,7 @@ export default function PersonalInformation() {
 
   const handleSave = async () => {
     try {
+      try { (window as any).ProfileSave?.start('Saving personal information...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id')
       if (!jobseekerId) return
       const res = await fetch('/api/seeker/profile/update_personal_info', {
@@ -211,10 +212,16 @@ export default function PersonalInformation() {
         })
       })
       const data = await res.json()
-      if (data.success) setIsEditing(false)
-      else console.error(data.message)
+      if (data.success) {
+        setIsEditing(false)
+        try { (window as any).ProfileSave?.success('Personal information saved.') } catch {}
+      } else {
+        console.error(data.message)
+        try { (window as any).ProfileSave?.error(data.message || 'Failed to save personal information.') } catch {}
+      }
     } catch (error) {
       console.error(error)
+      try { (window as any).ProfileSave?.error('Failed to save personal information.') } catch {}
     }
   }
   
@@ -250,6 +257,7 @@ export default function PersonalInformation() {
 
     // Upload
     try {
+      try { (window as any).ProfileSave?.start('Uploading profile photo...') } catch {}
       setIsUploadingAvatar(true)
       const jobseekerId = localStorage.getItem('jobseeker_id')
       if (!jobseekerId) {
@@ -263,6 +271,7 @@ export default function PersonalInformation() {
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) {
         setAvatarMessage(json?.message || 'Upload failed. Please try again.')
+        try { (window as any).ProfileSave?.error(json?.message || 'Upload failed. Please try again.') } catch {}
         return
       }
       const url: string | null = json?.data?.url || null
@@ -270,9 +279,11 @@ export default function PersonalInformation() {
         setFormData(prev => ({ ...prev, avatar: url }))
         localStorage.setItem('jobseeker_profile_photo_url', url)
         setAvatarMessage('Profile photo updated successfully.')
+        try { (window as any).ProfileSave?.success('Profile photo updated.') } catch {}
       }
     } catch (err) {
       setAvatarMessage('Unexpected error during upload.')
+      try { (window as any).ProfileSave?.error('Unexpected error during upload.') } catch {}
     } finally {
       setIsUploadingAvatar(false)
       // Reset the input value to allow re-selecting the same file

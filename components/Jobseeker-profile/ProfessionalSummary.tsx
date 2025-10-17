@@ -71,6 +71,7 @@ export default function ProfessionalSummary() {
 
   const handleSave = async () => {
     try {
+      try { (window as any).ProfileSave?.start('Saving professional summary...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
       
       if (!jobseekerId) {
@@ -94,6 +95,7 @@ export default function ProfessionalSummary() {
       
       if (!data.success) {
         console.error('Failed to save:', data.message);
+        try { (window as any).ProfileSave?.error(data.message || 'Failed to save summary.') } catch {}
         return;
       }
 
@@ -151,8 +153,10 @@ export default function ProfessionalSummary() {
         setInitialSkills(normalizedCurrent)
       }
       setIsEditing(false);
+      try { (window as any).ProfileSave?.success('Professional summary saved.') } catch {}
     } catch (error) {
       console.error('Error saving professional summary:', error);
+      try { (window as any).ProfileSave?.error('Failed to save summary.') } catch {}
     }
   }
 

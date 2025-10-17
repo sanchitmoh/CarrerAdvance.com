@@ -108,6 +108,7 @@ export default function Experience() {
   const handleSave = async (id: string) => {
     if (!editingExperience) return
     try {
+      try { (window as any).ProfileSave?.start('Saving experience...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
       if (!jobseekerId) return;
 
@@ -150,23 +151,57 @@ export default function Experience() {
         }
         setEditingId(null)
         setEditingExperience(null)
-      } else { console.error(data.message); }
-    } catch (err) { console.error(err); }
+        try { (window as any).ProfileSave?.success('Experience saved.') } catch {}
+      } else { console.error(data.message); try { (window as any).ProfileSave?.error(data.message || 'Failed to save experience.') } catch {} }
+    } catch (err) { console.error(err); try { (window as any).ProfileSave?.error('Failed to save experience.') } catch {} }
   }
 
   const handleCancel = () => { setEditingId(null); setEditingExperience(null) }
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/seeker/profile/delete_experience?id=${id}`, { method: 'GET' });
+      try { (window as any).ProfileSave?.start('Deleting experience...') } catch {}
+      const jobseekerIdForDelete = localStorage.getItem('jobseeker_id');
+      const deleteUrl = jobseekerIdForDelete
+        ? `/api/seeker/profile/delete_experience?id=${id}&jobseeker_id=${jobseekerIdForDelete}`
+        : `/api/seeker/profile/delete_experience?id=${id}`;
+      const response = await fetch(deleteUrl, { method: 'GET', cache: 'no-store' });
       const data = await response.json();
-      if (data.success) setExperiences(experiences.filter(e => e.id !== id))
-      else console.error(data.message)
-    } catch (err) { console.error(err); }
+      if (data.success) {
+        // Ensure fresh data after deletion
+        const jobseekerId = localStorage.getItem('jobseeker_id');
+        if (jobseekerId) {
+          const reloadResponse = await fetch(`/api/seeker/profile/get_experience?jobseeker_id=${jobseekerId}`, { cache: 'no-store' });
+          const reloadData = await reloadResponse.json();
+          if (reloadData.success && reloadData.data) {
+            const formatted = reloadData.data.map((exp: any) => ({
+              id: exp.id.toString(),
+              jobTitle: exp.job_title,
+              company: exp.company,
+              location: exp.location,
+              startDate: exp.start_date,
+              endDate: exp.end_date || '',
+              current: exp.current === 1,
+              description: exp.description,
+              skills: exp.skills ? JSON.parse(exp.skills) : []
+            }));
+            setExperiences(formatted);
+          } else {
+            // Fallback: optimistic update
+            setExperiences(prev => prev.filter(e => e.id !== id));
+          }
+        } else {
+          setExperiences(prev => prev.filter(e => e.id !== id));
+        }
+        try { (window as any).ProfileSave?.success('Experience deleted.') } catch {}
+      }
+      else { console.error(data.message); try { (window as any).ProfileSave?.error(data.message || 'Failed to delete experience.') } catch {} }
+    } catch (err) { console.error(err); try { (window as any).ProfileSave?.error('Failed to delete experience.') } catch {} }
   }
 
   const handleAdd = async () => {
     try {
+      try { (window as any).ProfileSave?.start('Adding experience...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
       if (!jobseekerId) return;
 
@@ -210,8 +245,9 @@ export default function Experience() {
           startMonth: '', endMonth: '', current: false, description: '', skills: []
         })
         setIsAdding(false)
-      } else console.error(data.message)
-    } catch (err) { console.error(err) }
+        try { (window as any).ProfileSave?.success('Experience added.') } catch {}
+      } else { console.error(data.message); try { (window as any).ProfileSave?.error(data.message || 'Failed to add experience.') } catch {} }
+    } catch (err) { console.error(err); try { (window as any).ProfileSave?.error('Failed to add experience.') } catch {} }
   }
 
   return (
@@ -246,8 +282,8 @@ export default function Experience() {
                 <div className="space-y-2"><Label>Start Date</Label><Input type="month" value={newExperience.startMonth} onChange={(e)=>setNewExperience({...newExperience,startMonth:e.target.value})}/></div>
                 <div className="space-y-2"><Label>End Date</Label><Input type="month" value={newExperience.endMonth} onChange={(e)=>setNewExperience({...newExperience,endMonth:e.target.value})} disabled={newExperience.current}/></div>
                 <div className="flex items-center space-x-2 pt-6">
-                  <input type="checkbox" checked={newExperience.current} onChange={(e)=>setNewExperience({...newExperience,current:e.target.checked,endMonth:e.target.checked?'':newExperience.endMonth})}/>
-                  <Label>I currently work here</Label>
+                  <input id="new-current" aria-label="I currently work here" type="checkbox" checked={newExperience.current} onChange={(e)=>setNewExperience({...newExperience,current:e.target.checked,endMonth:e.target.checked?'':newExperience.endMonth})}/>
+                  <Label htmlFor="new-current">I currently work here</Label>
                 </div>
               </div>
               <div className="space-y-2"><Label>Description</Label><Textarea value={newExperience.description} onChange={(e)=>setNewExperience({...newExperience,description:e.target.value})} rows={3}/></div>
@@ -273,8 +309,8 @@ export default function Experience() {
                     <div className="space-y-2"><Label>End Date</Label><Input type="month" value={editingExperience.endMonth} onChange={(e)=>setEditingExperience({...editingExperience,endMonth:e.target.value,endDate:monthInputToMonthYear(e.target.value)})} disabled={editingExperience.current}/></div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <input type="checkbox" checked={editingExperience.current} onChange={(e)=>setEditingExperience({...editingExperience,current:e.target.checked,endMonth:e.target.checked?'':editingExperience.endMonth,endDate:e.target.checked?'Present':editingExperience.endDate})}/>
-                    <Label>I currently work here</Label>
+                    <input id={`edit-current-${exp.id}`} aria-label="I currently work here" type="checkbox" checked={editingExperience.current} onChange={(e)=>setEditingExperience({...editingExperience,current:e.target.checked,endMonth:e.target.checked?'':editingExperience.endMonth,endDate:e.target.checked?'Present':editingExperience.endDate})}/>
+                    <Label htmlFor={`edit-current-${exp.id}`}>I currently work here</Label>
                   </div>
                   <div className="space-y-2"><Label>Description</Label><Textarea value={editingExperience.description} onChange={(e)=>setEditingExperience({...editingExperience,description:e.target.value})} rows={3}/></div>
                   <div className="flex justify-end space-x-3">

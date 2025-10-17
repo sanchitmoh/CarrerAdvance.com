@@ -291,10 +291,28 @@ export default function MatchingJobsPage() {
   // Just sort by match score for display
   const filteredJobs = jobs.sort((a, b) => b.matchScore - a.matchScore)
 
-  // Dynamic select options (fallback constants if no jobs yet)
-  const locations = ["all", ...Array.from(new Set(jobs.map((j) => j.location))).filter(Boolean)]
-  const industries = ["all", ...Array.from(new Set(jobs.map((j) => j.industry))).filter(Boolean)]
-  const experienceLevels = ["all", ...Array.from(new Set(jobs.map((j) => j.experienceLevel))).filter(Boolean)]
+  // Dynamic select options (ensure current selection is always present even if jobs list is empty)
+  let locations = ["all", ...Array.from(new Set(jobs.map((j) => j.location))).filter(Boolean)]
+  if (locationFilter !== "all" && !locations.includes(locationFilter)) {
+    locations = ["all", locationFilter, ...locations.filter((v) => v !== locationFilter)]
+  }
+
+  let industries = ["all", ...Array.from(new Set(jobs.map((j) => j.industry))).filter(Boolean)]
+  if (industryFilter !== "all" && !industries.includes(industryFilter)) {
+    industries = ["all", industryFilter, ...industries.filter((v) => v !== industryFilter)]
+  }
+
+  let experienceLevels = [
+    "all",
+    ...Array.from(new Set(jobs.map((j) => j.experienceLevel))).filter(Boolean),
+  ]
+  if (experienceFilter !== "all" && !experienceLevels.includes(experienceFilter)) {
+    experienceLevels = [
+      "all",
+      experienceFilter,
+      ...experienceLevels.filter((v) => v !== experienceFilter),
+    ]
+  }
 
   // Format date safely
   const formatDate = (dateString: string) => {

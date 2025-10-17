@@ -63,6 +63,7 @@ export default function ResumeUpload() {
     }, 200)
 
     try {
+      try { (window as any).ProfileSave?.start('Uploading resume...') } catch {}
       const form = new FormData()
       form.append('user_id', userId)
       form.append('resume', file)
@@ -84,6 +85,7 @@ export default function ResumeUpload() {
           },
         ])
         setUploadProgress(100)
+        try { (window as any).ProfileSave?.success('Resume uploaded.') } catch {}
       }
     } finally {
       clearInterval(ticker)
