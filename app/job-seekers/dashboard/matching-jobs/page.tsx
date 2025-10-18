@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -78,7 +77,7 @@ export default function MatchingJobsPage() {
   const [locationFilter, setLocationFilter] = useState("all")
   const [industryFilter, setIndustryFilter] = useState("all")
   const [experienceFilter, setExperienceFilter] = useState("all")
-  const [remoteOnly, setRemoteOnly] = useState(false)
+  
 
   // Debounced search term
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
@@ -95,7 +94,7 @@ export default function MatchingJobsPage() {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [locationFilter, industryFilter, experienceFilter, remoteOnly, debouncedSearchTerm])
+  }, [locationFilter, industryFilter, experienceFilter, debouncedSearchTerm])
 
   // Details dialog
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
@@ -153,7 +152,6 @@ export default function MatchingJobsPage() {
           locationFilter,
           industryFilter,
           experienceFilter,
-          remoteOnly,
           search: debouncedSearchTerm?.trim() || ""
         })
 
@@ -177,7 +175,7 @@ export default function MatchingJobsPage() {
           params.set("industry", industryFilter)
         if (experienceFilter && experienceFilter !== "all")
           params.set("experience", experienceFilter)
-        if (remoteOnly) params.set("remote", "true")
+        
         if (debouncedSearchTerm) params.set("search", debouncedSearchTerm)
 
         const url = `/api/seeker/profile/get_matching_jobs?${params.toString()}`
@@ -285,7 +283,7 @@ export default function MatchingJobsPage() {
       controller.abort()
     }
     // NOTE: searchTerm is intentionally omitted to keep search client-side (same as your previous logic).
-  }, [locationFilter, industryFilter, experienceFilter, remoteOnly, currentPage, debouncedSearchTerm])
+  }, [locationFilter, industryFilter, experienceFilter, currentPage, debouncedSearchTerm])
 
   // No client-side filtering needed - all filtering is handled by backend
   // Just sort by match score for display
@@ -488,7 +486,6 @@ export default function MatchingJobsPage() {
                       <SelectValue placeholder="Industry" />
                     </SelectTrigger>
                     <SelectContent>
-                      {industries.length === 1 && <SelectItem value="all">All Industries</SelectItem>}
                       {industries.map((industry) => (
                         <SelectItem key={industry} value={industry}>
                           {industry === "all" ? "All Industries" : industry}
@@ -502,7 +499,6 @@ export default function MatchingJobsPage() {
                       <SelectValue placeholder="Experience" />
                     </SelectTrigger>
                     <SelectContent>
-                      {experienceLevels.length === 1 && <SelectItem value="all">All Levels</SelectItem>}
                       {experienceLevels.map((level) => (
                         <SelectItem key={level} value={level}>
                           {level === "all" ? "All Levels" : level}
@@ -510,13 +506,7 @@ export default function MatchingJobsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="remote" checked={remoteOnly} onCheckedChange={(val) => setRemoteOnly(val === true)} />
-                    <label htmlFor="remote" className="text-xs sm:text-sm font-medium text-gray-700 break-words">
-                      Remote Only
-                    </label>
-                  </div>
+                  
                 </div>
               </div>
             </div>

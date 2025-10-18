@@ -34,94 +34,7 @@ export default function InterviewTrackerPage() {
   const [selectedInterview, setSelectedInterview] = useState<any>(null)
 
   // Interviews loaded from backend
-  const [interviews, setInterviews] = useState<Interview[]>([
-    {
-      id: 1,
-      candidateName: "Sarah Johnson",
-      position: "Senior Frontend Developer",
-      date: "2024-01-20",
-      time: "10:00 AM",
-      type: "video",
-      status: "scheduled",
-      interviewer: "John Doe",
-      notes: "Technical interview focusing on React and TypeScript",
-      meetingLink: "https://meet.google.com/abc-defg-hij",
-      round: "technical",
-      roundNumber: 2,
-      duration: "60 minutes",
-      candidateEmail: "sarah.johnson@email.com",
-    },
-    {
-      id: 2,
-      candidateName: "Michael Chen",
-      position: "Product Manager",
-      date: "2024-01-21",
-      time: "2:00 PM",
-      type: "phone",
-      status: "confirmed",
-      interviewer: "Jane Smith",
-      notes: "Initial screening call",
-      phone: "+1 (555) 123-4567",
-      round: "screening",
-      roundNumber: 1,
-      duration: "30 minutes",
-      candidateEmail: "michael.chen@email.com",
-    },
-    {
-      id: 3,
-      candidateName: "Emily Davis",
-      position: "UX Designer",
-      date: "2024-01-19",
-      time: "11:00 AM",
-      type: "in-person",
-      status: "completed",
-      interviewer: "Bob Wilson",
-      notes: "Portfolio review and design challenge",
-      location: "Office Conference Room A",
-      round: "portfolio",
-      roundNumber: 2,
-      duration: "90 minutes",
-      candidateEmail: "emily.davis@email.com",
-      review: {
-        rating: 4,
-        feedback:
-          "Excellent portfolio presentation. Strong design thinking and problem-solving skills. Good cultural fit.",
-        technicalSkills: 4,
-        communication: 5,
-        problemSolving: 4,
-        overallImpression: "Very positive",
-        recommendation: "proceed",
-        nextSteps: "Schedule final round with team lead",
-      },
-    },
-    {
-      id: 4,
-      candidateName: "Alex Rodriguez",
-      position: "Backend Developer",
-      date: "2024-01-18",
-      time: "3:00 PM",
-      type: "video",
-      status: "completed",
-      interviewer: "Sarah Lee",
-      notes: "System design and coding interview",
-      meetingLink: "https://zoom.us/j/123456789",
-      round: "system-design",
-      roundNumber: 3,
-      duration: "120 minutes",
-      candidateEmail: "alex.rodriguez@email.com",
-      review: {
-        rating: 3,
-        feedback:
-          "Good technical knowledge but struggled with system design concepts. Needs improvement in scalability thinking.",
-        technicalSkills: 3,
-        communication: 4,
-        problemSolving: 3,
-        overallImpression: "Average",
-        recommendation: "hold",
-        nextSteps: "Discuss with team before proceeding",
-      },
-    },
-  ])
+  const [interviews, setInterviews] = useState<Interview[]>([])
 
   const [newInterview, setNewInterview] = useState({
     candidateName: "",
@@ -223,7 +136,8 @@ export default function InterviewTrackerPage() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await fetchInterviews()
+        const employerId = typeof window !== 'undefined' ? localStorage.getItem('employer_id') : null
+        const data = await fetchInterviews(undefined, employerId ? parseInt(employerId) : undefined)
         setInterviews(data)
       } catch (e) {
         console.error('Failed to load interviews', e)

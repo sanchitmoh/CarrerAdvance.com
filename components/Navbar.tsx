@@ -33,7 +33,7 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false)
   const { toast } = useToast()
 
-  const links = ['Home', 'Blogs', 'Jobs', 'Employers', 'Job Seekers']
+  const links = ['Home', 'Blogs', 'Jobs', 'Companies', 'Job Seekers']
 
   const getHrefForNav = (item: string) => {
     if (item === 'Home') return '/'

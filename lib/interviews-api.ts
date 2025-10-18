@@ -29,8 +29,12 @@ export type Interview = {
   } | null
 }
 
-export async function fetchInterviews(jobId?: number): Promise<Interview[]> {
-  const url = jobId ? `${getBaseUrl('/api/interviews')}?job_id=${encodeURIComponent(jobId)}` : getBaseUrl('/api/interviews')
+export async function fetchInterviews(jobId?: number, employerId?: number): Promise<Interview[]> {
+  const params = new URLSearchParams()
+  if (jobId) params.append('job_id', jobId.toString())
+  if (employerId) params.append('employer_id', employerId.toString())
+  
+  const url = `${getBaseUrl('/api/interviews')}${params.toString() ? `?${params.toString()}` : ''}`
   const res = await fetch(url, { credentials: 'include' })
   if (!res.ok) throw new Error(`Failed to fetch interviews (${res.status})`)
   const json = await res.json()

@@ -151,6 +151,19 @@ export default function EmployerDashboardPage() {
       } catch (_e) {
         // ignore
       }
+
+      // Fetch hired candidates count
+      try {
+        const hiredRes = await fetch(getBackendUrl('/index.php/api/Employer_api/get_hired_count') + (employerId ? `?employer_id=${employerId}` : ''), {
+          credentials: 'include',
+        })
+        const hiredJson = await hiredRes.json()
+        if (hiredJson && hiredJson.success) {
+          setStats((s) => ({ ...s, candidatesHired: hiredJson.hired_count || 0 }))
+        }
+      } catch (_e) {
+        // ignore
+      }
     })()
   }, [])
 
@@ -273,6 +286,7 @@ export default function EmployerDashboardPage() {
               <div>
                 <p className="text-2xl font-bold text-gray-900">{stats.profileViews}</p>
                 <p className="text-sm text-gray-600">Profile Views</p>
+                
               </div>
             </div>
           </CardContent>
