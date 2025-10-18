@@ -40,9 +40,9 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
     if (!employerId) return
     ;(async () => {
       try {
-        // Use backend Employer_api to fetch ew_employers.profile_picture reliably
+        // Use backend employer profile API to fetch profile data
         
-        const res = await fetch(getBackendUrl(`/index.php/api/Employer_api/get_profile?employer_id=${employerId}`), {
+        const res = await fetch(getBackendUrl(`/index.php/api/employer/profile/get_profile?employer_id=${employerId}`), {
           credentials: 'include',
         })
        
@@ -53,9 +53,9 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
           const lastName = p.lastname || ''
           const name = `${firstName} ${lastName}`.trim() || 'Employer'
           const email = p.email || ''
-          // Prefer ew_employers.profile_picture
-          const avatarPath = p.profile_picture || p.profile_pic || p.avatar || ''
-          const avatar = avatarPath ? getAssetUrl(avatarPath) : ''
+          // Use profile_picture or company_logo with proper URL construction
+          const avatarPath = p.profile_picture || p.company_logo || ''
+          const avatar = avatarPath ? getBackendUrl(`/${avatarPath}`) : ''
           setUser({ name, email, avatar })
         }
       } catch (_e) {
@@ -108,7 +108,10 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
                  <Avatar className="h-12 w-12">
                    <AvatarImage src={user.avatar || "/placeholder.svg?height=32&width=32"} alt="User" />
                    <AvatarFallback className="bg-emerald-500 text-white">
-                     {user.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'EM'}
+                     {user.name && user.name !== 'Employer' 
+                       ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                       : 'EM'
+                     }
                    </AvatarFallback>
                  </Avatar>
                </Button>
