@@ -22,6 +22,13 @@ import Link from "next/link"
 import { getApiUrl, getBackendUrl } from "@/lib/api-config"
 
 export default function EmployerDashboardPage() {
+  const [employerName, setEmployerName] = useState("")
+  const [employerProfile, setEmployerProfile] = useState<{
+    profile_picture?: string
+    company_logo?: string
+    firstname?: string
+    lastname?: string
+  }>({})
   const [stats, setStats] = useState({
     totalJobs: 0,
     activeJobs: 0,
@@ -53,6 +60,32 @@ export default function EmployerDashboardPage() {
 
   useEffect(() => {
     const employerId = typeof window !== 'undefined' ? localStorage.getItem('employer_id') : null
+    
+    // Fetch employer profile to get name
+    ;(async () => {
+      try {
+        const profileRes = await fetch(getBackendUrl('/index.php/api/employer/profile/get_profile') + (employerId ? `?employer_id=${employerId}` : ''), {
+          credentials: 'include',
+        })
+        const profileJson = await profileRes.json()
+        if (profileJson && profileJson.success && profileJson.data) {
+          const employer = profileJson.data.employer
+          const name = employer?.firstname && employer?.lastname 
+                      ? `${employer.firstname} ${employer.lastname}`
+                      : employer?.firstname || employer?.lastname || 'Employer'
+          setEmployerName(name)
+          setEmployerProfile({
+            profile_picture: employer?.profile_picture,
+            company_logo: employer?.company_logo,
+            firstname: employer?.firstname,
+            lastname: employer?.lastname
+          })
+        }
+      } catch (_e) {
+        // ignore
+      }
+    })()
+
     // Fetch employer jobs to derive stats and get a job id for applications
     ;(async () => {
       try {
@@ -202,9 +235,28 @@ export default function EmployerDashboardPage() {
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Welcome back, John!</h1>
-            <p className="text-emerald-100">Here's what's happening with your recruitment today</p>
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-16 w-16 border-2 border-white/20">
+              <AvatarImage 
+                src={employerProfile.profile_picture || employerProfile.company_logo ? 
+                  getBackendUrl(`/${employerProfile.profile_picture || employerProfile.company_logo}`) : 
+                  undefined
+                } 
+                alt={employerName || 'Employer'} 
+              />
+              <AvatarFallback className="bg-white/20 text-white text-lg font-semibold">
+                {employerProfile.firstname && employerProfile.lastname 
+                  ? `${employerProfile.firstname[0]}${employerProfile.lastname[0]}`.toUpperCase()
+                  : employerProfile.firstname 
+                    ? employerProfile.firstname[0].toUpperCase()
+                    : 'E'
+                }
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold mb-2">Welcome back, {employerName || 'Employer'}!</h1>
+              <p className="text-emerald-100">Here's what's happening with your recruitment today</p>
+            </div>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
             <Link href="/employers/dashboard/jobs">
