@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useEffect, useMemo, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
 
 type EntryType = "in" | "break-start" | "break-end" | "out"
 
@@ -97,6 +98,7 @@ export default function JobSeekerTimeTrackerPage() {
   const [activeSession, setActiveSession] = useState<TimeTrackingSession | null>(null)
   const [sessions, setSessions] = useState<TimeTrackingSession[]>([])
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
   const breakOptions = [
     { type: "Lunch", duration: "1 hour" }
   ]
@@ -402,7 +404,11 @@ export default function JobSeekerTimeTrackerPage() {
     try {
       const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
       if (!jsId) {
-        alert('Please log in to use time tracking')
+        toast({
+          title: "Login Required",
+          description: "Please log in to use time tracking",
+          variant: "destructive"
+        })
         return
       }
 
@@ -422,12 +428,24 @@ export default function JobSeekerTimeTrackerPage() {
       if (data.success) {
         await loadActiveSession()
         await loadSessions(selectedDate)
+        toast({
+          title: "Clocked In Successfully",
+          description: "You have been clocked in for the day.",
+        })
       } else {
-        alert(data.message || 'Failed to clock in')
+        toast({
+          title: "Clock In Failed",
+          description: data.message || 'Failed to clock in',
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('Clock in error:', error)
-      alert('Failed to clock in')
+      toast({
+        title: "Clock In Failed",
+        description: 'Failed to clock in',
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }
@@ -436,6 +454,18 @@ export default function JobSeekerTimeTrackerPage() {
   const handleStartBreak = () => {
     if (!isSelectedToday) return
     if (!isClockedIn || isOnBreak) return
+    
+    // Check if any break has already been taken today
+    const hasTakenBreak = entries.some(entry => entry.type === "break-start")
+    if (hasTakenBreak) {
+      toast({
+        title: "Break Already Taken",
+        description: "You have already taken a break today.",
+        variant: "destructive"
+      })
+      return
+    }
+    
     setSelectedBreakType(null)
     setIsBreakDialogOpen(true)
   }
@@ -450,7 +480,7 @@ export default function JobSeekerTimeTrackerPage() {
 
       const formData = new FormData()
       formData.append('jobseeker_id', jsId)
-      formData.append('break_type', selectedBreakType)
+      //formData.append('break_type', selectedBreakType)
 
       const res = await fetch('/api/seeker/time-tracking/start_break', {
         method: 'POST',
@@ -463,12 +493,24 @@ export default function JobSeekerTimeTrackerPage() {
         await loadActiveSession()
         await loadSessions(selectedDate)
         setIsBreakDialogOpen(false)
+        toast({
+          title: "Break Started",
+          description: "Your break has been started successfully.",
+        })
       } else {
-        alert(data.message || 'Failed to start break')
+        toast({
+          title: "Break Start Failed",
+          description: data.message || 'Failed to start break',
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('Start break error:', error)
-      alert('Failed to start break')
+      toast({
+        title: "Break Start Failed",
+        description: 'Failed to start break',
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }
@@ -496,12 +538,24 @@ export default function JobSeekerTimeTrackerPage() {
       if (data.success) {
         await loadActiveSession()
         await loadSessions(selectedDate)
+        toast({
+          title: "Break Ended",
+          description: "Your break has been ended successfully.",
+        })
       } else {
-        alert(data.message || 'Failed to end break')
+        toast({
+          title: "Break End Failed",
+          description: data.message || 'Failed to end break',
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('End break error:', error)
-      alert('Failed to end break')
+      toast({
+        title: "Break End Failed",
+        description: 'Failed to end break',
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }
@@ -542,12 +596,24 @@ export default function JobSeekerTimeTrackerPage() {
       if (data.success) {
         await loadActiveSession()
         await loadSessions(selectedDate)
+        toast({
+          title: "Clocked Out Successfully",
+          description: "You have been clocked out for the day.",
+        })
       } else {
-        alert(data.message || 'Failed to clock out')
+        toast({
+          title: "Clock Out Failed",
+          description: data.message || 'Failed to clock out',
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('Clock out error:', error)
-      alert('Failed to clock out')
+      toast({
+        title: "Clock Out Failed",
+        description: 'Failed to clock out',
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }

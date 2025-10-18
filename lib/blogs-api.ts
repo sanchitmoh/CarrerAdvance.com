@@ -86,6 +86,16 @@ class BlogsApiService {
         }
   ): Promise<{ success: boolean; message?: string }> {
     const hasFile = !!(payload as any).imageFile;
+    
+    // Get employer_id from cookie or localStorage
+    let employerId = '';
+    try {
+      if (typeof window !== 'undefined') {
+        const cookieMatch = document.cookie.match(/(?:^|; )employer_id=([^;]+)/);
+        employerId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : (localStorage.getItem('employer_id') || '');
+      }
+    } catch {}
+    
     if (hasFile) {
       const form = new FormData();
       form.append('title', payload.title);
@@ -96,15 +106,17 @@ class BlogsApiService {
       if (payload.category_id) form.append('category_id', String(payload.category_id));
       form.append('status', payload.status);
       if (payload.tags) form.append('tags', payload.tags);
+      if (employerId) form.append('employer_id', employerId);
       if ((payload as any).imageFile) form.append('image', (payload as any).imageFile as File);
       // Use POST for multipart so CodeIgniter can parse fields via $this->input->post
       const res = await fetch(`${this.baseUrl}/${id}`, { method: 'POST', body: form, credentials: 'include' });
       return res.json();
     } else {
+      const payloadWithEmployerId = { ...payload, employer_id: employerId };
       const res = await fetch(`${this.baseUrl}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payloadWithEmployerId),
         credentials: 'include',
       });
       return res.json();

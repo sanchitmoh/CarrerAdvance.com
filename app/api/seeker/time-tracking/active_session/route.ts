@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Use the configured backend URL
-    const backendUrl = getBackendUrl(`/api/seeker/time-tracking/active_session?jobseeker_id=${encodeURIComponent(jobseekerId)}`)
+    const backendUrl = getBackendUrl(`/index.php/api/seeker/time-tracking/active_session?jobseeker_id=${encodeURIComponent(jobseekerId)}`)
     
     // Forward the request to the PHP backend
     const response = await fetch(backendUrl, {

@@ -34,6 +34,7 @@ export default function BlogsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [isAddingPost, setIsAddingPost] = useState(false)
   const [editingPost, setEditingPost] = useState<BlogPostUI | null>(null)
+  const [editingStatus, setEditingStatus] = useState<"draft" | "published" | "archived">("draft")
   const [previewingPost, setPreviewingPost] = useState<BlogPostUI | null>(null)
 
   const [blogPosts, setBlogPosts] = useState<BlogPostUI[]>([])
@@ -145,6 +146,16 @@ export default function BlogsPage() {
   const handleUpdatePost = async (data: BlogPostUI, imageFile?: File | null) => {
     try {
       setLoading(true)
+      setError("") // Clear any previous errors
+      
+      console.log('Updating blog post:', {
+        id: data.id,
+        title: data.title,
+        status: data.status,
+        categoryId: data.categoryId,
+        hasImageFile: !!imageFile
+      })
+      
       const res = await blogsApiService.updateBlog(data.id, {
         title: data.title,
         content: data.content,
@@ -156,10 +167,17 @@ export default function BlogsPage() {
         tags: data.tags.join(","),
         imageFile: imageFile || null,
       })
-      if (!res.success) throw new Error(res.message || "Update failed")
+      
+      console.log('Update response:', res)
+      
+      if (!res.success) {
+        throw new Error(res.message || "Update failed")
+      }
+      
       await loadBlogs()
       setEditingPost(null)
     } catch (e) {
+      console.error('Update error:', e)
       setError((e as any)?.message || "Failed to update blog")
     } finally {
       setLoading(false)
@@ -275,7 +293,10 @@ export default function BlogsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setEditingPost(post)}
+              onClick={() => {
+                setEditingPost(post)
+                setEditingStatus(post.status)
+              }}
               className="text-blue-600 border-blue-600 hover:bg-blue-50 text-xs sm:text-sm"
             >
               <Edit className="h-3 w-3 mr-1" />
@@ -503,11 +524,15 @@ export default function BlogsPage() {
     onSubmit,
     categories,
     post,
+    currentStatus,
+    onStatusChange,
   }: {
     onCancel: () => void
     onSubmit: (data: BlogPostUI, imageFile?: File | null) => void
     categories: { id: number; name: string }[]
     post: BlogPostUI
+    currentStatus: "draft" | "published" | "archived"
+    onStatusChange: (status: "draft" | "published" | "archived") => void
   }) => {
     const [title, setTitle] = useState(post.title)
     const [excerpt, setExcerpt] = useState(post.excerpt)
@@ -587,17 +612,38 @@ export default function BlogsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAIGenerate}
-                disabled={aiLoading}
-                className="w-full border-emerald-200 text-emerald-600 hover:bg-emerald-50"
-              >
-                Generate with AI
-              </Button>
+            <div>
+              <Label htmlFor="edit-status">Status</Label>
+              <Select value={currentStatus} onValueChange={(v) => {
+                onStatusChange(v as "draft" | "published" | "archived");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+              {currentStatus !== post.status && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Status will change from {post.status} to {currentStatus}
+                </p>
+              )}
             </div>
+          </div>
+
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAIGenerate}
+              disabled={aiLoading}
+              className="w-full border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+            >
+              Generate with AI
+            </Button>
           </div>
 
           <div>
@@ -657,6 +703,8 @@ export default function BlogsPage() {
                 categoryId,
                 tags: parseTags(tagsInput),
                 content,
+                // Use the current status from the status selector
+                status: currentStatus,
               }
               onSubmit(updatedPost, imageFile)
             }}
@@ -687,6 +735,19 @@ export default function BlogsPage() {
           </div>
         </div>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2 text-red-800">
+              <div className="h-4 w-4 rounded-full bg-red-500"></div>
+              <span className="font-medium">Error:</span>
+              <span>{error}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -783,9 +844,14 @@ export default function BlogsPage() {
             {editingPost && (
               <EditPostForm
                 categories={categories}
-                onCancel={() => setEditingPost(null)}
+                onCancel={() => {
+                  setEditingPost(null)
+                  setEditingStatus("draft")
+                }}
                 onSubmit={(data, img) => handleUpdatePost(data, img)}
                 post={editingPost}
+                currentStatus={editingStatus}
+                onStatusChange={setEditingStatus}
               />
             )}
           </DialogContent>

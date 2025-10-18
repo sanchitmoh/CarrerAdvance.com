@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     queryParams.append('jobseeker_id', jobseekerId)
     if (date) queryParams.append('date', date)
     
-    const backendUrl = getBackendUrl(`/api/seeker/time-tracking/sessions?${queryParams.toString()}`)
+    const backendUrl = getBackendUrl(`/index.php/api/seeker/time-tracking/sessions?${queryParams.toString()}`)
     
     // Forward the request to the PHP backend
     const response = await fetch(backendUrl, {

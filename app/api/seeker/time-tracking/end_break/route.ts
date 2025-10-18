@@ -6,16 +6,20 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    // Accept JSON or form-data from client
+    // Check content type to determine how to read the body
+    const contentType = request.headers.get('content-type') || ''
     let incoming: any = null
-    try {
+    
+    if (contentType.includes('application/json')) {
       incoming = await request.json()
-    } catch {
+    } else {
       const fd = await request.formData()
       incoming = Object.fromEntries(fd.entries())
     }
 
-    const backendUrl = getBackendUrl('/api/seeker/time-tracking/end_break')
+    const backendUrl = getBackendUrl('/index.php/api/seeker/time-tracking/end_break')
+    console.log('Backend URL:', backendUrl)
+    console.log('Incoming data:', incoming)
 
     // Build form-data for PHP backend
     const backendForm = new FormData()
@@ -26,6 +30,7 @@ export async function POST(request: NextRequest) {
     if (incoming?.ip_address) backendForm.append('ip_address', String(incoming.ip_address))
     if (incoming?.notes) backendForm.append('notes', String(incoming.notes))
 
+    console.log('Making request to backend...')
     const res = await fetch(backendUrl, {
       method: 'POST',
       headers: {
@@ -37,16 +42,22 @@ export async function POST(request: NextRequest) {
       body: backendForm,
     })
 
+    console.log('Backend response status:', res.status)
+    console.log('Backend response headers:', Object.fromEntries(res.headers.entries()))
+
     let responsePayload: any
     try {
       responsePayload = await res.json()
+      console.log('Backend response payload:', responsePayload)
     } catch {
       const text = await res.text()
+      console.log('Backend response text:', text)
       responsePayload = { success: false, message: 'Upstream error', detail: text }
     }
     return NextResponse.json(responsePayload, { status: res.status })
   } catch (e) {
-    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 })
+    console.error('Error in end_break API route:', e)
+    return NextResponse.json({ success: false, message: 'Internal server error', error: e.message }, { status: 500 })
   }
 }
 

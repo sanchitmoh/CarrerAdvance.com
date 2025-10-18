@@ -47,6 +47,7 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
         })
        
         const data = await res.json()
+        console.log('Navbar API Response:', data) // Debug log
         if (data?.success && data?.data?.employer) {
           const p = data.data.employer
           const firstName = p.firstname || ''
@@ -56,7 +57,9 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
           // Use profile_picture or company_logo with proper URL construction
           const avatarPath = p.profile_picture || p.company_logo || ''
           const avatar = avatarPath ? getBackendUrl(`/${avatarPath}`) : ''
+          console.log('Avatar construction - Path:', avatarPath, 'Full URL:', avatar)
           setUser({ name, email, avatar })
+          console.log('User state set:', { name, email, avatar })
         }
       } catch (_e) {
         // ignore
@@ -72,6 +75,8 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
 
   }
 
+  console.log('Navbar render - user state:', user) // Debug log
+  
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-3 lg:px-6 z-100 shadow-sm">
       <div className="flex items-center justify-between">
@@ -106,7 +111,14 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
                          <DropdownMenuTrigger asChild>
                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                  <Avatar className="h-12 w-12">
-                   <AvatarImage src={user.avatar || "/placeholder.svg?height=32&width=32"} alt="User" />
+                   <AvatarImage 
+                     src={user.avatar || "/placeholder.svg?height=32&width=32"} 
+                     alt="User"
+                     onError={(e) => {
+                       console.log('Avatar image failed to load:', user.avatar)
+                       e.currentTarget.style.display = 'none'
+                     }}
+                   />
                    <AvatarFallback className="bg-emerald-500 text-white">
                      {user.name && user.name !== 'Employer' 
                        ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)

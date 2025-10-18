@@ -483,6 +483,45 @@ export default function EmployerDashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between items-center mx-auto">
+            <Link href="/employers/dashboard/jobs">
+              <Button
+                variant="outline"
+                className="h-20 flex flex-col items-center justify-center space-y-2 hover:bg-emerald-50 hover:border-emerald-300 bg-transparent"
+              >
+                <Plus className="h-6 w-6 text-emerald-600" />
+                <span>Post New Job</span>
+              </Button>
+            </Link>
+           
+            <Link href="/employers/dashboard/jobs">
+              <Button
+                variant="outline"
+                className="h-20 flex flex-col items-center justify-center space-y-2 hover:bg-purple-50 hover:border-purple-300 bg-transparent"
+              >
+                <Users className="h-6 w-6 text-purple-600" />
+                <span>View Candidates</span>
+              </Button>
+            </Link>
+            <Link href="/employers/dashboard/profile">
+              <Button
+                variant="outline"
+                className="h-20 flex flex-col items-center justify-center space-y-2 hover:bg-orange-50 hover:border-orange-300 bg-transparent"
+              >
+                <TrendingUp className="h-6 w-6 text-orange-600" />
+                <span>Company Profile</span>
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use the configured backend URL
-    const backendUrl = getBackendUrl('/api/seeker/time-tracking/clock_out')
+    const backendUrl = getBackendUrl('/index.php/api/seeker/time-tracking/clock_out')
     
     // Create FormData for the backend
     const backendFormData = new FormData()

@@ -77,9 +77,11 @@ export default function PayrollManagementPage() {
   const [selectedPayslip, setSelectedPayslip] = useState<any>(null)
   const [overtimeSettings, setOvertimeSettings] = useState("global")
   const [showCycleDialog, setShowCycleDialog] = useState(false)
+  const [showCycleSelectionDialog, setShowCycleSelectionDialog] = useState(false)
   const [cycleForm, setCycleForm] = useState({ startDate: "", endDate: "" })
   const [isSavingCycle, setIsSavingCycle] = useState(false)
   const [lastCycleId, setLastCycleId] = useState<string | null>(null)
+  const [selectedCycleForCalculation, setSelectedCycleForCalculation] = useState<any | null>(null)
   const [baseTaxForm, setBaseTaxForm] = useState({
     federal_rate: "",
     state_rate: "",
@@ -536,23 +538,33 @@ export default function PayrollManagementPage() {
         sourceCycles = await fetchCyclesOnce()
         if (sourceCycles.length > 0) setCycles(sourceCycles)
       }
-      let latestId: string | number | null = null
-      if (sourceCycles && sourceCycles.length > 0) {
-        const latest = sourceCycles.reduce((acc: any, cur: any) => {
-          const accEnd = new Date(acc?.end_date || acc?.endDate || 0).getTime()
-          const curEnd = new Date(cur?.end_date || cur?.endDate || 0).getTime()
-          return curEnd > accEnd ? cur : acc
-        }, sourceCycles[0])
-        latestId = latest?.id ?? latest?.cycle_id ?? null
-      }
-      if (!latestId) {
-        alert("No payroll cycle found. Please create a cycle first.")
+      
+      if (!sourceCycles || sourceCycles.length === 0) {
+        alert("No payroll cycles found. Please create a cycle first.")
         return
       }
+      
+      // Show cycle selection dialog
+      setShowCycleSelectionDialog(true)
+    } catch (e) {
+      alert('Error loading cycles')
+    }
+  }
+
+  async function handleCalculatePayrollWithCycle(cycle: any) {
+    try {
       setIsCalculating(true)
+      setShowCycleSelectionDialog(false)
+      
+      const cycleId = cycle?.id ?? cycle?.cycle_id ?? null
+      if (!cycleId) {
+        alert("Invalid cycle selected.")
+        return
+      }
+      
       const url = `${getBaseUrl('/employers/payroll/calculate_payroll')}`
       const body = new URLSearchParams()
-      body.set('cycle_id', String(latestId))
+      body.set('cycle_id', String(cycleId))
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -563,7 +575,7 @@ export default function PayrollManagementPage() {
       if (contentType.includes('application/json')) {
         const json = await res.json()
         if (res.ok && json && json.success) {
-          alert(`Payroll calculated. Finalized: ${json.finalized_employees || 0}, Deductions: ${json.itemized_deductions || 0}`)
+          alert(`Payroll calculated for cycle ${cycle.start_date} - ${cycle.end_date}. Finalized: ${json.finalized_employees || 0}, Deductions: ${json.itemized_deductions || 0}`)
           await fetchEmployeePayroll()
         } else {
           alert(json?.message || 'Failed to calculate payroll')
@@ -1783,6 +1795,106 @@ export default function PayrollManagementPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cycle Selection Dialog for Payroll Calculation */}
+      <Dialog open={showCycleSelectionDialog} onOpenChange={setShowCycleSelectionDialog}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg rounded-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2 text-lg">
+              <Calculator className="h-4 w-4 text-emerald-600" />
+              <span>Select Payroll Cycle</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600">
+              Choose which payroll cycle you want to calculate payroll for:
+            </div>
+
+            {loadingCycles ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
+                <span className="ml-2 text-sm text-gray-600">Loading cycles...</span>
+              </div>
+            ) : cycles.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-gray-600 mb-4">No payroll cycles found.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowCycleSelectionDialog(false)
+                    setShowCycleDialog(true)
+                  }}
+                  className="text-sm"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Create New Cycle
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {cycles.map((cycle) => (
+                  <div 
+                    key={cycle.id} 
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      selectedCycleForCalculation?.id === cycle.id 
+                        ? 'border-emerald-500 bg-emerald-50' 
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                    onClick={() => setSelectedCycleForCalculation(cycle)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-gray-900 text-sm">
+                          {new Date(cycle.start_date).toLocaleDateString()} - {new Date(cycle.end_date).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-gray-600">Status: {cycle.status}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            cycle.status === "paid" 
+                              ? "bg-green-50 text-green-700" 
+                              : cycle.status === "processed" || cycle.status === "approved" 
+                                ? "bg-blue-50 text-blue-700" 
+                                : "bg-yellow-50 text-yellow-700"
+                          }`}
+                        >
+                          {cycle.status}
+                        </Badge>
+                        {selectedCycleForCalculation?.id === cycle.id && (
+                          <CheckCircle className="h-4 w-4 text-emerald-600" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
+              <Button 
+                className="flex-1 text-sm" 
+                onClick={() => selectedCycleForCalculation && handleCalculatePayrollWithCycle(selectedCycleForCalculation)}
+                disabled={!selectedCycleForCalculation || isCalculating}
+              >
+                {isCalculating ? "Calculating..." : "Calculate Payroll"}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 bg-transparent text-sm"
+                onClick={() => {
+                  setShowCycleSelectionDialog(false)
+                  setSelectedCycleForCalculation(null)
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
