@@ -40,9 +40,19 @@ export default function InterviewScheduler() {
 
   // Prefill form from query params
   useEffect(() => {
+    console.log('URL Parameters:', {
+      jobId,
+      jobTitle,
+      candidateEmail,
+      candidateName,
+      employerEmailParam,
+      authKey
+    })
+    
     setFormData(prev => ({
       ...prev,
       title: jobTitle ? `Interview: ${jobTitle}` : prev.title,
+      description: jobTitle ? `Interview for ${jobTitle} position scheduled via CareerAdvance` : prev.description,
       attendees: [candidateEmail, employerEmailParam].filter(Boolean).join(", "),
       employerEmail: employerEmailParam,
     }))

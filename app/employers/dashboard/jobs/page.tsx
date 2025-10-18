@@ -1259,7 +1259,7 @@ interface Candidate {
                         const interviewerEmail = (await employerApiService.getProfile()).data?.employer?.email || ''
                         const formUrl = `${window.location.origin}/employers/interview-form?job_id=${encodeURIComponent(selectedJob.id)}&job_title=${encodeURIComponent(selectedJob.title || '')}&candidate_email=${encodeURIComponent(selectedCandidate.email || '')}&candidate_name=${encodeURIComponent(selectedCandidate.name || '')}&employer_email=${encodeURIComponent(interviewerEmail)}`
                         const redir = encodeURIComponent(formUrl)
-                        const loginUrl = getBackendUrl(`${GOOGLE_LOGIN_PATH}?job_id=${encodeURIComponent(selectedJob.id)}&redirect=${redir}&return_url=${redir}&next=${redir}`)
+                        const loginUrl = getBackendUrl(`${GOOGLE_LOGIN_PATH}?job_id=${encodeURIComponent(selectedJob.id)}&candidate_email=${encodeURIComponent(selectedCandidate.email || '')}&candidate_name=${encodeURIComponent(selectedCandidate.name || '')}&employer_email=${encodeURIComponent(interviewerEmail)}&redirect=${redir}&return_url=${redir}&next=${redir}`)
                         window.open(loginUrl, '_blank')
                         // move to interviewed and switch to Contacted tab
                         await moveCandidateToStatus(selectedCandidate.id, 'interviewed')
