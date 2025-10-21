@@ -131,53 +131,53 @@ export default function ModerationPage() {
         <BackButton />
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Content Moderation</h1>
-          <p className="text-muted-foreground">Review and manage reported content, users, and activities</p>
+          <p className="text-muted-foreground text-white">Review and manage reported content, users, and activities</p>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+        <Card className="bg-gradient-to-r from-blue-500 to-sky-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 ">
+            <CardTitle className="text-sm font-medium text-white">Pending Reviews</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-800" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
-            <p className="text-xs text-muted-foreground">Awaiting action</p>
+            <div className="text-2xl font-bold text-white">{pendingCount}</div>
+            <p className="text-xs text-muted-foreground text-white">Awaiting action</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-r from-red-500 to-rose-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Under Review</CardTitle>
-            <Eye className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium text-white">Under Review</CardTitle>
+            <Eye className="h-5 w-5 text-blue-800" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{underReviewCount}</div>
-            <p className="text-xs text-muted-foreground">Being investigated</p>
+            <div className="text-2xl font-bold text-white">{underReviewCount}</div>
+            <p className="text-xs text-muted-foreground text-white">Being investigated</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-r from-orange-500 to-amber-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm font-medium text-white">High Priority</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-800" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{highPriorityCount}</div>
-            <p className="text-xs text-muted-foreground">Urgent attention needed</p>
+            <div className="text-2xl font-bold text-white">{highPriorityCount}</div>
+            <p className="text-xs text-muted-foreground text-white">Urgent attention needed</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-r from-purple-400 to-pink-400">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resolution Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium text-white">Resolution Rate</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-700" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">94.2%</div>
-            <p className="text-xs text-muted-foreground">Last 30 days</p>
+            <div className="text-2xl font-bold text-white">94.2%</div>
+            <p className="text-xs text-muted-foreground text-white">Last 30 days</p>
           </CardContent>
         </Card>
       </div>

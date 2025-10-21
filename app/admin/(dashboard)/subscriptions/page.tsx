@@ -33,7 +33,7 @@ const subscriptionStats = [
     subtitle: "Active subscriptions",
     icon: Users,
     color: "text-blue-600",
-    bgColor: "bg-blue-50",
+    bgColor: "bg-blue-100",
   },
   {
     title: "Monthly Revenue",
@@ -43,7 +43,7 @@ const subscriptionStats = [
     subtitle: "Recurring revenue",
     icon: DollarSign,
     color: "text-green-600",
-    bgColor: "bg-green-50",
+    bgColor: "bg-green-100",
   },
   {
     title: "Churn Rate",
@@ -53,7 +53,7 @@ const subscriptionStats = [
     subtitle: "Monthly churn",
     icon: TrendingUp,
     color: "text-orange-600",
-    bgColor: "bg-orange-50",
+    bgColor: "bg-orange-100",
   },
   {
     title: "Avg. LTV",
@@ -63,7 +63,7 @@ const subscriptionStats = [
     subtitle: "Customer lifetime value",
     icon: CreditCard,
     color: "text-purple-600",
-    bgColor: "bg-purple-50",
+    bgColor: "bg-purple-100",
   },
 ]
 
@@ -237,10 +237,10 @@ export default function AdminSubscriptions() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Subscription Management</h1>
-              <p className="text-sm sm:text-base text-gray-600">
+          <div className="flex items-center justify-between bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
+            <div className="">
+              <h1 className="text-xl sm:text-2xl font-bold text-white">Subscription Management</h1>
+              <p className="text-sm sm:text-base text-white">
                 Manage subscription plans, billing, and customer accounts
               </p>
             </div>
@@ -268,7 +268,7 @@ export default function AdminSubscriptions() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {subscriptionStats.map((stat, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
+            <Card key={index} className={`hover:shadow-lg transition-shadow ${stat.bgColor}`}>
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>

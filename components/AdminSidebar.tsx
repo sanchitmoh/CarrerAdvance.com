@@ -68,16 +68,12 @@ function AdminSidebar({ isMobileMenuOpen = false, onClose }: AdminSidebarProps) 
 
   return (
     <>
-      <div className="hidden lg:flex fixed left-0 top-0 h-full w-20 bg-white border-r border-gray-200 flex-col items-center py-4 z-40">
+      <div className="hidden lg:flex fixed left-0 top-0 h-full w-20 bg-white border-r border-gray-200 flex-col items-center py-4 z-20">
         {/* Logo */}
-        <div className="mb-8">
-          <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">CA</span>
-          </div>
-        </div>
+       
 
         {/* Navigation Items */}
-        <nav className="flex-1 flex flex-col space-y-2">
+        <nav className="flex-1 flex flex-col space-y-5 mt-24">
           {sidebarItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -151,4 +147,3 @@ function AdminSidebar({ isMobileMenuOpen = false, onClose }: AdminSidebarProps) 
 }
 
 export { AdminSidebar }
-  

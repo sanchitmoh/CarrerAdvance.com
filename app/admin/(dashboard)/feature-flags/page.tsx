@@ -159,15 +159,15 @@ export default function FeatureFlagsPage() {
         </div>
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
-          <div className="space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
-              <Flag className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
+          <div className="space-y-1 ">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
+              <Flag className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               Feature Flags
             </h1>
-            <p className="text-sm sm:text-base text-gray-600">Manage feature rollouts and A/B testing</p>
+            <p className="text-sm sm:text-base text-white">Manage feature rollouts and A/B testing</p>
           </div>
-          <Button className="bg-green-600 hover:bg-green-700 whitespace-nowrap shrink-0 w-full sm:w-auto">
+          <Button className="bg-green-700 hover:bg-green-800 whitespace-nowrap shrink-0 w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Create Feature Flag
           </Button>

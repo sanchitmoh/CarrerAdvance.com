@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { LogOut, Settings, User, Zap } from "lucide-react"
+import Image from "next/image"
 
 export default function AdminTopbar() {
   const router = useRouter()
@@ -20,17 +21,16 @@ export default function AdminTopbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-14 md:h-16">
+    <header className="sticky top-0 z-40 border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 ">
+      <div className="mx-auto max-w-9xl px-4 sm:px-6 lg:px-8 h-14 md:h-16">
         <div className="flex h-14 md:h-16 items-center justify-between">
           {/* Left: Logo + Name */}
           <Link href="/admin" className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 flex items-center justify-center shadow-md shrink-0">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
-            <span className="block max-w-[56vw] truncate sm:max-w-none font-semibold text-gray-900 leading-none">
-              CareerAdvance
-            </span>
+           <Image
+           src={"/logo1.png"}
+           height={180}
+           width={180}
+           alt="logo"/>
           </Link>
 
           {/* Right: Avatar menu */}

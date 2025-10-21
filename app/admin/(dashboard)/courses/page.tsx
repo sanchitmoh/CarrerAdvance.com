@@ -247,31 +247,32 @@ export default function CoursesPage() {
       <BackButton />
 
       {/* Header */}
-      <div className="flex flex-col space-y-2 sm:space-y-3">
+      <div className="flex flex-col space-y-2 sm:space-y-3 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div className="space-y-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Course Management</h1>
-          <p className="text-xs sm:text-sm text-gray-600">Review and manage all platform courses</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Course Management</h1>
+          <p className="text-xs sm:text-sm text-white">Review and manage all platform courses</p>
         </div>
        
       </div>
 
       {/* Stats Dashboard */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        <Card className="text-center p-2 sm:p-3">
-          <CardTitle className="text-[10px] sm:text-xs text-gray-500 font-normal">Total Courses</CardTitle>
-          <CardContent className="text-sm sm:text-lg font-bold p-0 pt-1">📚 {totalCourses}</CardContent>
+        <Card className="text-center p-2 sm:p-6 bg-gradient-to-r from-sky-400 to-cyan-400
+">
+          <CardTitle className="text-[10px] sm:text-xs text-white font-normal">Total Courses</CardTitle>
+          <CardContent className="text-sm sm:text-lg font-bold text-white p-0 pt-1">📚 {totalCourses}</CardContent>
         </Card>
-        <Card className="text-center p-2 sm:p-3">
-          <CardTitle className="text-[10px] sm:text-xs text-gray-500 font-normal">Published</CardTitle>
-          <CardContent className="text-sm sm:text-lg font-bold text-green-600 p-0 pt-1">✅ {publishedCount}</CardContent>
+        <Card className="text-center p-2 sm:p-6 bg-gradient-to-r from-amber-400 to-yellow-400">
+          <CardTitle className="text-[10px] sm:text-xs text-white font-normal">Published</CardTitle>
+          <CardContent className="text-sm sm:text-lg font-bold text-white p-0 pt-1">✅ {publishedCount}</CardContent>
         </Card>
-        <Card className="text-center p-2 sm:p-3">
-          <CardTitle className="text-[10px] sm:text-xs text-gray-500 font-normal">Under Review</CardTitle>
-          <CardContent className="text-sm sm:text-lg font-bold text-yellow-600 p-0 pt-1">⏳ {underReviewCount}</CardContent>
+        <Card className="text-center p-2 sm:p-6 bg-gradient-to-r from-rose-400 to-pink-400">
+          <CardTitle className="text-[10px] sm:text-xs text-white font-normal">Under Review</CardTitle>
+          <CardContent className="text-sm sm:text-lg font-bold text-white p-0 pt-1">⏳ {underReviewCount}</CardContent>
         </Card>
-        <Card className="text-center p-2 sm:p-3">
-          <CardTitle className="text-[10px] sm:text-xs text-gray-500 font-normal">Total Revenue</CardTitle>
-          <CardContent className="text-sm sm:text-lg font-bold text-emerald-600 p-0 pt-1">💰 ${totalRevenue.toLocaleString()}</CardContent>
+        <Card className="text-center p-2 sm:p-6 bg-gradient-to-r from-emerald-400 to-teal-400">
+          <CardTitle className="text-[10px] sm:text-xs text-white font-normal ">Total Revenue</CardTitle>
+          <CardContent className="text-sm sm:text-lg font-bold text-white p-0 pt-1">💰 ${totalRevenue.toLocaleString()}</CardContent>
         </Card>
       </div>
 
