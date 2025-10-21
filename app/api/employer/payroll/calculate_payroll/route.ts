@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward the request to the PHP backend
-    const backendUrl = getBackendUrl('/index.php/employers/payroll/calculate_payroll')
+    const backendUrl = getBackendUrl('/api/employers/payroll/calculate_payroll')
     
     const response = await fetch(backendUrl, {
       method: 'POST',
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
 
 
 
