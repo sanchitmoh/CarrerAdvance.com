@@ -24,34 +24,80 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Extract cookies and prepare headers
+    const cookies = request.headers.get('cookie') || ''
+    const cookieMap = new Map()
+    cookies.split(';').forEach(cookie => {
+      const [key, value] = cookie.trim().split('=')
+      if (key && value) {
+        cookieMap.set(key, value)
+      }
+    })
+
     // Forward the request to the PHP backend
     const backendUrl = getBackendUrl('/api/employers/payroll/calculate_payroll')
+    
+    console.log('Payroll calculation request:', {
+      backendUrl,
+      body: body.toString(),
+      cookies: cookies,
+      cookieMap: Object.fromEntries(cookieMap),
+      userAgent: request.headers.get('user-agent'),
+      environment: process.env.NODE_ENV
+    })
     
     const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Cookie: request.headers.get('cookie') || '',
-        Authorization: request.headers.get('authorization') || '',
+        'Cookie': cookies,
+        'Authorization': request.headers.get('authorization') || '',
+        'User-Agent': 'CareerAdvance-Frontend/1.0',
+        'X-Forwarded-For': request.headers.get('x-forwarded-for') || '',
+        'X-Real-IP': request.headers.get('x-real-ip') || '',
+        'Referer': request.headers.get('referer') || '',
       },
       credentials: 'include',
       body: body.toString(),
+    })
+    
+    console.log('Backend response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
     })
 
     // Try to parse JSON response
     let responseData: any
     try {
       responseData = await response.json()
-    } catch {
+    } catch (parseError) {
       const text = await response.text()
-      responseData = { success: false, message: 'Upstream error', detail: text }
+      console.error('Failed to parse backend response:', parseError)
+      console.error('Raw response text:', text)
+      responseData = { 
+        success: false, 
+        message: 'Upstream error', 
+        detail: text,
+        backendUrl,
+        status: response.status,
+        statusText: response.statusText,
+        requestBody: body.toString(),
+        requestCookies: cookies
+      }
     }
 
+    console.log('Final response data:', responseData)
     return NextResponse.json(responseData, { status: response.status })
   } catch (error) {
     console.error('Payroll calculation error:', error)
     return NextResponse.json(
-      { success: false, message: 'Internal server error' },
+      { 
+        success: false, 
+        message: 'Internal server error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
