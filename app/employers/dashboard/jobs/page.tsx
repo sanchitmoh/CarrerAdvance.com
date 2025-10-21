@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
@@ -1189,6 +1189,7 @@ interface Candidate {
       <Dialog open={showCandidateProfile} onOpenChange={setShowCandidateProfile}>
         <DialogContent className="max-w-[95vw] sm:max-w-2xl lg:max-w-6xl max-h-[90vh] overflow-hidden p-0">
           <DialogTitle className="sr-only">Candidate Profile</DialogTitle>
+          <DialogDescription className="sr-only">View and manage candidate profile details</DialogDescription>
           <div className="flex h-[80vh]">
             {/* Sidebar with candidate list */}
             <div className="hidden md:block w-80 border-r bg-gray-50 overflow-y-auto">
@@ -2494,6 +2495,7 @@ interface Candidate {
       <Dialog open={showEmployeeForm} onOpenChange={setShowEmployeeForm}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogTitle>Add Employee</DialogTitle>
+          <DialogDescription>Add a new employee to your organization</DialogDescription>
           <div className="space-y-6">
             {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

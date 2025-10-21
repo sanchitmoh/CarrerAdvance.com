@@ -37,14 +37,25 @@ export async function POST(request: NextRequest) {
     // Forward the request to the PHP backend
     const backendUrl = getBackendUrl('/api/employers/payroll/calculate_payroll')
     
+    // Extract cycle_id from the body
+    const cycleId = body.get('cycle_id')
+    const employerId = cookieMap.get('employer_id')
+    
     console.log('Payroll calculation request:', {
       backendUrl,
       body: body.toString(),
+      cycleId,
+      employerId,
       cookies: cookies,
       cookieMap: Object.fromEntries(cookieMap),
       userAgent: request.headers.get('user-agent'),
       environment: process.env.NODE_ENV
     })
+    
+    // If we have the employer_id in cookies, add it to the body as well
+    if (employerId && !body.has('company_id')) {
+      body.append('company_id', employerId)
+    }
     
     const response = await fetch(backendUrl, {
       method: 'POST',
