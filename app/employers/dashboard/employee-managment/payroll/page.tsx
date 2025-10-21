@@ -562,7 +562,7 @@ export default function PayrollManagementPage() {
         return
       }
       
-      const url = `${getBaseUrl('/employers/payroll/calculate_payroll')}`
+      const url = `/api/employer/payroll/calculate_payroll`
       const body = new URLSearchParams()
       body.set('cycle_id', String(cycleId))
       const res = await fetch(url, {

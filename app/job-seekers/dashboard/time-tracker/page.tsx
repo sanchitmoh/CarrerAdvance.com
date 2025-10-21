@@ -106,6 +106,7 @@ export default function JobSeekerTimeTrackerPage() {
   const [leaveFrom, setLeaveFrom] = useState<string>("")
   const [leaveTo, setLeaveTo] = useState<string>("")
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
+  const [submittingLeave, setSubmittingLeave] = useState(false)
 
   // API functions
   const mapBackendLeaveToUI = (row: any): LeaveRequest => {
@@ -201,7 +202,7 @@ export default function JobSeekerTimeTrackerPage() {
       const res = await fetch(`/api/seeker/profile/get_hiring_employers?jobseeker_id=${encodeURIComponent(jobseekerId)}`, { credentials: 'include' })
       const data = await res.json().catch(() => ({} as any))
       const first = Array.isArray(data?.data) && data.data.length ? data.data[0] : null
-      if (first?.company_id) return String(first.company_id)
+      if (first) return String(first)
     } catch {
       // ignore
     }
@@ -622,10 +623,19 @@ export default function JobSeekerTimeTrackerPage() {
   const handleSubmitLeave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!leaveReason.trim() || !leaveFrom || !leaveTo) return
+    
     try {
-      setLoading(true)
+      setSubmittingLeave(true)
       const jsId = typeof window !== 'undefined' ? (window.localStorage.getItem('jobseeker_id') || window.localStorage.getItem('user_id')) : null
-      if (!jsId) return
+      if (!jsId) {
+        toast({
+          title: "Error",
+          description: "Jobseeker ID not found. Please log in again.",
+          variant: "destructive",
+        })
+        return
+      }
+      
       let companyId = await resolveCompanyId(jsId)
       const employeeId = await resolveEmployeeId(jsId)
 
@@ -656,19 +666,32 @@ export default function JobSeekerTimeTrackerPage() {
         body: form,
       })
       const data = await res.json().catch(() => ({} as any))
+      
       if (data?.success) {
+        toast({
+          title: "Success",
+          description: "Leave request submitted successfully!",
+        })
         await loadLeaves()
         setLeaveReason("")
         setLeaveFrom("")
         setLeaveTo("")
       } else {
-        alert(data?.message || 'Failed to submit leave request')
+        toast({
+          title: "Error",
+          description: data?.message || data?.error || 'Failed to submit leave request',
+          variant: "destructive",
+        })
       }
     } catch (err) {
       console.error('Leave submit error:', err)
-      alert('Failed to submit leave request')
+      toast({
+        title: "Error",
+        description: 'Failed to submit leave request. Please try again.',
+        variant: "destructive",
+      })
     } finally {
-      setLoading(false)
+      setSubmittingLeave(false)
     }
   }
 
@@ -897,9 +920,20 @@ export default function JobSeekerTimeTrackerPage() {
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-lg px-6 py-3 text-base font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors w-full sm:w-auto"
+              disabled={submittingLeave}
+              className="inline-flex items-center justify-center rounded-lg px-6 py-3 text-base font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Request Leave
+              {submittingLeave ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Submitting...
+                </>
+              ) : (
+                "Request Leave"
+              )}
             </button>
           </div>
         </form>

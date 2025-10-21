@@ -12,12 +12,10 @@ export async function POST(request: NextRequest) {
     const cookieHeader = request.headers.get('cookie') || ''
     const employerIdMatch = /(?:^|; )employer_id=([^;]+)/.exec(cookieHeader)
     const companyId = employerIdMatch ? decodeURIComponent(employerIdMatch[1]) : ''
-    const baseUrl = getBackendUrl('api/leave-requests')
     const reqUrl = new URL(request.url)
     const companyIdQP = reqUrl.searchParams.get('company_id')
     const effectiveCompanyId = companyIdQP || companyId
-    const backendUrl = effectiveCompanyId ? `${baseUrl}?company_id=${encodeURIComponent(effectiveCompanyId)}` : baseUrl
-
+    
     // If employee_id missing but jobseeker_id provided, try resolving via active_session, then employee_mapping
     const hasEmployeeId = !!formData.get('employee_id')
     const jobseekerId = formData.get('jobseeker_id') || reqUrl.searchParams.get('jobseeker_id')
@@ -53,6 +51,9 @@ export async function POST(request: NextRequest) {
         // ignore; will proceed with whatever we have
       }
     }
+
+    const baseUrl = getBackendUrl('api/seeker/leaves/create')
+    const backendUrl = `${baseUrl}?jobseeker_id=${encodeURIComponent(String(jobseekerId))}${effectiveCompanyId ? `&company_id=${encodeURIComponent(effectiveCompanyId)}` : ''}`
 
     const res = await fetch(backendUrl, {
       method: 'POST',
