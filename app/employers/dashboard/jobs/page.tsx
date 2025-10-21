@@ -754,7 +754,7 @@ interface Candidate {
         location: jobDetail.location || "",
         type: jobDetail.type?.toLowerCase() || "full-time",
         positions: (jobDetail.total_positions != null ? String(jobDetail.total_positions) : (jobDetail.positions?.toString() || "1")),
-        experience: jobDetail.experience_level || "entry",
+        experience: jobDetail.experience || jobDetail.experience_level || "entry",
         salaryMin: jobDetail.salary_min?.toString() || salaryMin,
         salaryMax: jobDetail.salary_max?.toString() || salaryMax,
         salaryPeriod: jobDetail.salary_period || "monthly",
