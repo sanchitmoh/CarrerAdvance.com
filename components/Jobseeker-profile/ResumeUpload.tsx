@@ -70,9 +70,10 @@ export default function ResumeUpload() {
       const res = await fetch('/api/seeker/profile/update_resume', { method: 'POST', body: form })
       const payload = await res.json()
       if (payload?.success) {
+        // Use the original filename for display
         const name = file.name
         const ext = name.split('.').pop()?.toLowerCase() as 'pdf' | 'doc' | 'docx' | undefined
-        const url = payload.data ? getAssetUrl(String(payload.data)) : undefined
+        const url = payload.data ? getAssetUrl(`uploads/resume/${String(payload.data)}`) : undefined
         setResumes([
           {
             id: Date.now().toString(),
