@@ -101,6 +101,9 @@ export default function MatchingJobsPage() {
   // Saved jobs persisted in localStorage
   const [savedJobs, setSavedJobs] = useState<string[]>([])
 
+  // Apply job loading state
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null)
+
   // Load saved jobs from localStorage once
   useEffect(() => {
     try {
@@ -313,6 +316,8 @@ export default function MatchingJobsPage() {
   // Apply handler - robust handling like your earlier version
   const handleApply = async (jobId: string) => {
     try {
+      setApplyingJobId(jobId)
+      
       const jobseekerId = localStorage.getItem("jobseeker_id")
       if (!jobseekerId) {
         alert("Please login to apply for jobs.")
@@ -363,6 +368,8 @@ export default function MatchingJobsPage() {
     } catch (err) {
       console.error("Error applying to job:", err)
       alert("An error occurred while applying. Please try again.")
+    } finally {
+      setApplyingJobId(null)
     }
   }
 
@@ -554,7 +561,20 @@ export default function MatchingJobsPage() {
 
                       {/* Actions */}
                       <div className="flex flex-row sm:flex-col gap-2 sm:gap-2 sm:ml-4 flex-shrink-0">
-                        <Button onClick={() => handleApply(job.id)} className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 flex-1 sm:flex-none">Apply Now</Button>
+                        <Button 
+                          onClick={() => handleApply(job.id)} 
+                          disabled={applyingJobId === job.id}
+                          className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-xs sm:text-sm px-3 sm:px-4 py-2 flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {applyingJobId === job.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
+                              Applying...
+                            </>
+                          ) : (
+                            "Apply Now"
+                          )}
+                        </Button>
 
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => toggleSaveJob(job.id)} className={`${savedJobs.includes(job.id) ? "bg-pink-100 border-pink-200 text-pink-600" : "border-gray-200 text-gray-600"} p-2`}>
@@ -817,7 +837,11 @@ export default function MatchingJobsPage() {
               )}
 
               <div className="flex justify-between pt-4 border-t flex-shrink-0">
-                <Button variant="outline" className="border-gray-200 text-gray-600 hover:bg-gray-50" onClick={() => toggleSaveJob(selectedJob.id)}>
+                <Button 
+                  variant="outline" 
+                  className={`${savedJobs.includes(selectedJob.id) ? "border-pink-200 text-pink-600 hover:bg-pink-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}`} 
+                  onClick={() => toggleSaveJob(selectedJob.id)}
+                >
                   <Heart className="h-4 w-4 mr-2" />
                   {savedJobs.includes(selectedJob.id) ? "Unsave" : "Save Job"}
                 </Button>
@@ -830,8 +854,19 @@ export default function MatchingJobsPage() {
                       </a>
                     </Button>
                   )}
-                  <Button onClick={() => handleApply(selectedJob.id)} className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white">
-                    Apply Now
+                  <Button 
+                    onClick={() => handleApply(selectedJob.id)} 
+                    disabled={applyingJobId === selectedJob.id}
+                    className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {applyingJobId === selectedJob.id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Applying...
+                      </>
+                    ) : (
+                      "Apply Now"
+                    )}
                   </Button>
                 </div>
               </div>

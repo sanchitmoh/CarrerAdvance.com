@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, Shield } from 'lucide-react'
 import { getApiUrl } from '@/lib/api-config'
-
+import {useToast} from '@/hooks/use-toast'
 interface PasswordStrength {
   score: number
   feedback: string[]
@@ -25,6 +25,7 @@ export default function ChangePasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const { toast } = useToast()
 
   const calculatePasswordStrength = (password: string): PasswordStrength => {
     let score = 0
@@ -142,6 +143,11 @@ export default function ChangePasswordPage() {
         setCurrentPassword('')
         setNewPassword('')
         setConfirmPassword('')
+        // Add toast notification
+        toast({
+          title: "Password Changed",
+          description: "Your password has been updated successfully.",
+        })
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to change password. Please try again.' })
       }

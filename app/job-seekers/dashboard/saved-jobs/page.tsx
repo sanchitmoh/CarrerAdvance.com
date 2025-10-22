@@ -40,6 +40,9 @@ export default function SavedJobsPage() {
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedJob, setSelectedJob] = useState<SavedJob | null>(null)
+  
+  // Apply job loading state
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null)
 
   
 
@@ -77,6 +80,8 @@ export default function SavedJobsPage() {
 
   const handleApply = async (jobId: string) => {
     try {
+      setApplyingJobId(jobId)
+      
       const jobseekerId = localStorage.getItem("jobseeker_id")
       if (!jobseekerId) {
         alert("Please login to apply for jobs.")
@@ -119,6 +124,8 @@ export default function SavedJobsPage() {
     } catch (err) {
       console.error("Error applying to job:", err)
       alert("An error occurred while applying. Please try again.")
+    } finally {
+      setApplyingJobId(null)
     }
   }
 
@@ -301,10 +308,19 @@ export default function SavedJobsPage() {
                   <div className="flex flex-row sm:flex-row lg:flex-col gap-2 lg:gap-3 items-stretch lg:items-start lg:ml-4 mt-2 lg:mt-0 flex-shrink-0 w-full sm:w-auto">
                     <Button
                       onClick={() => handleApply(job.id)}
-                      disabled={job.applied === true}
-                      className={`w-full sm:w-auto text-sm py-2 ${job.applied ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white'}`}
+                      disabled={job.applied === true || applyingJobId === job.id}
+                      className={`w-full sm:w-auto text-sm py-2 ${job.applied ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white'} ${applyingJobId === job.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      {job.applied ? 'Applied' : 'Apply Now'}
+                      {applyingJobId === job.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
+                          Applying...
+                        </>
+                      ) : job.applied ? (
+                        'Applied'
+                      ) : (
+                        'Apply Now'
+                      )}
                     </Button>
 
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -376,8 +392,21 @@ export default function SavedJobsPage() {
                                   <Button variant="outline" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 bg-transparent text-sm flex-1">
                                     <ExternalLink className="h-4 w-4 mr-2" /> View Original
                                   </Button>
-                                  <Button onClick={() => handleApply(selectedJob.id)} className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm flex-1">
-                                    Apply Now
+                                  <Button 
+                                    onClick={() => handleApply(selectedJob.id)} 
+                                    disabled={selectedJob.applied === true || applyingJobId === selectedJob.id}
+                                    className={`bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm flex-1 ${selectedJob.applied ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : ''} ${applyingJobId === selectedJob.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  >
+                                    {applyingJobId === selectedJob.id ? (
+                                      <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Applying...
+                                      </>
+                                    ) : selectedJob.applied ? (
+                                      'Applied'
+                                    ) : (
+                                      'Apply Now'
+                                    )}
                                   </Button>
                                 </div>
                               </div>

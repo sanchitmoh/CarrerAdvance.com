@@ -31,7 +31,6 @@ export default function MyApplicationsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalRecords, setTotalRecords] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
 
   // Debounced search term
@@ -67,9 +66,8 @@ export default function MyApplicationsPage() {
         params.set('page', currentPage.toString())
         params.set('limit', '5')
         if (debouncedSearchTerm) params.set('search', debouncedSearchTerm)
-        if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
 
-        const queryKey = JSON.stringify({ jobseekerId, page: currentPage, limit: 5, search: debouncedSearchTerm?.trim() || '', status: statusFilter })
+        const queryKey = JSON.stringify({ jobseekerId, page: currentPage, limit: 5, search: debouncedSearchTerm?.trim() || '' })
         if (lastQueryRef.current === queryKey) {
           return
         }
@@ -109,12 +107,12 @@ export default function MyApplicationsPage() {
     };
 
     loadApplications();
-  }, [currentPage, debouncedSearchTerm, statusFilter]);
+  }, [currentPage, debouncedSearchTerm]);
 
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchTerm, statusFilter])
+  }, [debouncedSearchTerm])
 
   const statusColors = {
     applied: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -175,22 +173,6 @@ export default function MyApplicationsPage() {
                   className="pl-10 border-emerald-300 focus:border-emerald-500 text-sm sm:text-base"
                 />
               </div>
-            </div>
-            <div className="w-full sm:w-48">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="border-emerald-300 focus:border-emerald-500 text-sm sm:text-base">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="applied">Applied</SelectItem>
-                  <SelectItem value="reviewing">Under Review</SelectItem>
-                  <SelectItem value="interview">Interview</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="offer">Offer Received</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>
@@ -361,14 +343,14 @@ export default function MyApplicationsPage() {
             <CardContent className="p-8 sm:p-12 text-center">
               <Briefcase className="h-12 w-12 sm:h-16 sm:w-16 text-emerald-400 mx-auto mb-4" />
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                {searchTerm || statusFilter !== 'all' ? 'No applications found' : 'No applications yet'}
+                {searchTerm ? 'No applications found' : 'No applications yet'}
               </h3>
               <p className="text-sm sm:text-base text-gray-600 mb-6">
-                {searchTerm || statusFilter !== 'all'
-                  ? 'Try adjusting your search or filter criteria, or check other pages'
+                {searchTerm
+                  ? 'Try adjusting your search criteria, or check other pages'
                   : 'Start applying to jobs to track your applications here'}
               </p>
-              {!searchTerm && statusFilter === 'all' && (
+              {!searchTerm && (
                 <Button asChild className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm sm:text-base px-4 py-2">
                   <Link href="/job-seekers/dashboard/matching-jobs">Browse Jobs</Link>
                 </Button>
@@ -445,22 +427,6 @@ export default function MyApplicationsPage() {
         </Card>
       )}
 
-      {/* Statistics */}
-      {!loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {Object.entries(statusLabels).map(([status, label]) => {
-            const count = applications.filter(app => app.status === status).length
-            return (
-              <Card key={status} className="border-emerald-200">
-                <CardContent className="p-3 sm:p-4 text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{count}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">{label}</div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      )}
     </div>
   )
 }
