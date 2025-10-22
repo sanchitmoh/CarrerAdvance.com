@@ -163,14 +163,32 @@ export default function ResumeBuilderPage() {
         throw new Error(uploadResult.message || 'Upload failed')
       }
       
-      // Step 2: Parse the uploaded file
+      // Step 2: Parse the uploaded file with comprehensive extraction
       const parseResponse = await fetch('/api/resume/parse', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          filename: uploadResult.filename
+          filename: uploadResult.filename,
+          extractAll: true, // Flag to extract all sections
+          sections: [
+            'personal_info',
+            'contact_info', 
+            'summary',
+            'education',
+            'experience',
+            'projects',
+            'skills',
+            'certifications',
+            'languages',
+            'achievements',
+            'publications',
+            'references',
+            'volunteer_work',
+            'interests',
+            'awards'
+          ]
         })
       })
       
@@ -184,26 +202,53 @@ export default function ResumeBuilderPage() {
         throw new Error(parseResult.message || 'Parsing failed')
       }
       
-      // Success - redirect to resume builder with parsed data
+      // Success - redirect to resume builder with comprehensive parsed data
       toast({
         title: "Resume uploaded successfully",
-        description: "Your resume has been parsed and is ready for editing.",
+        description: "Your resume has been comprehensively parsed with all sections extracted.",
       })
       
-      // Store parsed data in sessionStorage and redirect to resume builder
-      sessionStorage.setItem('parsedResumeData', JSON.stringify(parseResult.data))
+      // Store comprehensive parsed data in sessionStorage
+      const comprehensiveData = {
+        ...parseResult.data,
+        // Ensure all sections are properly structured
+        personal_info: parseResult.data.personal_info || {
+          full_name: parseResult.data.name || '',
+          email: parseResult.data.email || '',
+          phone: parseResult.data.phone || '',
+          address: parseResult.data.address || '',
+          linkedin: parseResult.data.linkedin || '',
+          website: parseResult.data.website || '',
+          github: parseResult.data.github || ''
+        },
+        education: parseResult.data.education || [],
+        experience: parseResult.data.experience || [],
+        projects: parseResult.data.projects || [],
+        skills: parseResult.data.skills || [],
+        certifications: parseResult.data.certifications || [],
+        languages: parseResult.data.languages || [],
+        achievements: parseResult.data.achievements || [],
+        publications: parseResult.data.publications || [],
+        references: parseResult.data.references || [],
+        volunteer_work: parseResult.data.volunteer_work || [],
+        interests: parseResult.data.interests || [],
+        awards: parseResult.data.awards || [],
+        summary: parseResult.data.summary || parseResult.data.objective || ''
+      }
       
-             // Also send the parsed data to the backend to store in PHP session
+      sessionStorage.setItem('parsedResumeData', JSON.stringify(comprehensiveData))
+      
+             // Also send the comprehensive parsed data to the backend to store in PHP session
        try {
          await fetch('/api/resume/store-parsed-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            parsedData: parseResult.data
-          })
-        })
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json'
+           },
+           body: JSON.stringify({
+             parsedData: comprehensiveData
+           })
+         })
       } catch (error) {
         console.error('Failed to store parsed data in backend session:', error)
       }
@@ -309,7 +354,6 @@ export default function ResumeBuilderPage() {
                   className="hidden"
                   id="resume-upload"
                   onClick={(e) => console.log('File input clicked')}
-                  style={{ display: 'none' }}
                 />
                 <label htmlFor="resume-upload" className="cursor-pointer">
                   <Button 
@@ -393,14 +437,10 @@ export default function ResumeBuilderPage() {
                                 </Badge>
                               )}
                               <Badge
-                                variant={resume.status === "completed" ? "default" : "secondary"}
-                                className={`text-xs ${
-                                  resume.status === "completed"
-                                    ? "bg-green-100 text-green-700 border-green-200"
-                                    : "bg-gray-100 text-gray-700 border-gray-200"
-                                }`}
+                                variant="secondary"
+                                className="text-xs bg-gray-100 text-gray-700 border-gray-200"
                               >
-                                {resume.status === "completed" ? "Completed" : "Draft"}
+                                Resume
                               </Badge>
                             </div>
                           </div>

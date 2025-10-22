@@ -75,7 +75,6 @@ export default function MatchingJobsPage() {
   // Filters + UI state
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState("all")
-  const [experienceFilter, setExperienceFilter] = useState("all")
   
 
   // Debounced search term
@@ -93,7 +92,7 @@ export default function MatchingJobsPage() {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [locationFilter, experienceFilter, debouncedSearchTerm])
+  }, [locationFilter, debouncedSearchTerm])
 
   // Details dialog
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
@@ -149,7 +148,6 @@ export default function MatchingJobsPage() {
           page: currentPage,
           limit: 5,
           locationFilter,
-          experienceFilter,
           search: debouncedSearchTerm?.trim() || ""
         })
 
@@ -169,8 +167,6 @@ export default function MatchingJobsPage() {
         // Send all filters to backend
         if (locationFilter && locationFilter !== "all")
           params.set("location", locationFilter)
-        if (experienceFilter && experienceFilter !== "all")
-          params.set("experience", experienceFilter)
         
         if (debouncedSearchTerm) params.set("search", debouncedSearchTerm)
 
@@ -279,7 +275,7 @@ export default function MatchingJobsPage() {
       controller.abort()
     }
     // NOTE: searchTerm is intentionally omitted to keep search client-side (same as your previous logic).
-  }, [locationFilter, experienceFilter, currentPage, debouncedSearchTerm])
+  }, [locationFilter, currentPage, debouncedSearchTerm])
 
   // No client-side filtering needed - all filtering is handled by backend
   // Just sort by match score for display
@@ -292,19 +288,6 @@ export default function MatchingJobsPage() {
   }
 
 
-  let experienceLevels = [
-    "all",
-    ...Array.from(new Set(jobs.map((j) => j.experienceLevel))).filter(Boolean),
-  ]
-  if (experienceFilter !== "all" && !experienceLevels.includes(experienceFilter)) {
-    experienceLevels = [
-      "all",
-      experienceFilter,
-      ...experienceLevels.filter((v) => v !== "all" && v !== experienceFilter),
-    ]
-  }
-  // Ensure unique values to prevent duplicate keys
-  experienceLevels = Array.from(new Set(experienceLevels))
 
   // Format date safely
   const formatDate = (dateString: string) => {
@@ -460,7 +443,7 @@ export default function MatchingJobsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                <div className="grid grid-cols-1 gap-2 sm:gap-4">
                   <Select value={locationFilter} onValueChange={setLocationFilter}>
                     <SelectTrigger className="border-emerald-300 focus:border-emerald-500 text-xs sm:text-sm">
                       <SelectValue placeholder="Location" />
@@ -474,20 +457,6 @@ export default function MatchingJobsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-
-                  <Select value={experienceFilter} onValueChange={setExperienceFilter}>
-                    <SelectTrigger className="border-emerald-300 focus:border-emerald-500 text-xs sm:text-sm">
-                      <SelectValue placeholder="Experience" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {experienceLevels.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {level === "all" ? "All Levels" : level}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
                 </div>
               </div>
             </div>

@@ -136,17 +136,29 @@ function ResumeBuilderContent() {
               )}
               {importedData.experience && (
                 <div>
-                  <span className="font-medium text-gray-700">Experience:</span> {importedData.experience.substring(0, 100)}...
+                  <span className="font-medium text-gray-700">Experience:</span> {
+                    Array.isArray(importedData.experience) 
+                      ? importedData.experience.slice(0, 2).map(exp => exp.description || exp).join(', ')
+                      : importedData.experience.substring(0, 100)
+                  }...
                 </div>
               )}
               {importedData.education && (
                 <div>
-                  <span className="font-medium text-gray-700">Education:</span> {importedData.education.substring(0, 100)}...
+                  <span className="font-medium text-gray-700">Education:</span> {
+                    Array.isArray(importedData.education) 
+                      ? importedData.education.slice(0, 2).map(edu => edu.description || edu).join(', ')
+                      : importedData.education.substring(0, 100)
+                  }...
                 </div>
               )}
               {importedData.skills && (
                 <div>
-                  <span className="font-medium text-gray-700">Skills:</span> {importedData.skills.substring(0, 100)}...
+                  <span className="font-medium text-gray-700">Skills:</span> {
+                    Array.isArray(importedData.skills) 
+                      ? importedData.skills.slice(0, 5).join(', ')
+                      : importedData.skills.substring(0, 100)
+                  }...
                 </div>
               )}
             </div>
