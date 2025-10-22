@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
+import { useToast } from "@/hooks/use-toast"
 import {
   DollarSign,
   Calculator,
@@ -70,6 +71,8 @@ type PayrollRow = {
 }
 
 export default function PayrollManagementPage() {
+  const { toast } = useToast()
+  
   // State variables - payroll moved to the top
   const [selectedMonth, setSelectedMonth] = useState("2024-01")
   const [selectedEmployee, setSelectedEmployee] = useState("")
@@ -533,6 +536,16 @@ export default function PayrollManagementPage() {
 
   async function handleCalculatePayroll() {
     try {
+      // Check if tax regime is defined
+      if (baseTaxes.length === 0) {
+        toast({
+          title: "Tax Regime Not Set",
+          description: "Please configure your tax settings before calculating payroll. Go to Settings tab to add tax rates.",
+          variant: "destructive",
+        })
+        return
+      }
+      
       let sourceCycles = cycles
       if (!sourceCycles || sourceCycles.length === 0) {
         sourceCycles = await fetchCyclesOnce()
@@ -540,14 +553,22 @@ export default function PayrollManagementPage() {
       }
       
       if (!sourceCycles || sourceCycles.length === 0) {
-        alert("No payroll cycles found. Please create a cycle first.")
+        toast({
+          title: "No Payroll Cycles",
+          description: "Please create a payroll cycle first before calculating payroll.",
+          variant: "destructive",
+        })
         return
       }
       
       // Show cycle selection dialog
       setShowCycleSelectionDialog(true)
     } catch (e) {
-      alert('Error loading cycles')
+      toast({
+        title: "Error",
+        description: "Error loading cycles. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 

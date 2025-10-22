@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Heart, Search, MapPin, Building, Calendar, DollarSign, Trash2, ExternalLink } from "lucide-react"
+import { Heart, Search, MapPin, Building, Calendar, DollarSign, HeartOff, ExternalLink } from "lucide-react"
 
 interface SavedJob {
   id: string
@@ -368,8 +368,8 @@ export default function SavedJobsPage() {
                               </div>
 
                               <div className="flex flex-col gap-3 pt-4 border-t flex-shrink-0">
-                                <Button onClick={() => handleRemoveJob(selectedJob.id)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 text-sm w-full sm:w-auto">
-                                  <Trash2 className="h-4 w-4 mr-2" /> Remove from Saved
+                                <Button onClick={() => handleRemoveJob(selectedJob.id)} variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 text-sm w-full sm:w-auto">
+                                  <HeartOff className="h-4 w-4 mr-2" /> Unsave Job
                                 </Button>
 
                                 <div className="flex flex-col sm:flex-row gap-3">
@@ -386,8 +386,8 @@ export default function SavedJobsPage() {
                         </DialogContent>
                       </Dialog>
 
-                      <Button onClick={() => handleRemoveJob(job.id)} variant="outline" size="sm" className="border-red-200 text-red-600 hover:bg-red-50 text-sm py-2 w-full sm:w-auto">
-                        <Trash2 className="h-4 w-4" />
+                      <Button onClick={() => handleRemoveJob(job.id)} variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50 text-sm py-2 w-full sm:w-auto">
+                        <HeartOff className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>

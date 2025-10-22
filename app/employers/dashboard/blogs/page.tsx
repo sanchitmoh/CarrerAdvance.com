@@ -34,7 +34,6 @@ export default function BlogsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [isAddingPost, setIsAddingPost] = useState(false)
   const [editingPost, setEditingPost] = useState<BlogPostUI | null>(null)
-  const [editingStatus, setEditingStatus] = useState<"draft" | "published" | "archived">("draft")
   const [previewingPost, setPreviewingPost] = useState<BlogPostUI | null>(null)
 
   const [blogPosts, setBlogPosts] = useState<BlogPostUI[]>([])
@@ -148,10 +147,13 @@ export default function BlogsPage() {
       setLoading(true)
       setError("") // Clear any previous errors
       
+      // Automatically set status to "published" when updating from draft
+      const updatedStatus = data.status === "draft" ? "published" : data.status
+      
       console.log('Updating blog post:', {
         id: data.id,
         title: data.title,
-        status: data.status,
+        status: updatedStatus,
         categoryId: data.categoryId,
         hasImageFile: !!imageFile
       })
@@ -163,7 +165,7 @@ export default function BlogsPage() {
         summary: data.excerpt,
         keywords: "",
         category_id: data.categoryId as any,
-        status: data.status,
+        status: updatedStatus,
         tags: data.tags.join(","),
         imageFile: imageFile || null,
       })
@@ -295,7 +297,6 @@ export default function BlogsPage() {
               size="sm"
               onClick={() => {
                 setEditingPost(post)
-                setEditingStatus(post.status)
               }}
               className="text-blue-600 border-blue-600 hover:bg-blue-50 text-xs sm:text-sm"
             >
@@ -524,15 +525,11 @@ export default function BlogsPage() {
     onSubmit,
     categories,
     post,
-    currentStatus,
-    onStatusChange,
   }: {
     onCancel: () => void
     onSubmit: (data: BlogPostUI, imageFile?: File | null) => void
     categories: { id: number; name: string }[]
     post: BlogPostUI
-    currentStatus: "draft" | "published" | "archived"
-    onStatusChange: (status: "draft" | "published" | "archived") => void
   }) => {
     const [title, setTitle] = useState(post.title)
     const [excerpt, setExcerpt] = useState(post.excerpt)
@@ -596,42 +593,20 @@ export default function BlogsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            <div>
-              <Label htmlFor="edit-category">Category *</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="edit-status">Status</Label>
-              <Select value={currentStatus} onValueChange={(v) => {
-                onStatusChange(v as "draft" | "published" | "archived");
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-              {currentStatus !== post.status && (
-                <p className="text-sm text-blue-600 mt-1">
-                  Status will change from {post.status} to {currentStatus}
-                </p>
-              )}
-            </div>
+          <div>
+            <Label htmlFor="edit-category">Category *</Label>
+            <Select value={category} onValueChange={(v) => setCategory(v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-end">
@@ -703,8 +678,8 @@ export default function BlogsPage() {
                 categoryId,
                 tags: parseTags(tagsInput),
                 content,
-                // Use the current status from the status selector
-                status: currentStatus,
+                // Keep the original status - it will be automatically changed to published in handleUpdatePost
+                status: post.status,
               }
               onSubmit(updatedPost, imageFile)
             }}
@@ -846,12 +821,9 @@ export default function BlogsPage() {
                 categories={categories}
                 onCancel={() => {
                   setEditingPost(null)
-                  setEditingStatus("draft")
                 }}
                 onSubmit={(data, img) => handleUpdatePost(data, img)}
                 post={editingPost}
-                currentStatus={editingStatus}
-                onStatusChange={setEditingStatus}
               />
             )}
           </DialogContent>

@@ -75,7 +75,6 @@ export default function MatchingJobsPage() {
   // Filters + UI state
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState("all")
-  const [industryFilter, setIndustryFilter] = useState("all")
   const [experienceFilter, setExperienceFilter] = useState("all")
   
 
@@ -94,7 +93,7 @@ export default function MatchingJobsPage() {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [locationFilter, industryFilter, experienceFilter, debouncedSearchTerm])
+  }, [locationFilter, experienceFilter, debouncedSearchTerm])
 
   // Details dialog
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
@@ -150,7 +149,6 @@ export default function MatchingJobsPage() {
           page: currentPage,
           limit: 5,
           locationFilter,
-          industryFilter,
           experienceFilter,
           search: debouncedSearchTerm?.trim() || ""
         })
@@ -171,8 +169,6 @@ export default function MatchingJobsPage() {
         // Send all filters to backend
         if (locationFilter && locationFilter !== "all")
           params.set("location", locationFilter)
-        if (industryFilter && industryFilter !== "all")
-          params.set("industry", industryFilter)
         if (experienceFilter && experienceFilter !== "all")
           params.set("experience", experienceFilter)
         
@@ -283,7 +279,7 @@ export default function MatchingJobsPage() {
       controller.abort()
     }
     // NOTE: searchTerm is intentionally omitted to keep search client-side (same as your previous logic).
-  }, [locationFilter, industryFilter, experienceFilter, currentPage, debouncedSearchTerm])
+  }, [locationFilter, experienceFilter, currentPage, debouncedSearchTerm])
 
   // No client-side filtering needed - all filtering is handled by backend
   // Just sort by match score for display
@@ -295,10 +291,6 @@ export default function MatchingJobsPage() {
     locations = ["all", locationFilter, ...locations.filter((v) => v !== locationFilter)]
   }
 
-  let industries = ["all", ...Array.from(new Set(jobs.map((j) => j.industry))).filter(Boolean)]
-  if (industryFilter !== "all" && !industries.includes(industryFilter)) {
-    industries = ["all", industryFilter, ...industries.filter((v) => v !== industryFilter)]
-  }
 
   let experienceLevels = [
     "all",
@@ -308,9 +300,11 @@ export default function MatchingJobsPage() {
     experienceLevels = [
       "all",
       experienceFilter,
-      ...experienceLevels.filter((v) => v !== experienceFilter),
+      ...experienceLevels.filter((v) => v !== "all" && v !== experienceFilter),
     ]
   }
+  // Ensure unique values to prevent duplicate keys
+  experienceLevels = Array.from(new Set(experienceLevels))
 
   // Format date safely
   const formatDate = (dateString: string) => {
@@ -466,7 +460,7 @@ export default function MatchingJobsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                   <Select value={locationFilter} onValueChange={setLocationFilter}>
                     <SelectTrigger className="border-emerald-300 focus:border-emerald-500 text-xs sm:text-sm">
                       <SelectValue placeholder="Location" />
@@ -476,19 +470,6 @@ export default function MatchingJobsPage() {
                       {locations.map((location) => (
                         <SelectItem key={location} value={location}>
                           {location === "all" ? "All Locations" : location}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={industryFilter} onValueChange={setIndustryFilter}>
-                    <SelectTrigger className="border-emerald-300 focus:border-emerald-500 text-xs sm:text-sm">
-                      <SelectValue placeholder="Industry" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {industries.map((industry) => (
-                        <SelectItem key={industry} value={industry}>
-                          {industry === "all" ? "All Industries" : industry}
                         </SelectItem>
                       ))}
                     </SelectContent>

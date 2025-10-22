@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -10,15 +10,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Menu, X, ChevronDown, Zap, Shield, Sparkles } from 'lucide-react'
+import { Menu, X, ChevronDown, Shield } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useToast } from '@/hooks/use-toast'
 import Image from 'next/image'
 
 const userRoles = [
-  //{ name: 'Drivers', path: '/drivers', icon: '🚗', color: 'from-teal-500 to-teal-600' },
   { name: 'Companies', path: '/employers', icon: '💼', color: 'from-lime-500 to-lime-600' },
-  //{ name: 'Companies', path: '/companies', icon: '🏢', color: 'from-cyan-500 to-cyan-600' },
   { name: 'Job Seekers', path: '/job-seekers', icon: '🔍', color: 'from-emerald-700 to-green-700' },
   { name: 'Admin', path: '/admin', icon: '⚡', color: 'from-green-700 to-teal-700' },
   { name: 'Students', path: '/students', icon: '📚', color: 'from-green-500 to-green-600' },
@@ -37,7 +35,9 @@ export default function Navbar() {
 
   const getHrefForNav = (item: string) => {
     if (item === 'Home') return '/'
-    if (item === 'Job Seekers') return '/job-seekers'
+    if (item === 'Job Seekers') return '/job-seekers/login'
+    if (item === 'Companies') return '/employers/login'
+    if (item === 'Admin') return '/admin/login'
     return `/${item.toLowerCase().replace(/\s+/g, '-')}`
   }
 
@@ -107,11 +107,7 @@ export default function Navbar() {
       })
       return
     }
-    // allow default navigation for other roles
   }
-
-  // Let ConditionalLayout handle navbar visibility logic
-  // This component will always render when called
 
   return (
     <nav suppressHydrationWarning
@@ -123,7 +119,7 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-20 relative">
-          {/* Logo - Updated with Image */}
+          {/* Logo */}
           <Link href="/" className="flex items-center group transition-transform duration-300 hover:scale-105 active:scale-95 lg:-ml-2 xl:-ml-4">
             <div className="relative">
               <Image 
@@ -137,7 +133,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop Navigation - Centered */}
+          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
             <div className="flex items-center space-x-8">
               {links.map((item, index) => (
@@ -168,29 +164,42 @@ export default function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="center" className="w-72 p-3 bg-white/95 backdrop-blur-xl border border-gray-200/50 shadow-2xl rounded-2xl">
                   <div className="grid grid-cols-1 gap-2">
-                    {userRoles.map((role) => (
-                      <DropdownMenuItem key={role.name} asChild>
-                        <Link href={role.name === 'Students' || role.name === 'Teachers' ? '#' : `${role.path}/login`} onClick={(e) => handleRoleNav(e, role.name, `${role.path}/login`)} className="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 transition-all duration-300 group">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${role.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                            <span className="text-lg">{role.icon}</span>
-                          </div>
-                          <div className="flex-1">
-                            <span className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">{role.name}</span>
-                            <div className="text-xs text-gray-500">Access your dashboard</div>
-                          </div>
-                          {role.name === 'Admin' && (
-                            <Shield className="h-4 w-4 text-orange-500" />
-                          )}
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
+                    {userRoles.map((role) => {
+                      const targetPath =
+                        role.name === 'Companies'
+                          ? '/employers/login'
+                          : role.name === 'Job Seekers'
+                          ? '/job-seekers/login'
+                          : role.name === 'Admin'
+                          ? '/admin/login'
+                          : `${role.path}/login`
+
+                      return (
+                        <DropdownMenuItem key={role.name} asChild>
+                          <Link
+                            href={role.name === 'Students' || role.name === 'Teachers' ? '#' : targetPath}
+                            onClick={(e) => handleRoleNav(e, role.name, targetPath)}
+                            className="w-full flex items-center space-x-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 transition-all duration-300 group"
+                          >
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${role.color} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                              <span className="text-lg">{role.icon}</span>
+                            </div>
+                            <div className="flex-1">
+                              <span className="font-semibold text-gray-900 group-hover:text-emerald-600 transition-colors">{role.name}</span>
+                              <div className="text-xs text-gray-500">Access your dashboard</div>
+                            </div>
+                            {role.name === 'Admin' && <Shield className="h-4 w-4 text-orange-500" />}
+                          </Link>
+                        </DropdownMenuItem>
+                      )
+                    })}
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
 
-          {/* CTA Buttons - Right */}
+          {/* CTA Buttons */}
           <div
             className="hidden lg:flex items-center space-x-3 opacity-0 scale-80 animate-fade-in lg:-mr-2 xl:-mr-4"
             style={{ animationDelay: '0.6s' }}
@@ -225,23 +234,31 @@ export default function Navbar() {
                     <p className="text-xs sm:text-sm font-medium text-foreground">Navigate to:</p>
                   </div>
                   <nav className="flex flex-col">
-                    {userRoles.map((role) => (
-                      <Link
-                        key={role.name}
-                        href={role.name === 'Students' || role.name === 'Teachers' ? '#' : `${role.path}/login`}
-                        onClick={(e) => { handleRoleNav(e, role.name, `${role.path}/login`); handlePopoverClick(); }}
-                        className="flex items-center gap-2 sm:gap-3 rounded-md px-2 py-2 text-xs sm:text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        aria-label={`${role.name} login`}
-                      >
-                        <span
-                          className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-to-r ${role.color} text-white shadow`}
-                          aria-hidden="true"
+                    {userRoles.map((role) => {
+                      const targetPath =
+                        role.name === 'Companies'
+                          ? '/employers/login'
+                          : role.name === 'Job Seekers'
+                          ? '/job-seekers/login'
+                          : role.name === 'Admin'
+                          ? '/admin/login'
+                          : `${role.path}/login`
+
+                      return (
+                        <Link
+                          key={role.name}
+                          href={role.name === 'Students' || role.name === 'Teachers' ? '#' : targetPath}
+                          onClick={(e) => { handleRoleNav(e, role.name, targetPath); handlePopoverClick(); }}
+                          className="flex items-center gap-2 sm:gap-3 rounded-md px-2 py-2 text-xs sm:text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          aria-label={`${role.name} login`}
                         >
-                          <span className="text-sm sm:text-base leading-none">{role.icon}</span>
-                        </span>
-                        <span className="font-medium text-foreground">{role.name}</span>
-                      </Link>
-                    ))}
+                          <span className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-to-r ${role.color} text-white shadow`} aria-hidden="true">
+                            <span className="text-sm sm:text-base leading-none">{role.icon}</span>
+                          </span>
+                          <span className="font-medium text-foreground">{role.name}</span>
+                        </Link>
+                      )
+                    })}
                   </nav>
                 </PopoverContent>
               </Popover>
@@ -259,7 +276,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Navigation overlay (for non-popover behavior) */}
+        {/* Mobile overlay for non-popover */}
         {isOpen && !showPopoverBehavior && (
           <div className="fixed inset-0 z-[9999] bg-white/95 backdrop-blur-xl lg:hidden" role="dialog" aria-modal="true">
             <div className="min-h-screen pt-16 sm:pt-20 px-3 sm:px-4 lg:px-6 pb-24 overflow-y-auto overscroll-contain">
@@ -281,44 +298,54 @@ export default function Navbar() {
                 <div className="space-y-2 sm:space-y-3 border-t border-gray-200 pt-4 sm:pt-6">
                   <p className="mb-2 text-xs sm:text-sm font-bold text-gray-900">Choose Your Role:</p>
                   <div className="grid grid-cols-1 gap-2 sm:gap-3">
-                    {userRoles.map((role, index) => (
-                      <div key={role.name} className="opacity-0 translate-y-[20px] animate-fade-in-up" style={{ animationDelay: `${0.4 + index * 0.05}s` }}>
-                        <Link
-                          href={`${role.path}/login`}
-                          onClick={() => setIsOpen(false)}
-                          className="group flex items-center gap-3 sm:gap-4 rounded-xl p-3 sm:p-4 transition-colors hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50"
-                        >
-                          <div className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-r ${role.color} text-white shadow-lg`}>
-                            <span className="text-base sm:text-lg">{role.icon}</span>
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-900 text-sm sm:text-base">{role.name}</div>
-                            <div className="text-[10px] sm:text-xs text-gray-500">Access dashboard</div>
-                          </div>
-                          {role.name === 'Admin' && <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />}
-                        </Link>
-                      </div>
-                    ))}
+                    {userRoles.map((role, index) => {
+                      const targetPath =
+                        role.name === 'Companies'
+                          ? '/employers/login'
+                          : role.name === 'Job Seekers'
+                          ? '/job-seekers/login'
+                          : role.name === 'Admin'
+                          ? '/admin/login'
+                          : `${role.path}/login`
+
+                      return (
+                        <div key={role.name} className="opacity-0 translate-y-[20px] animate-fade-in-up" style={{ animationDelay: `${0.4 + index * 0.05}s` }}>
+                          <Link
+                            href={targetPath}
+                            onClick={() => setIsOpen(false)}
+                            className="group flex items-center gap-3 sm:gap-4 rounded-xl p-3 sm:p-4 transition-colors hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50"
+                          >
+                            <div className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-r ${role.color} text-white shadow-lg`}>
+                              <span className="text-base sm:text-lg">{role.icon}</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-900 text-sm sm:text-base">{role.name}</div>
+                              <div className="text-[10px] sm:text-xs text-gray-500">Access dashboard</div>
+                            </div>
+                            {role.name === 'Admin' && <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />}
+                          </Link>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
                 <div className="space-y-2 sm:space-y-3 opacity-0 animate-fade-in" style={{ animationDelay: '0.8s' }}>
-                 <Link href='/employers/login'>
-                  <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl py-2.5 sm:py-3 font-semibold text-sm sm:text-base">
-                   Post a Job
-                  </Button>
-                 </Link>
-                 <Link href='/jobs'>
-                  <Button
-                    variant="outline"
-                    className="w-full border-2 border-emerald-200 text-emerald-600 rounded-xl py-2.5 sm:py-3 font-semibold text-sm sm:text-base"
+                  <Link href='/employers/login'>
+                    <Button className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl py-2.5 sm:py-3 font-semibold text-sm sm:text-base">
+                      Post a Job
+                    </Button>
+                  </Link>
+                  <Link href='/jobs'>
+                    <Button
+                      variant="outline"
+                      className="w-full border-2 border-emerald-200 text-emerald-600 rounded-xl py-2.5 sm:py-3 font-semibold text-sm sm:text-base"
                     >
-                    Find Jobs
-                  </Button>
-                    </Link>
+                      Find Jobs
+                    </Button>
+                  </Link>
                 </div>
               </nav>
-
             </div>
           </div>
         )}

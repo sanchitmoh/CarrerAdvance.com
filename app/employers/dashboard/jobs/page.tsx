@@ -101,19 +101,38 @@ interface Candidate {
         setLoading(true)
         // Load employer's own jobs for dashboard
         const response = await employerApiService.getEmployerJobs()
-        const mapped = (response.jobs || []).map((j: any) => ({
-          id: j.id,
-          title: j.title,
-          location: j.location ?? j.job_location ?? j.location_search ?? '',
-          type: j.type ?? j.job_type ?? '',
-          // created_date is datetime; fallback if invalid
-          datePosted: j.datePosted ?? j.created_date ?? j.updated_date ?? '',
-          status: j.status ?? (j.is_status === 'active' ? 'Active' : 'Inactive'),
-          description: j.description ?? '',
-          requirements: j.requirements ?? '',
-          salary: j.salary ?? (j.min_salary && j.max_salary ? `$${Number(j.min_salary).toLocaleString()} - $${Number(j.max_salary).toLocaleString()}` : ''),
-          candidates: j.candidates ?? { applied: 0, reviewed: 0, shortlisted: 0, contacted: 0, rejected: 0, hired: 0 },
-        }))
+        const mapped = (response.jobs || []).map((j: any) => {
+          const countsFromObject = (j?.candidates && typeof j.candidates === 'object') ? j.candidates : {}
+          const getNum = (...keys: string[]) => {
+            for (const k of keys) {
+              const v = (j as any)?.[k]
+              if (v !== undefined && v !== null) return Number(v) || 0
+            }
+            return 0
+          }
+          const candidateCounts = {
+            applied: Number(countsFromObject?.applied ?? getNum('applied', 'applied_count', 'num_applied')),
+            reviewed: Number(countsFromObject?.reviewed ?? getNum('reviewed', 'reviewed_count', 'num_reviewed')),
+            shortlisted: Number(countsFromObject?.shortlisted ?? getNum('shortlisted', 'shortlisted_count', 'num_shortlisted')),
+            contacted: Number(countsFromObject?.contacted ?? getNum('contacted', 'contacted_count', 'num_contacted', 'interviewed', 'interviewed_count')),
+            rejected: Number(countsFromObject?.rejected ?? getNum('rejected', 'rejected_count', 'num_rejected')),
+            hired: Number(countsFromObject?.hired ?? getNum('hired', 'hired_count', 'num_hired')),
+          }
+
+          return {
+            id: j.id,
+            title: j.title,
+            location: j.location ?? j.job_location ?? j.location_search ?? '',
+            type: j.type ?? j.job_type ?? '',
+            // created_date is datetime; fallback if invalid
+            datePosted: j.datePosted ?? j.created_date ?? j.updated_date ?? '',
+            status: j.status ?? (j.is_status === 'active' ? 'Active' : 'Inactive'),
+            description: j.description ?? '',
+            requirements: j.requirements ?? '',
+            salary: j.salary ?? (j.min_salary && j.max_salary ? `$${Number(j.min_salary).toLocaleString()} - $${Number(j.max_salary).toLocaleString()}` : ''),
+            candidates: candidateCounts,
+          }
+        })
         setJobs(mapped)
         setError(null)
       } catch (err) {
@@ -922,6 +941,19 @@ interface Candidate {
      
       // Always set candidates to ensure the state is properly initialized
       setCandidates(organizedCandidates)
+
+      // Update counts on the selected job in the jobs list based on fetched candidates
+      try {
+        const counts = {
+          applied: (organizedCandidates.applied || []).length,
+          reviewed: (organizedCandidates.reviewed || []).length,
+          shortlisted: (organizedCandidates.shortlisted || []).length,
+          contacted: (organizedCandidates.contacted || []).length,
+          rejected: (organizedCandidates.rejected || []).length,
+          hired: (organizedCandidates.hired || []).length,
+        }
+        setJobs((prev) => prev.map((it) => it.id === job.id ? { ...it, candidates: counts } : it))
+      } catch {}
       setActiveTab('manage')
     } catch (err) {
       console.error("Error fetching candidates:", err)
@@ -982,6 +1014,18 @@ interface Candidate {
         if (selectedCandidate && selectedCandidate.id === candidateId) {
           setSelectedCandidate(movedCandidate)
         }
+        // Sync counts to jobs list for current selected job
+        try {
+          const counts = {
+            applied: (prevCandidates.applied || []).length,
+            reviewed: (prevCandidates.reviewed || []).length,
+            shortlisted: (prevCandidates.shortlisted || []).length,
+            contacted: (prevCandidates.contacted || []).length,
+            rejected: (prevCandidates.rejected || []).length,
+            hired: (prevCandidates.hired || []).length,
+          }
+          setJobs((prev) => prev.map((it) => (selectedJob && it.id === selectedJob.id) ? { ...it, candidates: counts } : it))
+        } catch {}
       }
 
       // send to API
@@ -1067,34 +1111,36 @@ interface Candidate {
                 <p className="text-xs sm:text-sm text-gray-600">{candidate.designation}</p>
               </div>
               <div className="mt-2 flex flex-row flex-wrap items-center gap-1 sm:gap-2 justify-start sm:justify-end">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent px-3 h-7 rounded-full"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedCandidate(candidate)
-                    setShowCandidateProfile(true)
-                    if (candidate.status === 'applied' && selectedJob) {
-                      employerApiService
-                        .updateCandidateStatus(selectedJob.id, candidate.id, 'reviewed')
-                        .then(() => {
-                          setCandidates((prev) => {
-                            const updated = { ...prev }
-                            updated.applied = (prev.applied || []).filter((c) => c.id !== candidate.id)
-                            const updatedCandidate = { ...candidate, status: 'reviewed' as const }
-                            updated.reviewed = [updatedCandidate, ...(prev.reviewed || [])]
-                            return updated
+                {candidate.status !== 'hired' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent px-3 h-7 rounded-full"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedCandidate(candidate)
+                      setShowCandidateProfile(true)
+                      if (candidate.status === 'applied' && selectedJob) {
+                        employerApiService
+                          .updateCandidateStatus(selectedJob.id, candidate.id, 'reviewed')
+                          .then(() => {
+                            setCandidates((prev) => {
+                              const updated = { ...prev }
+                              updated.applied = (prev.applied || []).filter((c) => c.id !== candidate.id)
+                              const updatedCandidate = { ...candidate, status: 'reviewed' as const }
+                              updated.reviewed = [updatedCandidate, ...(prev.reviewed || [])]
+                              return updated
+                            })
+                            setSelectedCandidate((prevSel) => (prevSel && prevSel.id === candidate.id ? { ...prevSel, status: 'reviewed' } : prevSel))
                           })
-                          setSelectedCandidate((prevSel) => (prevSel && prevSel.id === candidate.id ? { ...prevSel, status: 'reviewed' } : prevSel))
-                        })
-                        .catch((err) => console.error('Failed to auto-mark reviewed from View button:', err))
-                    }
-                  }}
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  <span className="hidden xs:inline">View</span>
-                </Button>
+                          .catch((err) => console.error('Failed to auto-mark reviewed from View button:', err))
+                      }
+                    }}
+                  >
+                    <Eye className="h-3 w-3 mr-1" />
+                    <span className="hidden xs:inline">View</span>
+                  </Button>
+                )}
                
                 {/* For Hired candidates: Show only View and + buttons */}
                 {candidate.status === "hired" ? (

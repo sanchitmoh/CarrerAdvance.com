@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Calendar,
   BarChart3,
-  Settings,
   ArrowRight,
   CheckCircle,
   AlertCircle,
@@ -29,6 +28,7 @@ export default function EmploymentManagementPage() {
   const [mounted, setMounted] = useState(false)
   const [loadingStats, setLoadingStats] = useState<boolean>(true)
   const [statsError, setStatsError] = useState<string | null>(null)
+  const [exporting, setExporting] = useState<boolean>(false)
   const [stats, setStats] = useState<{
     totalEmployees: number
     presentToday: number
@@ -326,6 +326,144 @@ export default function EmploymentManagementPage() {
     fetchStats()
   }, [fetchStats])
 
+  const fetchFirstJson = useCallback(async (paths: string[]) => {
+    for (const path of paths) {
+      try {
+        const res = await fetch(getBaseUrl(path), { credentials: 'include' })
+        const contentType = res.headers.get('content-type') || ''
+        if (!res.ok || !contentType.includes('application/json')) continue
+        const json = await res.json().catch(() => null)
+        if (json === null) continue
+        return json
+      } catch (_) {
+        // try next
+        continue
+      }
+    }
+    return null
+  }, [])
+
+  const toArray = (json: any): any[] => {
+    if (!json) return []
+    if (Array.isArray(json)) return json
+    if (Array.isArray(json?.data)) return json.data
+    if (json?.data && typeof json.data === 'object') return [json.data]
+    if (typeof json === 'object') return [json]
+    return []
+  }
+
+  const sanitizeValue = (val: any): string => {
+    if (val === null || val === undefined) return ''
+    if (typeof val === 'object') {
+      try { return JSON.stringify(val) } catch { return String(val) }
+    }
+    return String(val)
+  }
+
+  const buildCsvForDataset = (datasetName: string, rows: any[]): string => {
+    if (!rows?.length) return ''
+    const headersSet = new Set<string>()
+    rows.forEach(r => Object.keys(r || {}).forEach(k => headersSet.add(k)))
+    const headers = ['Dataset', ...Array.from(headersSet)]
+    const escapeCell = (s: string) => {
+      const needsQuotes = /[",\n\r]/.test(s)
+      const escaped = s.replace(/"/g, '""')
+      return needsQuotes ? `"${escaped}"` : escaped
+    }
+    const lines: string[] = []
+    lines.push(headers.map(h => escapeCell(h)).join(','))
+    for (const row of rows) {
+      const values = headers.map((h, idx) => {
+        if (idx === 0) return escapeCell(datasetName)
+        return escapeCell(sanitizeValue((row as any)[h]))
+      })
+      lines.push(values.join(','))
+    }
+    return lines.join('\n')
+  }
+
+  const downloadTextFile = (text: string, filename: string) => {
+    const blob = new Blob([text], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleExport = useCallback(async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      // Fetch datasets (best-effort; tries multiple common paths)
+      const [
+        employeesJson,
+        attendanceJson,
+        timeTrackerJson,
+        payrollJson,
+        documentsJson,
+        performanceJson,
+        statsJson
+      ] = await Promise.all([
+        fetchFirstJson(['/api/company-employees']),
+        fetchFirstJson(['/attendance', '/attendance/records', '/employers/attendance', '/api/employers/attendance', '/api/attendance']),
+        fetchFirstJson(['/time-tracking/records', '/employers/time-tracking/records', '/api/employers/time-tracking/records', '/api/time-tracking/records']),
+        fetchFirstJson(['/api/employee-payroll']),
+        fetchFirstJson(['/documents', '/employers/documents', '/api/employers/documents', '/api/documents']),
+        fetchFirstJson(['/performance-reviews', '/employers/performance-reviews', '/api/employers/performance-reviews', '/api/performance-reviews']),
+        fetchFirstJson(['/hrms/stats', '/api/employers/hrms/stats', '/api/hrms/stats'])
+      ])
+
+      const employees = toArray(employeesJson)
+      const attendance = toArray(attendanceJson)
+      const timeTracker = toArray(timeTrackerJson)
+      const payroll = toArray(payrollJson)
+      const documents = toArray(documentsJson)
+      const performance = toArray(performanceJson)
+      const statsUnified = toArray(statsJson)
+
+      // Also include the UI aggregated stats snapshot as a single row
+      const statsSnapshot = [{
+        totalEmployees: stats.totalEmployees,
+        presentToday: stats.presentToday,
+        pendingLeaves: stats.pendingLeaves,
+        avgPerformance: stats.avgPerformance,
+        performanceScore: stats.performanceScore,
+        payrollExpensesMonth: stats.payrollExpensesMonth,
+        documentCompliancePercent: stats.documentCompliancePercent
+      }]
+
+      const parts: string[] = []
+      const pushSection = (name: string, rows: any[]) => {
+        const csv = buildCsvForDataset(name, rows)
+        if (csv) parts.push(csv)
+      }
+
+      pushSection('Employees', employees)
+      pushSection('Attendance', attendance)
+      pushSection('TimeTracker', timeTracker)
+      pushSection('Payroll', payroll)
+      pushSection('Documents', documents)
+      pushSection('Performance', performance)
+      pushSection('StatsUnified', statsUnified)
+      pushSection('StatsSnapshot', statsSnapshot)
+
+      const finalCsv = parts.join('\n\n')
+      const now = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const filename = `employment-analytics-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.csv`
+      downloadTextFile(finalCsv || 'Dataset,Note\nStatsSnapshot,No data available', filename)
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Export failed', e)
+    } finally {
+      setExporting(false)
+    }
+  }, [exporting, fetchFirstJson, stats])
+
   const modules = [
     {
       title: "Employee Management",
@@ -432,13 +570,9 @@ export default function EmploymentManagementPage() {
             <p className="text-blue-100">Comprehensive HR analytics and workforce management tools</p>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
-            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
+            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30" onClick={handleExport} disabled={exporting}>
               <BarChart3 className="h-4 w-4 mr-2" />
-              Export Reports
-            </Button>
-            <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
+              {exporting ? 'Exporting…' : 'Export Reports'}
             </Button>
           </div>
         </div>

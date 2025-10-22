@@ -148,7 +148,7 @@ export default function BlogsPage() {
               <Input
                 type="text"
                 placeholder="Search articles, topics, or authors..."
-                className="pl-12 h-14 text-lg bg-white/10 backdrop-blur-sm border-2 border-white/20 focus:border-white/40 text-white placeholder-white/70 rounded-xl"
+                className="pl-12 h-14 text-lg bg-white/10 backdrop-blur-sm border-2 border-white/20 focus:border-white/80 text-black placeholder-white/70 rounded-xl"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />

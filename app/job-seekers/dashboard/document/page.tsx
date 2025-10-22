@@ -459,20 +459,6 @@ export default function JobSeekerDocumentPage() {
               {uploadedDocs.length} document{uploadedDocs.length !== 1 ? 's' : ''} uploaded
             </p>
           </div>
-          {uploadedDocs.length > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="sm:self-start"
-              onClick={() => {
-                // Download all documents as a zip (this would require backend implementation)
-                alert("Export functionality will be implemented in a future update.")
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export All
-            </Button>
-          )}
         </div>
 
         <div className="w-full overflow-x-auto -mx-2 sm:mx-0">

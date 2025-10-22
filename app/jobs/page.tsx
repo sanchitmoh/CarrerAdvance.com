@@ -1,14 +1,31 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import JobCard from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, MapPin, Filter, Briefcase, TrendingUp, Lightbulb, X, DollarSign } from 'lucide-react';
+import { Search, MapPin, Filter, Briefcase, TrendingUp, Lightbulb, X, DollarSign, Clock, TrendingUp as TrendingUpIcon } from 'lucide-react';
 import { jobsApiService, Job } from '@/lib/jobs-api';
 
 const jobTypes = ['All Jobs', 'Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'];
 const locations = ['All Locations', 'San Francisco', 'New York', 'Los Angeles', 'Remote', 'Austin', 'Seattle'];
+
+// Debounce hook for search optimization
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 export default function JobsPage() {
   const searchParams = useSearchParams();
@@ -28,6 +45,84 @@ export default function JobsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const jobsPerPage = 10;
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [searchStartTime, setSearchStartTime] = useState<number>(0);
+
+  // Debounced search values for real-time search
+  const debouncedTitle = useDebounce(title, 500);
+  const debouncedLocation = useDebounce(location, 500);
+
+  // Generate search suggestions based on job titles and companies
+  const generateSuggestions = useCallback((query: string, jobs: Job[]) => {
+    if (!query || query.length < 2) return [];
+    
+    const suggestions = new Set<string>();
+    const lowerQuery = query.toLowerCase();
+    
+    jobs.forEach(job => {
+      // Add job titles that match
+      if (job.title && job.title.toLowerCase().includes(lowerQuery)) {
+        suggestions.add(job.title);
+      }
+      // Add company names that match
+      if (job.company_name && job.company_name.toLowerCase().includes(lowerQuery)) {
+        suggestions.add(job.company_name);
+      }
+      // Add skills/keywords from description
+      if (job.description) {
+        const skills = job.description.toLowerCase().match(/\b\w{3,}\b/g) || [];
+        skills.forEach(skill => {
+          if (skill.includes(lowerQuery) && skill.length > 3) {
+            suggestions.add(skill.charAt(0).toUpperCase() + skill.slice(1));
+          }
+        });
+      }
+    });
+    
+    return Array.from(suggestions).slice(0, 8);
+  }, []);
+
+  // Load recent searches from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('recentSearches');
+    if (saved) {
+      setRecentSearches(JSON.parse(saved));
+    }
+  }, []);
+
+  // Save recent searches to localStorage
+  const saveRecentSearch = useCallback((searchTerm: string) => {
+    if (!searchTerm.trim()) return;
+    
+    const updated = [searchTerm, ...recentSearches.filter(s => s !== searchTerm)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
+  }, [recentSearches]);
+
+  // Update suggestions when jobs or search query changes
+  useEffect(() => {
+    if (title.length >= 2) {
+      const suggestions = generateSuggestions(title, jobs);
+      setSearchSuggestions(suggestions);
+      setShowSuggestions(suggestions.length > 0);
+    } else {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [title, jobs, generateSuggestions]);
+
+  // Auto-search when debounced values change
+  useEffect(() => {
+    if (debouncedTitle || debouncedLocation) {
+      setIsSearching(true);
+      setSearchStartTime(Date.now());
+      fetchJobs(debouncedTitle, debouncedLocation, type, 1, sortBy);
+    }
+  }, [debouncedTitle, debouncedLocation, type, sortBy]);
 
   // Fetch jobs from backend
   const fetchJobs = async (searchTitle = '', searchLocation = '', searchType = 'All Jobs', page = 1, sort = 'Most Recent') => {
@@ -144,11 +239,14 @@ export default function JobsPage() {
         setTotal(data.data.total || 0);
         setTotalPages(data.data.total_pages || 1);
         setCurrentPage(page);
+        setIsSearching(false);
       } else {
         setError('Failed to fetch jobs.');
+        setIsSearching(false);
       }
     } catch (err) {
       setError('Failed to fetch jobs.');
+      setIsSearching(false);
     } finally {
       setLoading(false);
     }
@@ -177,6 +275,13 @@ export default function JobsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentPage(1);
+    setShowSuggestions(false);
+    
+    // Save search to recent searches
+    if (title.trim()) {
+      saveRecentSearch(title.trim());
+    }
+    
     // If no search terms provided, fetch all jobs and reset filters
     if (!title && !location) {
       setType('All Jobs');
@@ -194,6 +299,71 @@ export default function JobsPage() {
     if (type && type !== 'All Jobs') filters.push(`Type: ${type}`);
     setActiveFilters(filters);
   };
+
+  // Handle suggestion selection
+  const handleSuggestionClick = (suggestion: string) => {
+    setTitle(suggestion);
+    setShowSuggestions(false);
+    setCurrentPage(1);
+    saveRecentSearch(suggestion);
+    fetchJobs(suggestion, location, type, 1, sortBy);
+    
+    // Update active filters
+    const filters = [];
+    filters.push(`Title: ${suggestion}`);
+    if (location) filters.push(`Location: ${location}`);
+    if (type && type !== 'All Jobs') filters.push(`Type: ${type}`);
+    setActiveFilters(filters);
+  };
+
+  // Handle input focus
+  const handleInputFocus = () => {
+    if (title.length >= 2) {
+      setShowSuggestions(true);
+    }
+  };
+
+  // Handle input blur with delay to allow suggestion clicks
+  const handleInputBlur = () => {
+    setTimeout(() => setShowSuggestions(false), 200);
+  };
+
+  // Handle keyboard navigation for suggestions
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+
+    const allSuggestions = [...searchSuggestions, ...recentSearches.slice(0, 3)];
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev < allSuggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSuggestionIndex >= 0 && selectedSuggestionIndex < allSuggestions.length) {
+          handleSuggestionClick(allSuggestions[selectedSuggestionIndex]);
+        } else {
+          handleSearch(e as any);
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        break;
+    }
+  };
+
+  // Reset suggestion index when suggestions change
+  useEffect(() => {
+    setSelectedSuggestionIndex(-1);
+  }, [searchSuggestions, recentSearches]);
 
   const clearFilters = () => {
     setTitle('');
@@ -297,8 +467,69 @@ export default function JobsPage() {
                     className="pl-12 h-14 text-lg bg-white border-2 border-gray-200 focus:border-emerald-500 rounded-xl text-gray-900"
                     value={title}
                     onChange={e => setTitle(e.target.value)}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    onKeyDown={handleKeyDown}
+                    autoComplete="off"
                   />
+                  
+                  {/* Search Suggestions Dropdown */}
+                  {showSuggestions && (searchSuggestions.length > 0 || recentSearches.length > 0) && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-80 overflow-y-auto">
+                      {searchSuggestions.length > 0 && (
+                        <div className="p-2">
+                          <div className="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            <TrendingUpIcon className="h-4 w-4 mr-2" />
+                            Suggestions
+                          </div>
+                          {searchSuggestions.map((suggestion, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
+                                selectedSuggestionIndex === index
+                                  ? 'bg-emerald-100 text-emerald-900'
+                                  : 'hover:bg-emerald-50'
+                              }`}
+                              onClick={() => handleSuggestionClick(suggestion)}
+                            >
+                              <Search className="h-4 w-4 mr-3 text-gray-400" />
+                              <span className="text-gray-900">{suggestion}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {recentSearches.length > 0 && title.length < 2 && (
+                        <div className="p-2 border-t border-gray-100">
+                          <div className="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            <Clock className="h-4 w-4 mr-2" />
+                            Recent Searches
+                          </div>
+                          {recentSearches.slice(0, 3).map((search, index) => {
+                            const adjustedIndex = searchSuggestions.length + index;
+                            return (
+                              <button
+                                key={index}
+                                type="button"
+                                className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
+                                  selectedSuggestionIndex === adjustedIndex
+                                    ? 'bg-emerald-100 text-emerald-900'
+                                    : 'hover:bg-emerald-50'
+                                }`}
+                                onClick={() => handleSuggestionClick(search)}
+                              >
+                                <Clock className="h-4 w-4 mr-3 text-gray-400" />
+                                <span className="text-gray-900">{search}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+                
                 <div className="flex-1 relative">
                   <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <Input
@@ -309,9 +540,23 @@ export default function JobsPage() {
                     onChange={e => setLocation(e.target.value)}
                   />
                 </div>
-                <Button type="submit" className="bg-gradient-to-r from-lime-500 to-yellow-500 hover:from-lime-600 hover:to-yellow-600 h-14 px-8 text-lg font-semibold shadow-lg hover:shadow-lime-200 transition-all duration-300 transform hover:scale-105 rounded-xl">
-                  <Search className="w-5 h-5 mr-2" />
-                  Search Jobs
+                
+                <Button 
+                  type="submit" 
+                  className="bg-gradient-to-r from-lime-500 to-yellow-500 hover:from-lime-600 hover:to-yellow-600 h-14 px-8 text-lg font-semibold shadow-lg hover:shadow-lime-200 transition-all duration-300 transform hover:scale-105 rounded-xl"
+                  disabled={isSearching}
+                >
+                  {isSearching ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-5 h-5 mr-2" />
+                      Search Jobs
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -387,23 +632,8 @@ export default function JobsPage() {
             <h2 className="text-2xl font-bold text-gray-900">
               {loading ? 'Loading...' : `${total} Jobs Found`}
             </h2>
-           
           </div>
           
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">Sort by:</span>
-            <select 
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" 
-              aria-label="Sort jobs"
-              value={sortBy}
-              onChange={(e) => handleSortChange(e.target.value)}
-            >
-              <option value="Most Recent">Most Recent</option>
-              <option value="Salary: High to Low">Salary: High to Low</option>
-              <option value="Salary: Low to High">Salary: Low to High</option>
-              <option value="Most Relevant">Most Relevant</option>
-            </select>
-          </div>
         </div>
 
         {/* Error State */}
@@ -417,12 +647,23 @@ export default function JobsPage() {
               <p className="mt-2 text-gray-600">Loading jobs...</p>
             </div>
           ) : jobs.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">No jobs found matching your criteria.</p>
+            <div className="text-center py-12">
+              <div className="bg-gray-50 rounded-2xl p-8 max-w-md mx-auto">
+                <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No jobs found</h3>
+                <p className="text-gray-600 mb-4">Try adjusting your search criteria or filters</p>
+                <Button 
+                  onClick={clearFilters}
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                >
+                  Clear All Filters
+                </Button>
+              </div>
             </div>
           ) : (
             jobs.map((job: any) => (
-              <div key={job.id} className="rounded-xl border border-gray-200 bg-white p-4">
+              <div key={job.id} className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-lg transition-shadow duration-300">
                 <JobCard job={job} onApply={(e?: any) => handleApplyJob()} onViewDetails={() => handleViewDetails(job)} />
               </div>
             ))

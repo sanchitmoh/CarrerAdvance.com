@@ -68,7 +68,7 @@ export default function BlogCard({ blog }: BlogCardProps) {
   }
 
   return (
-    <article className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100">
+    <article className="group bg-white  rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100">
       <div className="relative overflow-hidden">
         <Image
           src={getImageSrc()}
@@ -120,16 +120,16 @@ export default function BlogCard({ blog }: BlogCardProps) {
             </div>
           </div>
           
-          <Dialog>
+          <Dialog >
             <DialogTrigger asChild>
               <Button 
                 variant="ghost" 
-                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-full group-hover:translate-x-1 transition-all duration-300"
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-full group-hover:translate-x-1 transition-all duration-300 "
               >
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[800px] max-h-[78vh] overflow-y-auto mt-10">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-bold">{blog.title}</DialogTitle>
                 <DialogDescription>
