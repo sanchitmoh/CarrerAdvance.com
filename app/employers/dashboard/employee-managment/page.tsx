@@ -143,6 +143,9 @@ export default function EmploymentManagementPage() {
           if (docRes.ok) {
             const docJson = await docRes.json().catch(() => ({} as any))
             const docs: any[] = Array.isArray(docJson?.data) ? docJson.data : []
+            // derive compliance percent as fallback
+            const compliance = computeDocumentCompliancePercent(docs)
+            if (compliance !== null) stitched.documentCompliancePercent = compliance
             const now = new Date()
             const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
             const pendingDocs = docs.filter((d: any) => {
@@ -164,6 +167,12 @@ export default function EmploymentManagementPage() {
           if (perfRes.ok) {
             const perfJson = await perfRes.json().catch(() => ({} as any))
             const rows: any[] = Array.isArray(perfJson?.data) ? perfJson.data : []
+            // derive avg performance as fallback
+            const avgPerf = computePerformanceAverage(rows)
+            if (avgPerf !== null) {
+              stitched.avgPerformance = avgPerf
+              stitched.performanceScore = avgPerf
+            }
             const pendingPerf = rows.filter((r: any) => {
               const s = (r?.status ?? '').toString().toLowerCase()
               return s === 'pending' || s === 'due' || s === 'open'
@@ -172,6 +181,29 @@ export default function EmploymentManagementPage() {
               ...(stitched.pendingActions || []),
               { title: `${pendingPerf} Performance Reviews Due`, subtitle: 'Due by end of week', action: 'Review', type: 'performance' },
             ]
+          }
+        } catch (_) {}
+
+        try {
+          // Payroll total for current month (fallback)
+          const payrollRes = await fetch(getBaseUrl('/api/employee-payroll'), { credentials: 'include' })
+          if (payrollRes.ok) {
+            const payrollJson = await payrollRes.json().catch(() => ({} as any))
+            const payrollRows: any[] = Array.isArray(payrollJson?.data) ? payrollJson.data : (Array.isArray(payrollJson) ? payrollJson : [])
+            const total = computePayrollExpensesForCurrentMonth(payrollRows)
+            if (total !== null) {
+              stitched.payrollExpensesMonth = total
+            } else {
+              // Fallback: sum all records if date filtering fails
+              const fallbackTotal = payrollRows.reduce((sum, r) => {
+                const amount = toNumber(r?.net_pay ?? r?.netPay ?? r?.amount ?? r?.total ?? r?.gross_pay ?? r?.grossPay ?? r?.salary ?? r?.base_salary ?? r?.baseSalary ?? r?.total_amount ?? r?.totalAmount ?? r?.pay_amount ?? r?.payAmount)
+                return sum + (amount || 0)
+              }, 0)
+              if (fallbackTotal > 0) {
+                stitched.payrollExpensesMonth = Math.round(fallbackTotal)
+                console.log('Using fallback payroll calculation:', fallbackTotal)
+              }
+            }
           }
         } catch (_) {}
 
@@ -198,12 +230,13 @@ export default function EmploymentManagementPage() {
       // Augment unified stats with detailed activities/actions if available
       if (success && !aborted) {
         try {
-          const [leavesRes, recRes, intRes, docRes, perfRes] = await Promise.all([
+          const [leavesRes, recRes, intRes, docRes, perfRes, payrollRes] = await Promise.all([
             fetch(getBaseUrl('/leave-requests'), { credentials: 'include' }),
             fetch(getBaseUrl('/time-tracking/records'), { credentials: 'include' }),
             fetch(getBaseUrl('/interviews'), { credentials: 'include' }),
             fetch(getBaseUrl('/documents'), { credentials: 'include' }),
             fetch(getBaseUrl('/performance-reviews'), { credentials: 'include' }),
+            fetch(getBaseUrl('/api/employee-payroll'), { credentials: 'include' }),
           ])
 
           let pendingLeaves = stats.pendingLeaves
@@ -255,6 +288,10 @@ export default function EmploymentManagementPage() {
             if (docRes.ok) {
               const docJson = await docRes.json().catch(() => ({} as any))
               const docs: any[] = Array.isArray(docJson?.data) ? docJson.data : []
+              const compliance = computeDocumentCompliancePercent(docs)
+              if (compliance !== null) {
+                if (!aborted) setStats(prev => ({ ...prev, documentCompliancePercent: compliance }))
+              }
               const now = new Date()
               const in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
               const pendingDocs = docs.filter((d: any) => {
@@ -271,11 +308,36 @@ export default function EmploymentManagementPage() {
             if (perfRes.ok) {
               const perfJson = await perfRes.json().catch(() => ({} as any))
               const rows: any[] = Array.isArray(perfJson?.data) ? perfJson.data : []
+              const avgPerf = computePerformanceAverage(rows)
+              if (avgPerf !== null) {
+                if (!aborted) setStats(prev => ({ ...prev, avgPerformance: avgPerf, performanceScore: avgPerf }))
+              }
               const pendingPerf = rows.filter((r: any) => {
                 const s = (r?.status ?? '').toString().toLowerCase()
                 return s === 'pending' || s === 'due' || s === 'open'
               }).length
               pendingActions.push({ title: `${pendingPerf} Performance Reviews Due`, subtitle: 'Due by end of week', action: 'Review', type: 'performance' })
+            }
+          } catch (_) {}
+
+          try {
+            if (payrollRes.ok) {
+              const payrollJson = await payrollRes.json().catch(() => ({} as any))
+              const payrollRows: any[] = Array.isArray(payrollJson?.data) ? payrollJson.data : (Array.isArray(payrollJson) ? payrollJson : [])
+              const total = computePayrollExpensesForCurrentMonth(payrollRows)
+              if (total !== null) {
+                if (!aborted) setStats(prev => ({ ...prev, payrollExpensesMonth: total }))
+              } else {
+                // Fallback: sum all records if date filtering fails
+                const fallbackTotal = payrollRows.reduce((sum, r) => {
+                  const amount = toNumber(r?.net_pay ?? r?.netPay ?? r?.amount ?? r?.total ?? r?.gross_pay ?? r?.grossPay ?? r?.salary ?? r?.base_salary ?? r?.baseSalary ?? r?.total_amount ?? r?.totalAmount ?? r?.pay_amount ?? r?.payAmount)
+                  return sum + (amount || 0)
+                }, 0)
+                if (fallbackTotal > 0) {
+                  if (!aborted) setStats(prev => ({ ...prev, payrollExpensesMonth: Math.round(fallbackTotal) }))
+                  console.log('Using fallback payroll calculation:', fallbackTotal)
+                }
+              }
             }
           } catch (_) {}
 
@@ -541,6 +603,122 @@ export default function EmploymentManagementPage() {
   const formatPercent = (value: number | null | undefined) => {
     if (value === null || value === undefined || Number.isNaN(value)) return '—'
     return `${value}%`
+  }
+
+  // Helpers to derive metrics from raw datasets
+  const getCurrentMonthRange = () => {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    return { start, end }
+  }
+
+  const toNumber = (val: any): number | null => {
+    const n = Number(val)
+    return Number.isFinite(n) ? n : null
+  }
+
+  const computePayrollExpensesForCurrentMonth = (rows: any[]): number | null => {
+    if (!Array.isArray(rows) || rows.length === 0) return null
+    
+    // Debug: log first few records to see structure
+    console.log('Payroll data sample:', rows.slice(0, 2))
+    
+    const { start, end } = getCurrentMonthRange()
+    let total = 0
+    let any = false
+    
+    for (const r of rows) {
+      // Try multiple possible date fields
+      const payDateStr = r?.pay_date || r?.payDate || r?.date || r?.created_at || r?.updated_at || r?.payment_date || r?.payroll_date
+      
+      // Try multiple possible amount fields
+      const amountCandidate = toNumber(
+        r?.net_pay ?? r?.netPay ?? r?.amount ?? r?.total ?? r?.gross_pay ?? 
+        r?.grossPay ?? r?.salary ?? r?.base_salary ?? r?.baseSalary ?? 
+        r?.total_amount ?? r?.totalAmount ?? r?.pay_amount ?? r?.payAmount
+      )
+      
+      if (amountCandidate === null) continue
+      
+      // If we have a date, filter by current month
+      if (payDateStr) {
+        const d = new Date(payDateStr)
+        if (isNaN(d.getTime())) {
+          // If date parsing fails, include the record anyway
+          total += amountCandidate
+          any = true
+        } else if (d >= start && d < end) {
+          total += amountCandidate
+          any = true
+        }
+      } else {
+        // No date field, include all records
+        total += amountCandidate
+        any = true
+      }
+    }
+    
+    console.log('Payroll calculation result:', { total, any, recordCount: rows.length })
+    return any ? Math.round(total) : null
+  }
+
+  const computePerformanceAverage = (rows: any[]): number | null => {
+    if (!Array.isArray(rows) || rows.length === 0) return null
+    
+    // Debug: log first few records to see structure
+    console.log('Performance data sample:', rows.slice(0, 2))
+    
+    const scores: number[] = []
+    for (const r of rows) {
+      // Try multiple possible score fields
+      const candidates = [
+        r?.performance_score, r?.performanceScore, r?.score, r?.rating, r?.kpi_score,
+        r?.overall_score, r?.overallScore, r?.final_score, r?.finalScore,
+        r?.evaluation_score, r?.evaluationScore, r?.total_score, r?.totalScore
+      ]
+      for (const c of candidates) {
+        const n = toNumber(c)
+        if (n !== null) {
+          scores.push(n)
+          break
+        }
+      }
+    }
+    
+    console.log('Performance calculation result:', { scores, recordCount: rows.length })
+    if (!scores.length) return null
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+    return Math.round(avg * 10) / 10
+  }
+
+  const computeDocumentCompliancePercent = (docs: any[]): number | null => {
+    if (!Array.isArray(docs) || docs.length === 0) return null
+    
+    // Debug: log first few records to see structure
+    console.log('Document data sample:', docs.slice(0, 2))
+    
+    const now = new Date()
+    let total = 0
+    let compliant = 0
+    
+    for (const d of docs) {
+      total += 1
+      const status = (d?.status ?? d?.document_status ?? d?.approval_status ?? '').toString().toLowerCase()
+      const expStr = d?.expiry_date || d?.expiryDate || d?.expires_at || d?.expiresAt
+      const exp = expStr ? new Date(expStr) : null
+      const isExpired = exp ? exp < now : false
+      const isPending = status === 'pending' || status === 'awaiting' || status === 'draft'
+      const isApproved = status === 'approved' || status === 'verified' || status === 'active' || status === 'valid'
+      
+      if (!isExpired && !isPending) {
+        compliant += isApproved ? 1 : 1
+      }
+    }
+    
+    const result = total === 0 ? null : Math.max(0, Math.min(100, Math.round((compliant / total) * 100)))
+    console.log('Document compliance calculation result:', { total, compliant, result })
+    return result
   }
 
   const attendanceAvg = useMemo(() => {

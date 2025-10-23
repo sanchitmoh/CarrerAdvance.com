@@ -78,7 +78,15 @@ export async function fetchDesignations(): Promise<Designation[]> {
 }
 
 export async function fetchCompanyEmployees(): Promise<CompanyEmployee[]> {
-  const url = getBaseUrl('/api/attendance/employees')
+  // Build URL and include company_id when available
+  const params = new URLSearchParams()
+  try {
+    if (typeof window !== 'undefined') {
+      const cid = window.localStorage?.getItem('company_id') || ''
+      if (cid) params.set('company_id', cid)
+    }
+  } catch (_) {}
+  const url = getBaseUrl(`/attendance/employees${params.toString() ? `?${params.toString()}` : ''}`)
   const res = await fetch(url, { credentials: 'include' })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json?.success) return []
@@ -97,7 +105,15 @@ export interface KpiCategoryRow {
 }
 
 export async function fetchKpiCategories(): Promise<KpiCategoryRow[]> {
-  const url = getBaseUrl('/api/kpi-categories')
+  // Build URL without duplicate /api and include company_id when available
+  const params = new URLSearchParams()
+  try {
+    if (typeof window !== 'undefined') {
+      const cid = window.localStorage?.getItem('company_id') || ''
+      if (cid) params.set('company_id', cid)
+    }
+  } catch (_) {}
+  const url = getBaseUrl(`/kpi-categories${params.toString() ? `?${params.toString()}` : ''}`)
   const res = await fetch(url, { credentials: 'include' })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json?.success) return []
@@ -158,6 +174,13 @@ export interface PerformanceReviewRow {
 export async function fetchPerformanceReviews(reviewPeriodId?: number): Promise<PerformanceReviewRow[]> {
   const q = new URLSearchParams()
   if (reviewPeriodId) q.set('review_period_id', String(reviewPeriodId))
+  // Add company_id when available
+  try {
+    if (typeof window !== 'undefined') {
+      const cid = window.localStorage?.getItem('company_id') || ''
+      if (cid) q.set('company_id', cid)
+    }
+  } catch (_) {}
   const url = getBaseUrl(`/performance-reviews${q.toString() ? `?${q.toString()}` : ''}`)
   const res = await fetch(url, { credentials: 'include' })
   const json = await res.json().catch(() => ({}))
@@ -184,7 +207,15 @@ export interface ReviewPeriodRow {
 export type ReviewPeriod = ReviewPeriodRow
 
 export async function fetchReviewPeriods(): Promise<ReviewPeriod[]> {
-  const url = getBaseUrl('/review-periods')
+  // Build URL and include company_id when available
+  const params = new URLSearchParams()
+  try {
+    if (typeof window !== 'undefined') {
+      const cid = window.localStorage?.getItem('company_id') || ''
+      if (cid) params.set('company_id', cid)
+    }
+  } catch (_) {}
+  const url = getBaseUrl(`/review-periods${params.toString() ? `?${params.toString()}` : ''}`)
   const res = await fetch(url, { credentials: 'include' })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json?.success) return []

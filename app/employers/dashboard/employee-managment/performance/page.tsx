@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Slider } from "@/components/ui/slider"
+import { useToast } from "@/hooks/use-toast"
 import {
   TrendingUp,
   Star,
@@ -38,6 +39,7 @@ import Link from "next/link"
 import { fetchReviewPeriods, createReviewPeriod, updateReviewPeriod, deleteReviewPeriod, fetchKpiCategories, type KpiCategoryRow, fetchCompanyEmployees, type CompanyEmployee, createPerformanceReview, fetchPerformanceReviews, type PerformanceReviewRow } from "@/lib/hrms-api"
 
 export default function PerformanceReviewPage() {
+  const { toast } = useToast()
   const [selectedPeriodId, setSelectedPeriodId] = useState("")
   const [selectedEmployee, setSelectedEmployee] = useState("")
   const [showNewReviewDialog, setShowNewReviewDialog] = useState(false)
@@ -47,6 +49,8 @@ export default function PerformanceReviewPage() {
   const [editingCycleId, setEditingCycleId] = useState<number | null>(null)
   const [selectedReview, setSelectedReview] = useState<any>(null)
   const [mobileActionMenu, setMobileActionMenu] = useState<number | null>(null)
+  const [creatingReview, setCreatingReview] = useState(false)
+  const [updatingReview, setUpdatingReview] = useState(false)
   const [newReviewForm, setNewReviewForm] = useState({
     employeeId: "",
     reviewPeriodId: "",
@@ -178,58 +182,38 @@ export default function PerformanceReviewPage() {
     return out
   }
 
-  const handleCreateReview = () => {
-    const selectedEmp = employees.find((emp) => emp.id === Number.parseInt(newReviewForm.employeeId))
-    if (!selectedEmp) return
 
-    const overallScore =
-      Object.values(newReviewForm.kpis).reduce((sum, score) => sum + score, 0) / Object.keys(newReviewForm.kpis).length
-
-    const updatedEmployee = {
-      ...selectedEmp,
-      overallScore,
-      kpis: newReviewForm.kpis,
-      feedback: newReviewForm.feedback,
-      goals: (newReviewForm.goals || '').split(',').map((g) => g.trim()).filter(Boolean),
-      improvements: (newReviewForm.improvements || '').split(',').map((i) => i.trim()).filter(Boolean),
-      lastReview: new Date().toISOString().split("T")[0],
-      status: "completed",
-    }
- 
-    setEmployees(employees.map((emp) => (emp.id === selectedEmp.id ? updatedEmployee : emp)))
-    setShowNewReviewDialog(false)
-    setNewReviewForm({
-      employeeId: "",
-      reviewPeriodId: "",
-      reviewType: "quarterly",
-      kpis: {
-        productivity: 3,
-        quality: 3,
-        teamwork: 3,
-        communication: 3,
-        attendance: 3,
-      },
-      feedback: "",
-      goals: "",
-      improvements: "",
-      overallRating: 3,
-    })
-  }
-
-  const handleUpdateReview = () => {
+  const handleUpdateReview = async () => {
     if (!selectedReview) return
 
-    const overallScore =
-      Object.values(selectedReview.kpis).reduce((sum: number, score: any) => sum + score, 0) /
-      Object.keys(selectedReview.kpis).length
+    setUpdatingReview(true)
+    try {
+      const overallScore =
+        Object.values(selectedReview.kpis).reduce((sum: number, score: any) => sum + score, 0) /
+        Object.keys(selectedReview.kpis).length
 
-    const updatedEmployee = {
-      ...selectedReview,
-      overallScore,
+      const updatedEmployee = {
+        ...selectedReview,
+        overallScore,
+      }
+
+      setEmployees(employees.map((emp) => (emp.id === selectedReview.id ? updatedEmployee : emp)))
+      setShowEditReviewDialog(false)
+      
+      toast({
+        title: "Review Updated Successfully",
+        description: `Performance review for ${selectedReview.name} has been updated.`,
+        variant: "default",
+      })
+    } catch (error) {
+      toast({
+        title: "Error Updating Review",
+        description: "Failed to update performance review. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setUpdatingReview(false)
     }
-
-    setEmployees(employees.map((emp) => (emp.id === selectedReview.id ? updatedEmployee : emp)))
-    setShowEditReviewDialog(false)
   }
 
   const averageScore = employees.length ? employees.reduce((sum, emp) => sum + (Number(emp.overallScore) || 0), 0) / employees.length : 0
@@ -421,42 +405,123 @@ export default function PerformanceReviewPage() {
 
                   <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
                     <Button
+                      disabled={creatingReview}
                       onClick={async () => {
                         if ((newReviewForm as any).reviewedBy && (newReviewForm as any).reviewedBy === newReviewForm.employeeId) {
-                          alert('Employee and Reviewed By cannot be the same')
+                          toast({
+                            title: "Invalid Selection",
+                            description: "Employee and Reviewed By cannot be the same.",
+                            variant: "destructive",
+                          })
                           return
                         }
-                        // Build payload for backend create
-                        const kpiList = (kpiCategoriesBackend.length ? kpiCategoriesBackend.map((k) => ({ id: String(k.id), name: k.name })) : kpiCategories).map((k) => ({
-                          kpi_category_id: Number.parseInt(String((k as any).id)),
-                          score: clampScore(newReviewForm.kpis[k.id as keyof typeof newReviewForm.kpis] ?? 3),
-                        }))
-                        const payload = {
-                          employee_id: Number.parseInt(newReviewForm.employeeId),
-                          reviewer_id: Number.parseInt((newReviewForm as any).reviewedBy || '0'),
-                          review_period_id: newReviewForm.reviewPeriodId ? Number.parseInt(newReviewForm.reviewPeriodId) : null,
-                          overall_score:
-                            Object.values(newReviewForm.kpis).reduce((sum, score) => sum + (Number(score) || 0), 0) /
-                            Object.keys(newReviewForm.kpis).length,
-                          feedback: newReviewForm.feedback || '',
-                          goals: newReviewForm.goals || '',
-                          improvements: newReviewForm.improvements || '',
-                          status: 'completed',
-                          review_date: formatDate(new Date().toISOString()),
-                          next_review_date: null,
-                          kpi_scores: kpiList,
+                        if (!newReviewForm.employeeId) {
+                          toast({
+                            title: "Missing Information",
+                            description: "Please select an employee.",
+                            variant: "destructive",
+                          })
+                          return
                         }
-                        const res = await createPerformanceReview(payload as any)
-                        if (res?.success) {
-                          handleCreateReview()
-                        } else {
-                          alert(res?.message || 'Failed to create review')
+                        
+                        setCreatingReview(true)
+                        try {
+                          // Build payload for backend create
+                          const kpiList = (kpiCategoriesBackend.length ? kpiCategoriesBackend.map((k) => ({ id: String(k.id), name: k.name })) : kpiCategories).map((k) => ({
+                            kpi_category_id: Number.parseInt(String((k as any).id)),
+                            score: clampScore(newReviewForm.kpis[k.id as keyof typeof newReviewForm.kpis] ?? 3),
+                          }))
+                          const payload = {
+                            employee_id: Number.parseInt(newReviewForm.employeeId),
+                            reviewer_id: Number.parseInt((newReviewForm as any).reviewedBy || '0'),
+                            review_period_id: newReviewForm.reviewPeriodId ? Number.parseInt(newReviewForm.reviewPeriodId) : null,
+                            overall_score:
+                              Object.values(newReviewForm.kpis).reduce((sum, score) => sum + (Number(score) || 0), 0) /
+                              Object.keys(newReviewForm.kpis).length,
+                            feedback: newReviewForm.feedback || '',
+                            goals: newReviewForm.goals || '',
+                            improvements: newReviewForm.improvements || '',
+                            status: 'completed',
+                            review_date: formatDate(new Date().toISOString()),
+                            next_review_date: null,
+                            kpi_scores: kpiList,
+                          }
+                          console.log('Create review payload:', payload)
+                          const res = await createPerformanceReview(payload as any)
+                          console.log('Create review API response:', res)
+                          if (res?.success) {
+                            // Get the selected employee name for the toast
+                            const selectedEmp = companyEmployees.find((emp) => emp.id === Number.parseInt(newReviewForm.employeeId))
+                            
+                            // Show success toast
+                            toast({
+                              title: "Review Created Successfully",
+                              description: `Performance review for ${selectedEmp?.name || 'employee'} has been created.`,
+                              variant: "default",
+                            })
+                            
+                            // Close dialog and reset form
+                            setShowNewReviewDialog(false)
+                            setNewReviewForm({
+                              employeeId: "",
+                              reviewPeriodId: "",
+                              reviewType: "quarterly",
+                              kpis: {
+                                productivity: 3,
+                                quality: 3,
+                                teamwork: 3,
+                                communication: 3,
+                                attendance: 3,
+                              },
+                              feedback: "",
+                              goals: "",
+                              improvements: "",
+                              overallRating: 3,
+                            })
+                            
+                            // Refresh the employees list
+                            const rows = await fetchPerformanceReviews(selectedPeriodId ? Number.parseInt(selectedPeriodId) : undefined)
+                            const mapped = rows.map((r: PerformanceReviewRow) => ({
+                              id: r.employee_id,
+                              name: r.employee_name || `Employee ${r.employee_id}`,
+                              position: r.designation_name || '',
+                              department: r.department_name || '',
+                              manager: '',
+                              avatar: '/placeholder.svg?height=40&width=40',
+                              overallScore: Number(r.overall_score || 0),
+                              lastReview: r.review_date,
+                              nextReview: r.next_review_date || r.review_date,
+                              status: r.status || 'completed',
+                              kpis: (r.kpi_scores || []).reduce((acc: any, s) => {
+                                acc[String(s.kpi_category_id)] = Number(s.score || 0)
+                                return acc
+                              }, {} as any),
+                              feedback: r.feedback || '',
+                              goals: (r.goals || '').split(',').map((g) => g.trim()).filter(Boolean),
+                              improvements: (r.improvements || '').split(',').map((g) => g.trim()).filter(Boolean),
+                            }))
+                            setEmployees(mapped as any)
+                          } else {
+                            toast({
+                              title: "Error Creating Review",
+                              description: res?.message || 'Failed to create review',
+                              variant: "destructive",
+                            })
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Error Creating Review",
+                            description: "Failed to create performance review. Please try again.",
+                            variant: "destructive",
+                          })
+                        } finally {
+                          setCreatingReview(false)
                         }
                       }}
                       className="flex-1 text-sm sm:text-base"
                     >
                       <Save className="h-4 w-4 mr-2" />
-                      Create Review
+                      {creatingReview ? 'Creating...' : 'Create Review'}
                     </Button>
                     <Button variant="outline" onClick={() => setShowNewReviewDialog(false)} className="flex-1 text-sm sm:text-base">
                       Cancel
@@ -586,6 +651,15 @@ export default function PerformanceReviewPage() {
                     <Button
                       disabled={savingCycle}
                       onClick={async () => {
+                        if (!cycleForm.name || !cycleForm.startDate || !cycleForm.endDate) {
+                          toast({
+                            title: "Missing Information",
+                            description: "Please fill in all required fields.",
+                            variant: "destructive",
+                          })
+                          return
+                        }
+                        
                         setSavingCycle(true)
                         try {
                           const payload = {
@@ -607,9 +681,25 @@ export default function PerformanceReviewPage() {
                             setShowCycleDialog(false)
                             setEditingCycleId(null)
                             setCycleForm({ name: "", startDate: "", endDate: "", reviewType: "quarterly", status: "active" })
+                            
+                            toast({
+                              title: editingCycleId ? "Cycle Updated Successfully" : "Cycle Created Successfully",
+                              description: `Performance cycle "${cycleForm.name}" has been ${editingCycleId ? 'updated' : 'created'}.`,
+                              variant: "default",
+                            })
                           } else {
-                            alert(res?.message || 'Failed to save cycle')
+                            toast({
+                              title: "Error Saving Cycle",
+                              description: res?.message || 'Failed to save cycle',
+                              variant: "destructive",
+                            })
                           }
+                        } catch (error) {
+                          toast({
+                            title: "Error Saving Cycle",
+                            description: "Failed to save performance cycle. Please try again.",
+                            variant: "destructive",
+                          })
                         } finally {
                           setSavingCycle(false)
                         }
@@ -617,7 +707,7 @@ export default function PerformanceReviewPage() {
                       className="flex-1 text-sm sm:text-base"
                     >
                       <Save className="h-4 w-4 mr-2" />
-                      {savingCycle ? 'Saving…' : 'Save Cycle'}
+                      {savingCycle ? 'Saving…' : editingCycleId ? 'Update Cycle' : 'Save Cycle'}
                     </Button>
                     <Button variant="outline" onClick={() => setShowCycleDialog(false)} className="flex-1 text-sm sm:text-base">
                       Cancel
@@ -774,10 +864,29 @@ export default function PerformanceReviewPage() {
                                 onClick={async () => {
                                   const ok = confirm('Delete this cycle?')
                                   if (!ok) return
-                                  const res = await deleteReviewPeriod(rp.id)
-                                  if (res?.success) {
-                                    const list = await fetchReviewPeriods()
-                                    setReviewPeriods(list)
+                                  try {
+                                    const res = await deleteReviewPeriod(rp.id)
+                                    if (res?.success) {
+                                      const list = await fetchReviewPeriods()
+                                      setReviewPeriods(list)
+                                      toast({
+                                        title: "Cycle Deleted Successfully",
+                                        description: `Performance cycle "${rp.name}" has been deleted.`,
+                                        variant: "default",
+                                      })
+                                    } else {
+                                      toast({
+                                        title: "Error Deleting Cycle",
+                                        description: res?.message || 'Failed to delete cycle',
+                                        variant: "destructive",
+                                      })
+                                    }
+                                  } catch (error) {
+                                    toast({
+                                      title: "Error Deleting Cycle",
+                                      description: "Failed to delete performance cycle. Please try again.",
+                                      variant: "destructive",
+                                    })
                                   }
                                 }}
                               >
@@ -1428,9 +1537,13 @@ export default function PerformanceReviewPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-3 sm:pt-4 border-t">
-                <Button onClick={handleUpdateReview} className="flex-1 text-sm sm:text-base">
+                <Button 
+                  disabled={updatingReview}
+                  onClick={handleUpdateReview} 
+                  className="flex-1 text-sm sm:text-base"
+                >
                   <Save className="h-4 w-4 mr-2" />
-                  Save Changes
+                  {updatingReview ? 'Saving...' : 'Save Changes'}
                 </Button>
                 <Button variant="outline" onClick={() => setShowEditReviewDialog(false)} className="flex-1 text-sm sm:text-base">
                   Cancel
