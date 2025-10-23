@@ -107,6 +107,8 @@ export default function JobSeekerTimeTrackerPage() {
   const [leaveTo, setLeaveTo] = useState<string>("")
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
   const [submittingLeave, setSubmittingLeave] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
 
   // API functions
   const mapBackendLeaveToUI = (row: any): LeaveRequest => {
@@ -389,6 +391,17 @@ export default function JobSeekerTimeTrackerPage() {
       return null
     }
   }, [leaveFrom, leaveTo])
+
+  // Pagination logic for leave requests
+  const paginatedLeaves = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return leaveRequests.slice(startIndex, endIndex)
+  }, [leaveRequests, currentPage, itemsPerPage])
+
+  const totalPages = Math.ceil(leaveRequests.length / itemsPerPage)
+  const hasNextPage = currentPage < totalPages
+  const hasPrevPage = currentPage > 1
 
   // Load leaves from backend
   useEffect(() => {
@@ -676,6 +689,8 @@ export default function JobSeekerTimeTrackerPage() {
         setLeaveReason("")
         setLeaveFrom("")
         setLeaveTo("")
+        // Reset to first page when new leave is added
+        setCurrentPage(1)
       } else {
         toast({
           title: "Error",
@@ -692,6 +707,18 @@ export default function JobSeekerTimeTrackerPage() {
       })
     } finally {
       setSubmittingLeave(false)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (hasNextPage) {
+      setCurrentPage(prev => prev + 1)
+    }
+  }
+
+  const handlePrevPage = () => {
+    if (hasPrevPage) {
+      setCurrentPage(prev => prev - 1)
     }
   }
 
@@ -940,7 +967,14 @@ export default function JobSeekerTimeTrackerPage() {
 
         {/* Leave List - Improved mobile layout */}
         <div className="rounded-xl border bg-background p-5 sm:p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Your Leave History</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-foreground">Your Leave History</h3>
+            {leaveRequests.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, leaveRequests.length)} of {leaveRequests.length}
+              </div>
+            )}
+          </div>
 
           {leaveRequests.length === 0 ? (
             <div className="text-center py-8">
@@ -948,57 +982,86 @@ export default function JobSeekerTimeTrackerPage() {
               <p className="text-sm text-muted-foreground mt-1">Submit a request above to get started.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-2 sm:mx-0">
-              <div className="min-w-full">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-3 pr-4 font-medium whitespace-nowrap">Reason</th>
-                      <th className="py-3 pr-4 font-medium whitespace-nowrap hidden sm:table-cell">From</th>
-                      <th className="py-3 pr-4 font-medium whitespace-nowrap hidden sm:table-cell">To</th>
-                      <th className="py-3 pr-4 font-medium whitespace-nowrap">Status</th>
-                      <th className="py-3 pr-4 font-medium whitespace-nowrap hidden xs:table-cell">Requested</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveRequests.map((lr) => (
-                      <tr key={lr.id} className="border-b last:border-0">
-                        <td className="py-3 pr-4 align-top">
-                          <div className="max-w-[200px] sm:max-w-[300px] text-foreground text-sm break-words">
-                            {lr.reason}
-                            <div className="sm:hidden text-xs text-muted-foreground mt-1">
-                              {lr.from} to {lr.to}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 pr-4 align-top text-sm hidden sm:table-cell">{lr.from}</td>
-                        <td className="py-3 pr-4 align-top text-sm hidden sm:table-cell">{lr.to}</td>
-                        <td className="py-3 pr-4 align-top">
-                          <span
-                            className={[
-                              "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap",
-                              lr.status === "Approved"
-                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                : lr.status === "Cancelled"
-                                  ? "bg-red-100 text-red-800 border border-red-200"
-                                  : "bg-amber-100 text-amber-800 border border-amber-200",
-                            ].join(" ")}
-                          >
-                            {lr.status}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 align-top text-xs hidden xs:table-cell">
-                          {new Date(lr.createdAt).toLocaleString([], { 
-                            dateStyle: "medium", 
-                            timeStyle: "short" 
-                          })}
-                        </td>
+            <>
+              <div className="overflow-x-auto -mx-2 sm:mx-0">
+                <div className="min-w-full">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="py-3 pr-4 font-medium whitespace-nowrap">Reason</th>
+                        <th className="py-3 pr-4 font-medium whitespace-nowrap hidden sm:table-cell">From</th>
+                        <th className="py-3 pr-4 font-medium whitespace-nowrap hidden sm:table-cell">To</th>
+                        <th className="py-3 pr-4 font-medium whitespace-nowrap">Status</th>
+                        <th className="py-3 pr-4 font-medium whitespace-nowrap hidden xs:table-cell">Requested</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {paginatedLeaves.map((lr) => (
+                        <tr key={lr.id} className="border-b last:border-0">
+                          <td className="py-3 pr-4 align-top">
+                            <div className="max-w-[200px] sm:max-w-[300px] text-foreground text-sm break-words">
+                              {lr.reason}
+                              <div className="sm:hidden text-xs text-muted-foreground mt-1">
+                                {lr.from} to {lr.to}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 pr-4 align-top text-sm hidden sm:table-cell">{lr.from}</td>
+                          <td className="py-3 pr-4 align-top text-sm hidden sm:table-cell">{lr.to}</td>
+                          <td className="py-3 pr-4 align-top">
+                            <span
+                              className={[
+                                "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap",
+                                lr.status === "Approved"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                  : lr.status === "Cancelled"
+                                    ? "bg-red-100 text-red-800 border border-red-200"
+                                    : "bg-amber-100 text-amber-800 border border-amber-200",
+                              ].join(" ")}
+                            >
+                              {lr.status}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 align-top text-xs hidden xs:table-cell">
+                            {new Date(lr.createdAt).toLocaleString([], { 
+                              dateStyle: "medium", 
+                              timeStyle: "short" 
+                            })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePrevPage}
+                      disabled={!hasPrevPage}
+                      className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium border border-gray-300 bg-background text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextPage}
+                      disabled={!hasNextPage}
+                      className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium border border-gray-300 bg-background text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>

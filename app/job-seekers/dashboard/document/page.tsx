@@ -75,6 +75,10 @@ export default function JobSeekerDocumentPage() {
   const [docToPreview, setDocToPreview] = useState<DocRecord | null>(null)
   const previewUrlsRef = useRef<Set<string>>(new Set())
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+
   useEffect(() => {
     // Check hire status on mount
     const checkHired = async () => {
@@ -147,6 +151,17 @@ export default function JobSeekerDocumentPage() {
   }, [isHired])
 
   const requiresCustomName = useMemo(() => category === "Other", [category])
+
+  // Pagination calculations
+  const totalPages = Math.ceil(uploadedDocs.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedDocs = uploadedDocs.slice(startIndex, endIndex)
+
+  // Reset to first page when documents change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [uploadedDocs.length])
 
   // Load documents from API
   const loadDocuments = async () => {
@@ -427,7 +442,7 @@ export default function JobSeekerDocumentPage() {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs text-blue-800">
-                <strong>Supported formats:</strong> PDF, DOC, DOCX, Images, PPT, XLS, CSV
+                <strong>Supported formats:</strong> PDF, DOC, DOCX, Images,CSV 
               </p>
               <p className="text-xs text-blue-800 mt-1">
                 <strong>Max size:</strong> 10MB per file
@@ -484,7 +499,7 @@ export default function JobSeekerDocumentPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  uploadedDocs.map((doc) => (
+                  paginatedDocs.map((doc) => (
                     <TableRow key={doc.id} className="group hover:bg-muted/50">
                       <TableCell className="py-3 sm:py-4">
                         <div className="flex items-center gap-3">
@@ -565,6 +580,52 @@ export default function JobSeekerDocumentPage() {
             </Table>
           </div>
         </div>
+
+        {/* Pagination */}
+        {uploadedDocs.length > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 sm:mt-6 pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(endIndex, uploadedDocs.length)} of {uploadedDocs.length} documents
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <span className="sr-only">Previous page</span>
+                ‹
+              </Button>
+              
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                    className="h-8 w-8 p-0"
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0"
+              >
+                <span className="sr-only">Next page</span>
+                ›
+              </Button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* View Details Dialog */}

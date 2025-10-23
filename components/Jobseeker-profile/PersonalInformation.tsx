@@ -624,7 +624,6 @@ export default function PersonalInformation() {
 
         {isEditing && (
           <div className="flex justify-end space-x-3 mt-4">
-            <Button variant="outline" onClick={handleCancel}>Cancel</Button>
             <Button onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" /> Save
             </Button>

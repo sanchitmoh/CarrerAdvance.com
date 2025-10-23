@@ -306,22 +306,29 @@ export default function SavedJobsPage() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-row sm:flex-row lg:flex-col gap-2 lg:gap-3 items-stretch lg:items-start lg:ml-4 mt-2 lg:mt-0 flex-shrink-0 w-full sm:w-auto">
-                    <Button
-                      onClick={() => handleApply(job.id)}
-                      disabled={job.applied === true || applyingJobId === job.id}
-                      className={`w-full sm:w-auto text-sm py-2 ${job.applied ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white'} ${applyingJobId === job.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {applyingJobId === job.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
-                          Applying...
-                        </>
-                      ) : job.applied ? (
-                        'Applied'
-                      ) : (
-                        'Apply Now'
-                      )}
-                    </Button>
+                    {job.applied ? (
+                      <Button
+                        disabled
+                        className="w-full sm:w-auto text-sm py-2 bg-green-100 text-green-700 border border-green-200 cursor-not-allowed"
+                      >
+                        ✓ Applied
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleApply(job.id)}
+                        disabled={applyingJobId === job.id}
+                        className={`w-full sm:w-auto text-sm py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white ${applyingJobId === job.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {applyingJobId === job.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
+                            Applying...
+                          </>
+                        ) : (
+                          'Apply Now'
+                        )}
+                      </Button>
+                    )}
 
                     <div className="flex gap-2 w-full sm:w-auto">
                       <Dialog>
@@ -389,25 +396,29 @@ export default function SavedJobsPage() {
                                 </Button>
 
                                 <div className="flex flex-col sm:flex-row gap-3">
-                                  <Button variant="outline" className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 bg-transparent text-sm flex-1">
-                                    <ExternalLink className="h-4 w-4 mr-2" /> View Original
-                                  </Button>
-                                  <Button 
-                                    onClick={() => handleApply(selectedJob.id)} 
-                                    disabled={selectedJob.applied === true || applyingJobId === selectedJob.id}
-                                    className={`bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm flex-1 ${selectedJob.applied ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : ''} ${applyingJobId === selectedJob.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                  >
-                                    {applyingJobId === selectedJob.id ? (
-                                      <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Applying...
-                                      </>
-                                    ) : selectedJob.applied ? (
-                                      'Applied'
-                                    ) : (
-                                      'Apply Now'
-                                    )}
-                                  </Button>
+                                  {selectedJob.applied ? (
+                                    <Button 
+                                      disabled
+                                      className="bg-green-100 text-green-700 border border-green-200 cursor-not-allowed text-sm w-full"
+                                    >
+                                      ✓ Applied
+                                    </Button>
+                                  ) : (
+                                    <Button 
+                                      onClick={() => handleApply(selectedJob.id)} 
+                                      disabled={applyingJobId === selectedJob.id}
+                                      className={`bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white text-sm w-full ${applyingJobId === selectedJob.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                      {applyingJobId === selectedJob.id ? (
+                                        <>
+                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                          Applying...
+                                        </>
+                                      ) : (
+                                        'Apply Now'
+                                      )}
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -441,7 +452,7 @@ export default function SavedJobsPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Card className="border-emerald-200">
           <CardContent className="p-3 sm:p-4 text-center">
             <div className="text-xl sm:text-2xl font-bold text-emerald-600 mb-1">{savedJobs.length}</div>
@@ -453,13 +464,6 @@ export default function SavedJobsPage() {
           <CardContent className="p-3 sm:p-4 text-center">
             <div className="text-xl sm:text-2xl font-bold text-blue-600 mb-1">{savedJobs.filter((job) => job.remote).length}</div>
             <div className="text-xs sm:text-sm text-gray-600">Remote Opportunities</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-emerald-200">
-          <CardContent className="p-3 sm:p-4 text-center">
-            <div className="text-xl sm:text-2xl font-bold text-purple-600 mb-1">{new Set(savedJobs.map((job) => job.industry)).size}</div>
-            <div className="text-xs sm:text-sm text-gray-600">Different Industries</div>
           </CardContent>
         </Card>
       </div>

@@ -308,13 +308,6 @@ export default function ProfessionalSummary() {
           {isEditing && (
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <Button
-                variant="outline"
-                onClick={handleCancel}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </Button>
-              <Button
                 onClick={handleSave}
                 className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
               >
