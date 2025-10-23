@@ -19,6 +19,8 @@ export default function BlogsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState(defaultCategories);
+  const [selectedBlog, setSelectedBlog] = useState<any>(null)
+  const [showBlogModal, setShowBlogModal] = useState(false)
   const blogsPerPage = 10;
 
   // Fetch blogs from backend
@@ -121,6 +123,12 @@ export default function BlogsPage() {
     fetchBlogs(searchQuery, selectedCategory, page);
   };
 
+  // Handle read article
+  const handleReadArticle = (blog: any) => {
+    setSelectedBlog(blog)
+    setShowBlogModal(true)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       {/* Hero Section */}
@@ -144,20 +152,21 @@ export default function BlogsPage() {
           {/* Search */}
           <form className="max-w-2xl mx-auto" onSubmit={handleSearch}>
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              
               <Input
-                type="text"
-                placeholder="Search articles, topics, or authors..."
-                className="pl-12 h-14 text-lg bg-white/10 backdrop-blur-sm border-2 border-white/20 focus:border-white/80 text-black placeholder-white/70 rounded-xl"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Button 
-                type="submit"
-                className="absolute right-2 top-2 bg-white text-emerald-600 hover:bg-gray-100 h-10 px-6 font-semibold rounded-lg"
-              >
-                Search
-              </Button>
+  type="text"
+  placeholder="Search articles, topics, or authors..."
+  className="pl-12 h-14 text-lg bg-white/10 backdrop-blur-sm border-2 border-white/20 focus:border-white/40 text-white placeholder:text-white rounded-xl"
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+/>
+
+                <Button 
+                  type="submit"
+                  className="absolute right-2 top-2 bg-white text-emerald-600 hover:bg-gray-100 h-10 px-6 font-semibold rounded-lg"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
             </div>
           </form>
         </div>
@@ -228,7 +237,7 @@ export default function BlogsPage() {
                       </div>
                     </div>
                     
-                    <Button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg font-semibold">
+                    <Button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg font-semibold" onClick={() => handleReadArticle(featuredPost)}>
                       Read Article
                     </Button>
                   </div>
@@ -329,6 +338,73 @@ export default function BlogsPage() {
           Showing {blogs.length} of {total} articles
         </div>
       </div>
+      {/* Blog Modal */}
+      {showBlogModal && selectedBlog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">{selectedBlog.title}</h2>
+              <button
+                onClick={() => setShowBlogModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-4">
+                  <span className="bg-emerald-100 text-emerald-800 text-sm font-semibold px-3 py-1 rounded-full">
+                    {selectedBlog.category || 'Blog'}
+                  </span>
+                  <div className="flex items-center text-sm text-gray-500 space-x-4">
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>{selectedBlog.read_time || '5 min'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Eye className="h-4 w-4 mr-1" />
+                      <span>{(selectedBlog.views || 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {selectedBlog.created_date ? new Date(selectedBlog.created_date).toLocaleDateString() : 'Recently'}
+                </div>
+              </div>
+
+              {selectedBlog.image && (
+                <img
+                  src={selectedBlog.image || selectedBlog.image_default || "/placeholder.svg"}
+                  alt={selectedBlog.title}
+                  className="w-full h-64 object-cover rounded-lg mb-6"
+                />
+              )}
+
+              <div className="prose max-w-none">
+                <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {selectedBlog.content || selectedBlog.description || selectedBlog.excerpt || 'Content not available.'}
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="flex items-center">
+                  <img
+                    src="/placeholder.svg?height=40&width=40&text=AU"
+                    alt={selectedBlog.author || 'Author'}
+                    className="w-10 h-10 rounded-full mr-3"
+                  />
+                  <div>
+                    <div className="font-semibold text-gray-900">{selectedBlog.author || 'Author'}</div>
+                    <div className="text-sm text-gray-500">Published {selectedBlog.created_date ? new Date(selectedBlog.created_date).toLocaleDateString() : 'Recently'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  )
-}
+    )
+  }
