@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, Suspense } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -137,7 +137,7 @@ const SKILL_SUGGESTIONS = [
   "Critical Thinking",
 ]
 
-export default function ResumeBuilderEditor() {
+function ResumeBuilderEditorContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const resumeId = params.id as string
@@ -838,4 +838,23 @@ export default function ResumeBuilderEditor() {
       </div>
     </div>
   )
+}
+
+export default function ResumeBuilderEditor() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+          <div className="grid gap-4">
+            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <ResumeBuilderEditorContent />
+    </Suspense>
+  );
 }
