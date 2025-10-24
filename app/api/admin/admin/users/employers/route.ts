@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getBaseUrl } from '@/lib/api-config'
+import { getBackendUrl } from '@/lib/api-config'
 
 function parse(json: any): any[] {
   if (!json) return []
@@ -11,16 +11,19 @@ function parse(json: any): any[] {
 
 export async function GET(_req: NextRequest) {
   try {
-    const url = getBaseUrl('admin/employer/datatable_json')
+    const url = getBackendUrl('index.php/api/admin/users/employers')
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
     const txt = await res.text()
     const json = (() => { try { return JSON.parse(txt) } catch { return {} } })()
-    const rows = parse(json)
-    const data = rows.map((row: any) => {
-      const companyName = String(row?.[1] ?? '')
-      const email = String(row?.[2] ?? '')
-      return { type: 'employer', name: companyName, email, role: 'Employer', status: 'Active' }
-    })
+    const data = json.success ? json.data.map((employer: any) => ({
+      type: 'employer',
+      id: employer.id || 0,
+      name: employer.name || '',
+      email: employer.email || '',
+      role: 'Employer',
+      status: employer.status || 'Deactive', // Use status from API response
+      updated_date: employer.updated_date || 'N/A',
+    })) : []
     return NextResponse.json({ success: true, data })
   } catch (e) {
     return NextResponse.json({ success: false, data: [] }, { status: 500 })

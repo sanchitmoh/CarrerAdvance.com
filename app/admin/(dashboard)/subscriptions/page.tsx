@@ -203,17 +203,17 @@ const getStatusColor = (status: string) => {
 const getStatusIcon = (status: string) => {
   switch (status) {
     case "active":
-      return <CheckCircle className="h-4 w-4" />
+      return <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
     case "cancelled":
-      return <XCircle className="h-4 w-4" />
+      return <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />
     case "past_due":
-      return <AlertCircle className="h-4 w-4" />
+      return <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />
     case "pending":
-      return <Clock className="h-4 w-4" />
+      return <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
     case "resolved":
-      return <CheckCircle className="h-4 w-4" />
+      return <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
     default:
-      return <Clock className="h-4 w-4" />
+      return <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
   }
 }
 
@@ -231,7 +231,7 @@ export default function AdminSubscriptions() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-6 pt-4">
-        <BackButton />
+       
       </div>
 
       {/* Header */}
@@ -239,6 +239,7 @@ export default function AdminSubscriptions() {
         <div className="px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
             <div className="">
+              <BackButton />
               <h1 className="text-xl sm:text-2xl font-bold text-white">Subscription Management</h1>
               <p className="text-sm sm:text-base text-white">
                 Manage subscription plans, billing, and customer accounts
@@ -446,94 +447,152 @@ export default function AdminSubscriptions() {
           </TabsContent>
 
           <TabsContent value="subscribers" className="space-y-4 sm:space-y-6">
-            {/* Search and Filter */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <input
-                      type="text"
-                      placeholder="Search subscribers..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    />
-                  </div>
-                  <Button variant="outline">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filter
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+  {/* Search and Filter */}
+  <Card>
+    <CardContent className="p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <input
+            type="text"
+            placeholder="Search subscribers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+          />
+        </div>
+        <Button variant="outline" className="w-full sm:w-auto">
+          <Filter className="h-4 w-4 mr-2" />
+          Filter
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
 
-            {/* Subscribers Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Subscriptions</CardTitle>
-                <CardDescription>Latest subscription activities and status updates</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Subscriber</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Plan</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Next Billing</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Amount</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredSubscriptions.map((subscription) => (
-                        <tr key={subscription.id} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4">
-                            <div>
-                              <div className="font-medium text-gray-900">{subscription.user}</div>
-                              <div className="text-sm text-gray-500">{subscription.email}</div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="text-sm font-medium">{subscription.plan}</span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge className={getStatusColor(subscription.status)}>
-                              <div className="flex items-center">
-                                {getStatusIcon(subscription.status)}
-                                <span className="ml-1 capitalize">{subscription.status.replace("_", " ")}</span>
-                              </div>
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              {subscription.nextBilling}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="font-medium">{subscription.amount}</span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex space-x-2">
-                              <Button size="sm" variant="outline">
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+  {/* Subscribers Table - Hidden on mobile, shown on sm and above */}
+  <Card className="hidden sm:block">
+    <CardHeader>
+      <CardTitle>Recent Subscriptions</CardTitle>
+      <CardDescription>Latest subscription activities and status updates</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-3 px-4 font-medium text-gray-900">Subscriber</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900">Plan</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900">Next Billing</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900">Amount</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredSubscriptions.map((subscription) => (
+              <tr key={subscription.id} className="border-b hover:bg-gray-50">
+                <td className="py-3 px-4">
+                  <div>
+                    <div className="font-medium text-gray-900">{subscription.user}</div>
+                    <div className="text-sm text-gray-500">{subscription.email}</div>
+                  </div>
+                </td>
+                <td className="py-3 px-4">
+                  <span className="text-sm font-medium">{subscription.plan}</span>
+                </td>
+                <td className="py-3 px-4">
+                  <Badge className={getStatusColor(subscription.status)}>
+                    <div className="flex items-center">
+                      {getStatusIcon(subscription.status)}
+                      <span className="ml-1 capitalize">{subscription.status.replace("_", " ")}</span>
+                    </div>
+                  </Badge>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {subscription.nextBilling}
+                  </div>
+                </td>
+                <td className="py-3 px-4">
+                  <span className="font-medium">{subscription.amount}</span>
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex space-x-2">
+                    <Button size="sm" variant="outline">
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </CardContent>
+  </Card>
+
+  {/* Mobile Cards View - Only shown on mobile, hidden on sm and above */}
+  <Card className="sm:hidden">
+    <CardHeader>
+      <CardTitle>Recent Subscriptions</CardTitle>
+      <CardDescription>Latest subscription activities and status updates</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-4">
+        {filteredSubscriptions.map((subscription) => (
+          <div key={subscription.id} className="border rounded-lg p-4 bg-white space-y-3">
+            <div className="flex justify-between items-start">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-900 truncate">{subscription.user}</div>
+                <div className="text-sm text-gray-500 truncate">{subscription.email}</div>
+              </div>
+              <Badge className={`${getStatusColor(subscription.status)} shrink-0 ml-2`}>
+                <div className="flex items-center">
+                  {getStatusIcon(subscription.status)}
+                  <span className="ml-1 capitalize">{subscription.status.replace("_", " ")}</span>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="text-gray-500 text-xs">Plan</div>
+                <div className="font-medium truncate">{subscription.plan}</div>
+              </div>
+              <div>
+                <div className="text-gray-500 text-xs">Amount</div>
+                <div className="font-medium">{subscription.amount}</div>
+              </div>
+            </div>
+            
+            <div className="text-sm">
+              <div className="text-gray-500 text-xs">Next Billing</div>
+              <div className="flex items-center font-medium">
+                <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                {subscription.nextBilling}
+              </div>
+            </div>
+            
+            <div className="flex space-x-2 pt-2">
+              <Button size="sm" variant="outline" className="flex-1">
+                <Eye className="h-4 w-4 mr-2" />
+                View
+              </Button>
+              <Button size="sm" variant="outline" className="flex-1">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+</TabsContent>
 
           <TabsContent value="billing" className="space-y-4 sm:space-y-6">
             <Card>

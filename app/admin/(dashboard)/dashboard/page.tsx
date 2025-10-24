@@ -204,10 +204,7 @@ export default function AdminDashboard() {
                 <option value="30d">Last 30 days</option>
                 <option value="90d">Last 90 days</option>
               </select>
-              <Button className="text-white bg-transparent border-2 border-emerald-700 hover:bg-emerald-800 whitespace-nowrap shrink-0 leading-normal">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
+              
             </div>
           </div>
         </div>

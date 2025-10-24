@@ -18,7 +18,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'CareerAdvance - Transform Your Career Journey',
   description: 'Join the future of work with our AI-powered platform connecting talent, opportunities, and innovation. Next-generation career development for ambitious professionals.',
-    generator: 'v0.dev'
+  generator: 'Seoulix Technology',
+  icons: {
+    icon: '/Favicon.png', // ✅ This line adds your favicon
+  },  
 }
 
 export default function RootLayout({

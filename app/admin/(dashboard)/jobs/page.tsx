@@ -181,10 +181,10 @@ export default function JobsPage() {
       : 0
 
   const stats: DashboardStat[] = [
-    { title: "Total Jobs", value: jobs.length.toString(), icon: Briefcase, color: "text-blue-600", bgColor: "bg-blue-50" },
-    { title: "Active Jobs", value: activeJobs.length.toString(), icon: TrendingUp, color: "text-green-600", bgColor: "bg-green-50" },
-    { title: "Total Applications", value: totalApplications.toString(), icon: Users, color: "text-purple-600", bgColor: "bg-purple-50" },
-    { title: "Avg. Salary", value: avgSalary > 0 ? `$${avgSalary.toLocaleString()}` : "$0", icon: DollarSign, color: "text-orange-600", bgColor: "bg-orange-50" },
+    { title: "Total Jobs", value: jobs.length.toString(), icon: Briefcase, color: "text-white", bgColor: "bg-blue-400" },
+    { title: "Active Jobs", value: activeJobs.length.toString(), icon: TrendingUp, color: "text-white", bgColor: "bg-green-400" },
+    { title: "Total Applications", value: totalApplications.toString(), icon: Users, color: "text-white", bgColor: "bg-purple-400" },
+    { title: "Avg. Salary", value: avgSalary > 0 ? `$${avgSalary.toLocaleString()}` : "$0", icon: DollarSign, color: "text-white", bgColor: "bg-orange-400" },
   ]
 
   const filterTabs = [
@@ -358,15 +358,17 @@ export default function JobsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-3 sm:px-4 md:px-6 lg:px-8 pt-3 sm:pt-4">
-        <BackButton />
+       
       </div>
 
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="bg-white shadow-sm border-b ">
+         
+        <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-12 text-white">
           <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Job Management</h1>
-            <p className="text-sm sm:text-base text-gray-600">Manage job postings and applications</p>
+            <BackButton />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Job Management</h1>
+            <p className="text-sm sm:text-base text-white">Manage job postings and applications</p>
           </div>
         </div>
       </div>
@@ -375,12 +377,12 @@ export default function JobsPage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {stats.map((stat, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow border-0 shadow-sm">
+            <Card key={index} className={`hover:shadow-lg transition-shadow border-0 shadow-sm ${stat.bgColor}`}>
               <CardContent className="p-3 sm:p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <p className="text-xs sm:text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-xs sm:text-sm font-medium text-white">{stat.title}</p>
+                    <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{stat.value}</p>
                   </div>
                   <div className={`p-2 sm:p-3 rounded-full ${stat.bgColor}`}>
                     <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 ${stat.color}`} />

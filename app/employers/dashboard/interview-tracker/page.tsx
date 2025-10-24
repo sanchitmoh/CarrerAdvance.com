@@ -382,9 +382,10 @@ export default function InterviewTrackerPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <BackButton/>
+    
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div>
+          <BackButton/>
           <h1 className="text-2xl font-bold text-white">Interview Tracker</h1>
           <p className="text-white">Schedule and manage candidate interviews with rounds and reviews</p>
         </div>

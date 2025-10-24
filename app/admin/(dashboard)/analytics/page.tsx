@@ -104,6 +104,7 @@ export default function AdminAnalytics() {
 
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
+        <BackButton />
         <div className="px-2 sm:px-4 lg:px-6 py-3 sm:py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="min-w-0">
@@ -113,7 +114,7 @@ export default function AdminAnalytics() {
               </p>
             </div>
             <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-              <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm w-full xs:w-auto">
+              <select aria-label="Time period filter" className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm w-full xs:w-auto">
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
                 <option value="90d">Last 90 days</option>

@@ -100,7 +100,7 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
                 href={item.href}
                 className={`
                   group relative flex items-center justify-center w-12 h-12 rounded-lg transition-colors
-                  ${isActive ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                  ${isActive ? 'bg-emerald-100 text-emerald-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
                 `}
               >
                 <Icon className="w-6 h-6" />
@@ -144,7 +144,7 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
                 onClick={onClose || onToggle}
                 className={`
                   flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors
-                  ${isActive ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                  ${isActive ? 'bg-emerald-100 text-emerald-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
                 `}
               >
                 <Icon className="w-5 h-5" />

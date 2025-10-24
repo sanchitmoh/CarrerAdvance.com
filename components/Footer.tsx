@@ -94,7 +94,7 @@ export default function Footer() {
             <Link href="/" className="inline-flex items-center group">
               <div className="relative">
                 <img
-                  src="/logo3.png"
+                  src="/carrerredb2.png"
                   alt="CareerAdvance Logo"
                   className="h-30 w-100 object-contain transition-transform duration-300 hover:scale-105 active:scale-95"
                 />

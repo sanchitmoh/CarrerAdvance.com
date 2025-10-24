@@ -244,11 +244,13 @@ export default function CoursesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-2 sm:p-3 space-y-3 sm:space-y-4">
-      <BackButton />
 
       {/* Header */}
       <div className="flex flex-col space-y-2 sm:space-y-3 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
+         
+
         <div className="space-y-1">
+          <BackButton />
           <h1 className="text-xl sm:text-2xl font-bold text-white">Course Management</h1>
           <p className="text-xs sm:text-sm text-white">Review and manage all platform courses</p>
         </div>

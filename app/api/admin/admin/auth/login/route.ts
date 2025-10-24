@@ -18,10 +18,35 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
     
     if (response.ok) {
-      // If backend indicates direct success without OTP, set admin cookie
+      // If backend indicates direct success without OTP, set admin cookies
       if (data && data.success && !data.requires_otp) {
         const res = NextResponse.json(data)
+        
+        // Set admin_jwt cookie
         res.cookies.set('admin_jwt', '1', {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 7 * 24 * 60 * 60,
+        })
+        
+        // Set admin_id cookie if available in response
+        if (data.admin_id) {
+          res.cookies.set('admin_id', data.admin_id.toString(), {
+            httpOnly: true,
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 7 * 24 * 60 * 60,
+          })
+        }
+        
+        return res
+      }
+      
+      // If OTP is required, also set admin_id cookie if available
+      if (data && data.success && data.requires_otp && data.admin_id) {
+        const res = NextResponse.json(data)
+        res.cookies.set('admin_id', data.admin_id.toString(), {
           httpOnly: true,
           sameSite: 'lax',
           path: '/',
@@ -29,6 +54,7 @@ export async function POST(request: NextRequest) {
         })
         return res
       }
+      
       return NextResponse.json(data)
     } else {
       return NextResponse.json(

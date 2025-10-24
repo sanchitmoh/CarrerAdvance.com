@@ -155,12 +155,14 @@ export default function FeatureFlagsPage() {
     <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <div className="px-0 pt-0">
-          <BackButton />
         </div>
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
+          
+
           <div className="space-y-1 ">
+            <BackButton />
             <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
               <Flag className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               Feature Flags

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getBaseUrl } from '@/lib/api-config'
+import { getBackendUrl } from '@/lib/api-config'
 
 function parse(json: any): any[] {
   if (!json) return []
@@ -10,17 +10,19 @@ function parse(json: any): any[] {
 
 export async function GET(_req: NextRequest) {
   try {
-    const url = getBaseUrl('admin/student/datatable_json')
+    const url = getBackendUrl('index.php/api/admin/users/students')
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } })
     const txt = await res.text()
     const json = (() => { try { return JSON.parse(txt) } catch { return {} } })()
-    const rows = parse(json)
-    const data = rows.map((row: any) => {
-      const name = String(row?.[0] ?? '')
-      const email = String(row?.[1] ?? '')
-      const status = /Active/i.test(String(row?.[4] ?? '')) ? 'Active' : 'Deactive'
-      return { type: 'student', name, email, role: 'Student', status }
-    })
+    const data = json.success ? json.data.map((student: any) => ({
+      type: 'student',
+      id: student.id || 0,
+      name: student.name || '',
+      email: student.email || '',
+      role: 'Student',
+      status: student.status || 'Deactive', // Use status from API response
+      created_date: student.created_date || 'N/A',
+    })) : []
     return NextResponse.json({ success: true, data })
   } catch (e) {
     return NextResponse.json({ success: false, data: [] }, { status: 500 })

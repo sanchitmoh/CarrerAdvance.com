@@ -1,7 +1,7 @@
 
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getBaseUrl } from '@/lib/api-config'
+import { getBackendUrl } from '@/lib/api-config'
 
 type AdminTableResponse = {
   data: any[]
@@ -27,16 +27,16 @@ async function fetchJson(url: string): Promise<any> {
   const text = await res.text()
   try {
     return JSON.parse(text)
-  } catch {
-    return { data: [] }
+  } catch (error) {
+    return { success: false, data: [] }
   }
 }
 
 export async function GET(_req: NextRequest) {
   try {
-    const usersUrl = getBaseUrl('admin/users/datatable_json')
-    const employersUrl = getBaseUrl('admin/employer/datatable_json')
-    const studentsUrl = getBaseUrl('admin/student/datatable_json')
+    const usersUrl = getBackendUrl('index.php/api/admin/users/jobseekers')
+    const employersUrl = getBackendUrl('index.php/api/admin/users/employers')
+    const studentsUrl = getBackendUrl('index.php/api/admin/users/students')
 
     const [usersJson, employersJson, studentsJson] = await Promise.all([
       fetchJson(usersUrl),
@@ -44,54 +44,46 @@ export async function GET(_req: NextRequest) {
       fetchJson(studentsUrl),
     ])
 
-    const usersRows = parseAdminTable(usersJson)
-    const employerRows = parseAdminTable(employersJson)
-    const studentRows = parseAdminTable(studentsJson)
+    // Parse API responses - they return {success: true, data: [...]}
+    const usersData = usersJson.success ? usersJson.data : []
+    const employersData = employersJson.success ? employersJson.data : []
+    const studentsData = studentsJson.success ? studentsJson.data : []
 
-    // Normalize to a unified shape
-    // Admin Users table row order (from PHP):
-    // [username, email, mobile_no, job_title, status_html, actions_html]
-    const normUsers = usersRows.map((row: any) => {
-      const name = row[0] ?? ''
-      const email = row[1] ?? ''
-      const role = 'Job-Seeker'
-      const status = /Active/i.test(String(row[4] ?? '')) ? 'Active' : 'Deactive'
-      return {
-        type: 'jobseeker',
-        name,
-        email,
-        role,
-        status,
-      }
-    })
+    console.log('Raw API responses:')
+    console.log('Users data:', usersData)
+    console.log('Employers data:', employersData)
+    console.log('Students data:', studentsData)
 
-    // Employers table row order (from PHP):
-    // [id, company_name, email, phone_no, username, actions_html]
-    const normEmployers = employerRows.map((row: any) => {
-      const companyName = row[1] ?? ''
-      const email = row[2] ?? ''
-      return {
-        type: 'employer',
-        name: companyName,
-        email,
-        role: 'Employer',
-        status: 'Active',
-      }
-    })
+    // Normalize to a unified shape - use status directly from API
+    const normUsers = usersData.map((user: any) => ({
+      type: 'jobseeker',
+      id: user.id || 0,
+      name: user.name || '',
+      email: user.email || '',
+      role: 'Job-Seeker',
+      status: user.status || 'Deactive', // Use status from API response
+      created_date: user.created_date || 'N/A',
+    }))
 
-    // Students table row order mirrors users with status html
-    const normStudents = studentRows.map((row: any) => {
-      const name = row[0] ?? ''
-      const email = row[1] ?? ''
-      const status = /Active/i.test(String(row[4] ?? '')) ? 'Active' : 'Deactive'
-      return {
-        type: 'student',
-        name,
-        email,
-        role: 'Student',
-        status,
-      }
-    })
+    const normEmployers = employersData.map((employer: any) => ({
+      type: 'employer',
+      id: employer.id || 0,
+      name: employer.name || '',
+      email: employer.email || '',
+      role: 'Employer',
+      status: employer.status || 'Deactive', // Use status from API response
+      updated_date: employer.updated_date || 'N/A',
+    }))
+
+    const normStudents = studentsData.map((student: any) => ({
+      type: 'student',
+      id: student.id || 0,
+      name: student.name || '',
+      email: student.email || '',
+      role: 'Student',
+      status: student.status || 'Deactive', // Use status from API response
+      created_date: student.created_date || 'N/A',
+    }))
 
     const combined = [...normUsers, ...normEmployers, ...normStudents]
 

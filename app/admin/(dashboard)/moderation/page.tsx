@@ -128,11 +128,12 @@ export default function ModerationPage() {
   return (
     <div className="space-y-6">
       <div className="mb-4">
-        <BackButton />
+       
       </div>
 
       <div className="flex items-center justify-between bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div>
+          <BackButton />
           <h1 className="text-3xl font-bold tracking-tight">Content Moderation</h1>
           <p className="text-muted-foreground text-white">Review and manage reported content, users, and activities</p>
         </div>

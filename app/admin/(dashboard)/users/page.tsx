@@ -15,10 +15,8 @@ import {
   GraduationCap,
   UserCheck,
   UserX,
-  Plus,
   Search,
   MoreHorizontal,
-  Edit,
   Eye,
   Ban,
   LogIn,
@@ -28,172 +26,9 @@ import {
   ChevronRight,
 } from "lucide-react"
 
-const stats = [
-  {
-    title: "Total Users",
-    value: "4",
-    icon: Users,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-  },
-  {
-    title: "Active Students",
-    value: "1",
-    icon: GraduationCap,
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-  },
-  {
-    title: "Active Teachers",
-    value: "0",
-    icon: UserCheck,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-  },
-  {
-    title: "Suspended Users",
-    value: "0",
-    icon: UserX,
-    color: "text-red-600",
-    bgColor: "bg-red-50",
-  },
-]
+// Stats will be calculated dynamically from API data
 
-const users = [
-  {
-    id: 1,
-    name: "Karan Kamble",
-    email: "karankamble@gmail.com",
-    role: "Student",
-    status: "Active",
-    joinDate: "8/23/2025",
-    lastActive: "8/23/2025",
-    stats: "0 enrolled\n0 completed",
-    avatar: "K",
-  },
-  {
-    id: 2,
-    name: "Admin User",
-    email: "admin@careeradvance.com",
-    role: "Admin",
-    status: "Active",
-    joinDate: "8/23/2025",
-    lastActive: "8/23/2025",
-    stats: "",
-    avatar: "A",
-  },
-  {
-    id: 3,
-    name: "John Employer",
-    email: "john@company.com",
-    role: "Employer",
-    status: "Active",
-    joinDate: "8/20/2025",
-    lastActive: "8/22/2025",
-    stats: "3 jobs posted\n12 applications",
-    avatar: "J",
-  },
-  {
-    id: 4,
-    name: "Sarah Seeker",
-    email: "sarah@email.com",
-    role: "Job-Seeker",
-    status: "Active",
-    joinDate: "8/18/2025",
-    lastActive: "8/23/2025",
-    stats: "5 applications\n2 interviews",
-    avatar: "S",
-  },
-  // Adding more sample data to demonstrate pagination
-  {
-    id: 5,
-    name: "Mike Johnson",
-    email: "mike@example.com",
-    role: "Student",
-    status: "Active",
-    joinDate: "8/15/2025",
-    lastActive: "8/22/2025",
-    stats: "2 enrolled\n1 completed",
-    avatar: "M",
-  },
-  {
-    id: 6,
-    name: "Emily Chen",
-    email: "emily@company.com",
-    role: "Employer",
-    status: "Active",
-    joinDate: "8/10/2025",
-    lastActive: "8/21/2025",
-    stats: "5 jobs posted\n20 applications",
-    avatar: "E",
-  },
-  {
-    id: 7,
-    name: "David Wilson",
-    email: "david@email.com",
-    role: "Job-Seeker",
-    status: "Active",
-    joinDate: "8/12/2025",
-    lastActive: "8/23/2025",
-    stats: "8 applications\n3 interviews",
-    avatar: "D",
-  },
-  {
-    id: 8,
-    name: "Lisa Brown",
-    email: "lisa@example.com",
-    role: "Student",
-    status: "Active",
-    joinDate: "8/08/2025",
-    lastActive: "8/20/2025",
-    stats: "1 enrolled\n0 completed",
-    avatar: "L",
-  },
-  {
-    id: 9,
-    name: "Robert Taylor",
-    email: "robert@company.com",
-    role: "Employer",
-    status: "Active",
-    joinDate: "8/05/2025",
-    lastActive: "8/19/2025",
-    stats: "7 jobs posted\n15 applications",
-    avatar: "R",
-  },
-  {
-    id: 10,
-    name: "Maria Garcia",
-    email: "maria@email.com",
-    role: "Job-Seeker",
-    status: "Active",
-    joinDate: "8/01/2025",
-    lastActive: "8/18/2025",
-    stats: "6 applications\n1 interview",
-    avatar: "M",
-  },
-  {
-    id: 11,
-    name: "James Miller",
-    email: "james@example.com",
-    role: "Student",
-    status: "Active",
-    joinDate: "7/28/2025",
-    lastActive: "8/17/2025",
-    stats: "3 enrolled\n2 completed",
-    avatar: "J",
-  },
-  {
-    id: 12,
-    name: "Sarah Davis",
-    email: "sarah.d@company.com",
-    role: "Employer",
-    status: "Active",
-    joinDate: "7/25/2025",
-    lastActive: "8/16/2025",
-    stats: "4 jobs posted\n18 applications",
-    avatar: "S",
-  },
-]
+// Users data is now fetched from API
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
@@ -228,13 +63,41 @@ const getRoleColor = (role: string) => {
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
-  const [selectedUser, setSelectedUser] = useState<(typeof users)[0] | null>(null)
+  const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false)
-  const [usersData, setUsersData] = useState(users)
+  const [usersData, setUsersData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [suspendingUsers, setSuspendingUsers] = useState<Set<string>>(new Set())
+  const [loggingInUsers, setLoggingInUsers] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
   const [isTablet, setIsTablet] = useState(false)
   const itemsPerPage = 10
+
+  // Fetch users data from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/admin/admin/users/list')
+        const result = await response.json()
+        
+        if (result.success) {
+          setUsersData(result.data)
+        } else {
+          console.error('Failed to fetch users:', result)
+          setUsersData([])
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error)
+        setUsersData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
 
   // Detect tablet screen size
   useEffect(() => {
@@ -256,9 +119,9 @@ export default function UsersPage() {
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
 
     if (activeTab === "all") return matchesSearch
-    if (activeTab === "students") return matchesSearch && user.role.toLowerCase() === "student"
-    if (activeTab === "employers") return matchesSearch && user.role.toLowerCase() === "employer"
-    if (activeTab === "job-seekers") return matchesSearch && user.role.toLowerCase() === "job-seeker"
+    if (activeTab === "students") return matchesSearch && user.type === "student"
+    if (activeTab === "employers") return matchesSearch && user.type === "employer"
+    if (activeTab === "job-seekers") return matchesSearch && user.type === "jobseeker"
 
     return matchesSearch
   })
@@ -276,22 +139,154 @@ export default function UsersPage() {
     { id: "job-seekers", label: "Job-Seekers", icon: UserSearch },
   ]
 
-  const handleViewProfile = (user: (typeof users)[0]) => {
+  const handleViewProfile = (user: any) => {
     setSelectedUser(user)
     setIsProfileDialogOpen(true)
   }
 
-  const handleSuspendUser = (userId: number) => {
-    setUsersData((prev) => prev.filter((user) => user.id !== userId))
-    // Reset to first page if current page becomes empty
-    if (currentUsers.length === 1 && currentPage > 1) {
-      setCurrentPage(currentPage - 1)
+  const handleSuspendUser = async (user: any) => {
+    const userKey = `${user.type}-${user.id}`
+    
+    // Check if already suspending this user
+    if (suspendingUsers.has(userKey)) {
+      return
+    }
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Are you sure you want to suspend ${user.name}? This will deactivate their account.`
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    // Add to suspending set
+    setSuspendingUsers(prev => new Set(prev).add(userKey))
+
+    try {
+      console.log('Suspending user:', user)
+      console.log('User type:', user.type)
+      console.log('User id:', user.id)
+      
+      // Check if user has required fields
+      if (!user.id) {
+        alert('Error: User ID is missing. Cannot suspend user.')
+        return
+      }
+      
+      const requestBody = {
+        type: user.type,
+        id: user.id,
+      }
+      
+      console.log('Request body:', requestBody)
+      
+      const response = await fetch('/api/admin/users/suspend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Update the user status in the local state
+        setUsersData(prevUsers => 
+          prevUsers.map(u => 
+            u.id === user.id && u.type === user.type 
+              ? { ...u, status: 'Deactive' }
+              : u
+          )
+        )
+        console.log('User suspended successfully:', result)
+        alert(`${user.name} has been suspended successfully.`)
+      } else {
+        console.error('Failed to suspend user:', result.message)
+        alert(`Failed to suspend user: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('Error suspending user:', error)
+      alert('An error occurred while suspending the user.')
+    } finally {
+      // Remove from suspending set
+      setSuspendingUsers(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(userKey)
+        return newSet
+      })
     }
   }
 
-  const handleUserLogin = (user: (typeof users)[0]) => {
+  const handleUserLogin = async (user: any) => {
+    const userKey = `${user.type}-${user.id}`
+    if (loggingInUsers.has(userKey)) {
+      return
+    }
+
     setSelectedUser(user)
     setIsLoginDialogOpen(true)
+  }
+
+  const handleConfirmLogin = async () => {
+    if (!selectedUser) return
+
+    const userKey = `${selectedUser.type}-${selectedUser.id}`
+    if (loggingInUsers.has(userKey)) {
+      return
+    }
+
+    setLoggingInUsers(prev => new Set(prev).add(userKey))
+
+    try {
+      console.log('Initiating login for user:', selectedUser)
+      
+      const requestBody = {
+        type: selectedUser.type,
+        id: selectedUser.id,
+        redirect: '/dashboard' // This will be converted to the appropriate dashboard by backend
+      }
+
+      console.log('Login request body:', requestBody)
+
+      const response = await fetch('/api/admin/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      const result = await response.json()
+      console.log('Login response:', result)
+
+      if (result.success) {
+        // Close the dialog
+        setIsLoginDialogOpen(false)
+        
+        // Show success message
+        alert(`Login link generated successfully for ${selectedUser.name}. You will be redirected to their account.`)
+        
+        // Redirect to the generated link
+        if (result.data && result.data.link) {
+          window.open(result.data.link, '_blank')
+        }
+      } else {
+        console.error('Failed to generate login link:', result.message)
+        alert(`Failed to generate login link: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('Error generating login link:', error)
+      alert('An error occurred while generating the login link.')
+    } finally {
+      setLoggingInUsers(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(userKey)
+        return newSet
+      })
+    }
   }
 
   const handlePageChange = (page: number) => {
@@ -303,15 +298,63 @@ export default function UsersPage() {
     setCurrentPage(1)
   }, [searchTerm, activeTab])
 
+  // Calculate dynamic stats from API data
+  const stats = [
+    {
+      title: "Total Users",
+      value: usersData.length.toString(),
+      icon: Users,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+    },
+    {
+      title: "Active Students",
+      value: usersData.filter(user => user.type === "student" && user.status === "Active").length.toString(),
+      icon: GraduationCap,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      title: "Active Employers",
+      value: usersData.filter(user => user.type === "employer" && user.status === "Active").length.toString(),
+      icon: UserCheck,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+    },
+    {
+      title: "Suspended Users",
+      value: usersData.filter(user => user.status === "Deactive").length.toString(),
+      icon: UserX,
+      color: "text-red-600",
+      bgColor: "bg-red-50",
+    },
+  ]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 via-emerald-50/30 to-green-50/20">
+        <div className="px-2 sm:px-4 lg:px-6 pt-2 sm:pt-4">
+          <BackButton />
+        </div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading users...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 via-emerald-50/30 to-green-50/20">
-      <div className="px-2 sm:px-4 lg:px-6 pt-2 sm:pt-4">
-        <BackButton />
-      </div>
+      
 
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 mx-2 sm:mx-4 lg:mx-6 mt-4 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
           <div className="flex-1">
+            <BackButton />
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">User Management</h1>
             <p className="text-emerald-100 text-sm sm:text-base lg:text-lg">Manage and monitor all platform users</p>
           </div>
@@ -387,13 +430,13 @@ export default function UsersPage() {
             {/* Mobile View - up to md */}
             <div className="block md:hidden">
               <div className="space-y-3 sm:space-y-4 p-2 sm:p-3 md:p-4">
-                {currentUsers.map((user) => (
-                  <Card key={user.id} className="p-3 sm:p-4 shadow-sm border border-gray-200">
+                {currentUsers.map((user, index) => (
+                  <Card key={`${user.type}-${user.email}-${index}`} className="p-3 sm:p-4 shadow-sm border border-gray-200">
                     <div className="space-y-3 sm:space-y-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start space-x-3 min-w-0 flex-1">
                           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-emerald-600 font-semibold text-base sm:text-lg">{user.avatar}</span>
+                            <span className="text-emerald-600 font-semibold text-base sm:text-lg">{user.name.charAt(0).toUpperCase()}</span>
                           </div>
                           <div className="min-w-0 flex-1 pt-1">
                             <div className="font-semibold text-gray-900 text-base sm:text-lg mb-1 truncate">
@@ -413,13 +456,19 @@ export default function UsersPage() {
                               <Eye className="h-4 w-4 mr-2" />
                               View Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSuspendUser(user.id)}>
+                            <DropdownMenuItem 
+                              onClick={() => handleSuspendUser(user)}
+                              disabled={suspendingUsers.has(`${user.type}-${user.id}`)}
+                            >
                               <Ban className="h-4 w-4 mr-2" />
-                              Suspend User
+                              {suspendingUsers.has(`${user.type}-${user.id}`) ? 'Suspending...' : 'Suspend User'}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUserLogin(user)}>
+                            <DropdownMenuItem 
+                              onClick={() => handleUserLogin(user)}
+                              disabled={loggingInUsers.has(`${user.type}-${user.id}`)}
+                            >
                               <LogIn className="h-4 w-4 mr-2" />
-                              User Login
+                              {loggingInUsers.has(`${user.type}-${user.id}`) ? 'Generating Login...' : 'User Login'}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -436,21 +485,10 @@ export default function UsersPage() {
 
                       <div className="space-y-2 pt-2 border-t border-gray-100">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-600">Joined:</span>
-                          <span className="text-sm text-gray-900 font-medium">{user.joinDate}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-600">Last Active:</span>
-                          <span className="text-sm text-gray-900 font-medium">{user.lastActive}</span>
+                          <span className="text-sm font-medium text-gray-600">Type:</span>
+                          <span className="text-sm text-gray-900 font-medium capitalize">{user.type}</span>
                         </div>
                       </div>
-
-                      {user.stats && (
-                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                          <div className="text-sm font-semibold text-gray-700 mb-2">Activity Stats</div>
-                          <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{user.stats}</div>
-                        </div>
-                      )}
                     </div>
                   </Card>
                 ))}
@@ -466,17 +504,17 @@ export default function UsersPage() {
                       <TableHead className="px-3 py-3">User</TableHead>
                       <TableHead className="px-3 py-3">Role</TableHead>
                       <TableHead className="px-3 py-3">Status</TableHead>
-                      <TableHead className="px-3 py-3">Join Date</TableHead>
+                      <TableHead className="px-3 py-3">Type</TableHead>
                       <TableHead className="px-3 py-3 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {currentUsers.map((user) => (
-                      <TableRow key={user.id}>
+                    {currentUsers.map((user, index) => (
+                      <TableRow key={`${user.type}-${user.email}-${index}`}>
                         <TableCell className="px-3 py-3">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                              <span className="text-emerald-600 font-medium">{user.avatar}</span>
+                              <span className="text-emerald-600 font-medium">{user.name.charAt(0).toUpperCase()}</span>
                             </div>
                             <div className="min-w-0">
                               <div className="font-medium text-gray-900 truncate max-w-[120px]">{user.name}</div>
@@ -490,7 +528,7 @@ export default function UsersPage() {
                         <TableCell className="px-3 py-3">
                           <Badge className={getStatusColor(user.status)}>{user.status}</Badge>
                         </TableCell>
-                        <TableCell className="px-3 py-3 text-sm text-gray-600">{user.joinDate}</TableCell>
+                        <TableCell className="px-3 py-3 text-sm text-gray-600 capitalize">{user.type}</TableCell>
                         <TableCell className="px-3 py-3 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -503,13 +541,19 @@ export default function UsersPage() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleSuspendUser(user.id)}>
+                              <DropdownMenuItem 
+                                onClick={() => handleSuspendUser(user)}
+                                disabled={suspendingUsers.has(`${user.type}-${user.id}`)}
+                              >
                                 <Ban className="h-4 w-4 mr-2" />
-                                Suspend User
+                                {suspendingUsers.has(`${user.type}-${user.id}`) ? 'Suspending...' : 'Suspend User'}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUserLogin(user)}>
+                              <DropdownMenuItem 
+                                onClick={() => handleUserLogin(user)}
+                                disabled={loggingInUsers.has(`${user.type}-${user.id}`)}
+                              >
                                 <LogIn className="h-4 w-4 mr-2" />
-                                User Login
+                                {loggingInUsers.has(`${user.type}-${user.id}`) ? 'Generating Login...' : 'User Login'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -530,19 +574,17 @@ export default function UsersPage() {
                       <TableHead className="px-4 py-3">User</TableHead>
                       <TableHead className="px-4 py-3">Role</TableHead>
                       <TableHead className="px-4 py-3">Status</TableHead>
-                      <TableHead className="px-4 py-3 hidden xl:table-cell">Join Date</TableHead>
-                      <TableHead className="px-4 py-3 hidden xl:table-cell">Last Active</TableHead>
-                      <TableHead className="px-4 py-3 hidden 2xl:table-cell">Stats</TableHead>
+                      <TableHead className="px-4 py-3 hidden xl:table-cell">Type</TableHead>
                       <TableHead className="px-4 py-3 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {currentUsers.map((user) => (
-                      <TableRow key={user.id}>
+                    {currentUsers.map((user, index) => (
+                      <TableRow key={`${user.type}-${user.email}-${index}`}>
                         <TableCell className="px-4 py-3">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                              <span className="text-emerald-600 font-medium">{user.avatar}</span>
+                              <span className="text-emerald-600 font-medium">{user.name.charAt(0).toUpperCase()}</span>
                             </div>
                             <div className="min-w-0">
                               <div className="font-medium text-gray-900 truncate">{user.name}</div>
@@ -556,14 +598,8 @@ export default function UsersPage() {
                         <TableCell className="px-4 py-3">
                           <Badge className={getStatusColor(user.status)}>{user.status}</Badge>
                         </TableCell>
-                        <TableCell className="px-4 py-3 text-sm text-gray-600 hidden xl:table-cell">
-                          {user.joinDate}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-sm text-gray-600 hidden xl:table-cell">
-                          {user.lastActive}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 hidden 2xl:table-cell">
-                          {user.stats && <div className="text-sm text-gray-600 whitespace-pre-line">{user.stats}</div>}
+                        <TableCell className="px-4 py-3 text-sm text-gray-600 hidden xl:table-cell capitalize">
+                          {user.type}
                         </TableCell>
                         <TableCell className="px-4 py-3 text-right">
                           <DropdownMenu>
@@ -577,13 +613,19 @@ export default function UsersPage() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleSuspendUser(user.id)}>
+                              <DropdownMenuItem 
+                                onClick={() => handleSuspendUser(user)}
+                                disabled={suspendingUsers.has(`${user.type}-${user.id}`)}
+                              >
                                 <Ban className="h-4 w-4 mr-2" />
-                                Suspend User
+                                {suspendingUsers.has(`${user.type}-${user.id}`) ? 'Suspending...' : 'Suspend User'}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUserLogin(user)}>
+                              <DropdownMenuItem 
+                                onClick={() => handleUserLogin(user)}
+                                disabled={loggingInUsers.has(`${user.type}-${user.id}`)}
+                              >
                                 <LogIn className="h-4 w-4 mr-2" />
-                                User Login
+                                {loggingInUsers.has(`${user.type}-${user.id}`) ? 'Generating Login...' : 'User Login'}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -687,12 +729,12 @@ export default function UsersPage() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-sm sm:text-base font-medium text-gray-600">Joined:</span>
-                  <span className="text-sm sm:text-base text-gray-900">{selectedUser.joinDate}</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm sm:text-base font-medium text-gray-600">Last Active:</span>
-                  <span className="text-sm sm:text-base text-gray-900">{selectedUser.lastActive}</span>
+                  <span className="text-sm sm:text-base text-gray-900">
+                    {selectedUser.type === 'employer' 
+                      ? (selectedUser.updated_date || 'N/A')
+                      : (selectedUser.created_date || 'N/A')
+                    }
+                  </span>
                 </div>
 
                 {/* Student-specific fields */}
@@ -711,13 +753,6 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* Edit Profile button */}
-              <div className="pt-4 sm:pt-6 border-t">
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 sm:h-12 text-sm sm:text-base">
-                  <Edit className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  Edit Profile
-                </Button>
-              </div>
             </div>
           )}
         </DialogContent>
@@ -742,9 +777,13 @@ export default function UsersPage() {
               </div>
 
               <div className="pt-4 sm:pt-6">
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 sm:h-12 text-sm sm:text-base">
+                <Button 
+                  onClick={handleConfirmLogin}
+                  disabled={selectedUser && loggingInUsers.has(`${selectedUser.type}-${selectedUser.id}`)}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 sm:h-12 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <LogIn className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                  Login
+                  {selectedUser && loggingInUsers.has(`${selectedUser.type}-${selectedUser.id}`) ? 'Generating Login...' : 'Login'}
                 </Button>
               </div>
             </div>
