@@ -24,6 +24,7 @@ import {
   UserSearch,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react"
 
 // Stats will be calculated dynamically from API data
@@ -70,6 +71,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [suspendingUsers, setSuspendingUsers] = useState<Set<string>>(new Set())
   const [loggingInUsers, setLoggingInUsers] = useState<Set<string>>(new Set())
+  const [redirectingUser, setRedirectingUser] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [isTablet, setIsTablet] = useState(false)
   const itemsPerPage = 10
@@ -246,7 +248,7 @@ export default function UsersPage() {
       const requestBody = {
         type: selectedUser.type,
         id: selectedUser.id,
-        redirect: '/dashboard' // This will be converted to the appropriate dashboard by backend
+        redirect: '/dashboard' // Default redirect after login
       }
 
       console.log('Login request body:', requestBody)
@@ -265,13 +267,20 @@ export default function UsersPage() {
       if (result.success) {
         // Close the dialog
         setIsLoginDialogOpen(false)
-        
+
         // Show success message
         alert(`Login link generated successfully for ${selectedUser.name}. You will be redirected to their account.`)
-        
-        // Redirect to the generated link
+
+        // Show loading state and redirect automatically
         if (result.data && result.data.link) {
-          window.open(result.data.link, '_blank')
+          const userKey = `${selectedUser.type}-${selectedUser.id}`
+          setRedirectingUser(userKey)
+          
+          // Show a brief loading state then redirect
+          setTimeout(() => {
+            window.open(result.data.link, '_blank')
+            setRedirectingUser(null)
+          }, 2000) // 2 second delay to show the alert and loading
         }
       } else {
         console.error('Failed to generate login link:', result.message)
@@ -348,7 +357,13 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 via-emerald-50/30 to-green-50/20">
-      
+      {/* Redirecting Indicator */}
+      {redirectingUser && (
+        <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Redirecting to user account...</span>
+        </div>
+      )}
 
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 mx-2 sm:mx-4 lg:mx-6 mt-4 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
