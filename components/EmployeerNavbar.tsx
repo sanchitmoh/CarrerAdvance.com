@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { useEmployerLogout } from "@/components/AuthForm"
+import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 
 interface EmployerNavbarProps {
@@ -27,6 +28,7 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
   const [notifications] = useState(3)
   const router = useRouter()
   const { logout } = useEmployerLogout()
+  const { toast } = useToast()
   const [user, setUser] = useState({
     name: 'Employer',
     email: '',
@@ -69,10 +71,13 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
   }, [])
 
   const handleLogout = () => {
+    toast({
+      title: '👋 Logged Out Successfully',
+      description: 'You have been logged out. Thank you for using CareerAdvance!',
+      duration: 3000
+    })
     logout()
     router.push('/employers/login')
-
-
   }
 
   console.log('Navbar render - user state:', user) // Debug log

@@ -297,23 +297,33 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
         if (data.success) {
          
           if (type === 'register') {
-            toast({ title: 'Registered Successfully, Welcome' })
+            toast({ 
+              title: '🎉 Registration Successful!', 
+              description: 'Welcome to CareerAdvance! Please log in to continue.',
+              duration: 5000
+            })
             router.push('/job-seekers/login')
             setIsLoading(false)
             return
           }
           
-          toast({ title: 'Success!', description: data.message || successMsg })
-                      if (type === 'login' && data.token) {
-              localStorage.setItem('jobseeker_jwt', data.token)
-              // Also set cookie for middleware access
-              document.cookie = `jobseeker_jwt=${data.token}; path=/; max-age=86400; SameSite=Strict`
-              // Store jobseeker ID if available in response
-              if (data.jobseeker_id) {
-                localStorage.setItem('jobseeker_id', data.jobseeker_id.toString())
-              }
-              router.push('/job-seekers/dashboard')
+          if (type === 'login' && data.token) {
+            toast({ 
+              title: '✅ Login Successful!', 
+              description: 'Welcome back! Redirecting to your dashboard...',
+              duration: 3000
+            })
+            localStorage.setItem('jobseeker_jwt', data.token)
+            // Also set cookie for middleware access
+            document.cookie = `jobseeker_jwt=${data.token}; path=/; max-age=86400; SameSite=Strict`
+            // Store jobseeker ID if available in response
+            if (data.jobseeker_id) {
+              localStorage.setItem('jobseeker_id', data.jobseeker_id.toString())
             }
+            router.push('/job-seekers/dashboard')
+          } else {
+            toast({ title: 'Success!', description: data.message || successMsg })
+          }
           if (type === 'reset-password') {
             // Redirect to login page after successful password reset
             setTimeout(() => {
@@ -322,10 +332,20 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
           }
           // Optionally redirect or update auth state here
         } else {
-          toast({ title: 'Error', description: data.message || errorMsg, variant: 'destructive' })
+          toast({ 
+            title: '❌ Login Failed', 
+            description: data.message || 'Invalid email or password. Please check your credentials and try again.',
+            variant: 'destructive',
+            duration: 5000
+          })
         }
       } catch (err) {
-        toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+        toast({ 
+          title: '🌐 Network Error', 
+          description: 'Unable to connect to the server. Please check your internet connection and try again.',
+          variant: 'destructive',
+          duration: 5000
+        })
       }
       setIsLoading(false)
       return
@@ -433,12 +453,21 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
           data = res.ok ? { success: true, message: text?.slice(0, 200) || successMsg } : { success: false, message: text?.slice(0, 200) || errorMsg }
         }
         if (data && data.success) {
-          toast({ title: 'Success!', description: data.message || successMsg })
           if (type === 'register') {
+            toast({ 
+              title: '🎉 Registration Successful!', 
+              description: 'Welcome to CareerAdvance! Please check your email to verify your account.',
+              duration: 5000
+            })
             router.push('/employers/login')
             return
           }
           if (type === 'login' && data.token) {
+            toast({ 
+              title: '✅ Login Successful!', 
+              description: 'Welcome back! Redirecting to your employer dashboard...',
+              duration: 3000
+            })
             localStorage.setItem('employer_jwt', data.token)
             // Also set cookie for middleware access
             document.cookie = `employer_jwt=${data.token}; path=/; max-age=86400; SameSite=Strict`
@@ -449,6 +478,8 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
               document.cookie = `employer_id=${data.user.id}; path=/; max-age=86400; SameSite=Lax`
             }
             router.push('/employers/dashboard')
+          } else {
+            toast({ title: 'Success!', description: data.message || successMsg })
           }
           if (type === 'reset-password') {
             setTimeout(() => {
@@ -456,10 +487,20 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
             }, 1500)
           }
         } else {
-          toast({ title: 'Error', description: (data && data.message) || errorMsg, variant: 'destructive' })
+          toast({ 
+            title: '❌ Login Failed', 
+            description: (data && data.message) || 'Invalid email or password. Please check your credentials and try again.',
+            variant: 'destructive',
+            duration: 5000
+          })
         }
       } catch (err) {
-        toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+        toast({ 
+          title: '🌐 Network Error', 
+          description: 'Unable to connect to the server. Please check your internet connection and try again.',
+          variant: 'destructive',
+          duration: 5000
+        })
       }
       setIsLoading(false)
       return

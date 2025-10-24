@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Briefcase, Plus, Edit, Trash2, Save, Building, Calendar } from 'lucide-react'
+import { Briefcase, Plus, Edit, Trash2, Save, Building, Calendar, Loader2 } from 'lucide-react'
 
 function monthInputToMonthYear(value: string): string {
   if (!value) return ''
@@ -46,6 +46,9 @@ type FormExperience = ExperienceItem & { startMonth: string; endMonth: string }
 export default function Experience() {
   const [experiences, setExperiences] = useState<ExperienceItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
 
   // Load experiences
   useEffect(() => {
@@ -107,6 +110,7 @@ export default function Experience() {
 
   const handleSave = async (id: string) => {
     if (!editingExperience) return
+    setSaving(true)
     try {
       try { (window as any).ProfileSave?.start('Saving experience...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
@@ -154,11 +158,15 @@ export default function Experience() {
         try { (window as any).ProfileSave?.success('Experience saved.') } catch {}
       } else { console.error(data.message); try { (window as any).ProfileSave?.error(data.message || 'Failed to save experience.') } catch {} }
     } catch (err) { console.error(err); try { (window as any).ProfileSave?.error('Failed to save experience.') } catch {} }
+     finally {
+      setSaving(false)
+    }
   }
 
   const handleCancel = () => { setEditingId(null); setEditingExperience(null) }
 
   const handleDelete = async (id: string) => {
+    setDeleting(id)
     try {
       try { (window as any).ProfileSave?.start('Deleting experience...') } catch {}
       const jobseekerIdForDelete = localStorage.getItem('jobseeker_id');
@@ -194,12 +202,20 @@ export default function Experience() {
           setExperiences(prev => prev.filter(e => e.id !== id));
         }
         try { (window as any).ProfileSave?.success('Experience deleted.') } catch {}
+      } else { 
+        console.error(data.message); 
+        try { (window as any).ProfileSave?.error(data.message || 'Failed to delete experience.') } catch {} 
       }
-      else { console.error(data.message); try { (window as any).ProfileSave?.error(data.message || 'Failed to delete experience.') } catch {} }
-    } catch (err) { console.error(err); try { (window as any).ProfileSave?.error('Failed to delete experience.') } catch {} }
+    } catch (err) { 
+      console.error(err); 
+      try { (window as any).ProfileSave?.error('Failed to delete experience.') } catch {} 
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const handleAdd = async () => {
+    setAdding(true)
     try {
       try { (window as any).ProfileSave?.start('Adding experience...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
@@ -246,8 +262,16 @@ export default function Experience() {
         })
         setIsAdding(false)
         try { (window as any).ProfileSave?.success('Experience added.') } catch {}
-      } else { console.error(data.message); try { (window as any).ProfileSave?.error(data.message || 'Failed to add experience.') } catch {} }
-    } catch (err) { console.error(err); try { (window as any).ProfileSave?.error('Failed to add experience.') } catch {} }
+      } else { 
+        console.error(data.message); 
+        try { (window as any).ProfileSave?.error(data.message || 'Failed to add experience.') } catch {} 
+      }
+    } catch (err) { 
+      console.error(err); 
+      try { (window as any).ProfileSave?.error('Failed to add experience.') } catch {} 
+    } finally {
+      setAdding(false)
+    }
   }
 
   return (
@@ -271,6 +295,16 @@ export default function Experience() {
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center space-x-3">
+              <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+              <span className="text-gray-600">Loading experiences...</span>
+            </div>
+          </div>
+        )}
+
         {/* Add Experience Form */}
         {isAdding && (
           <Card className="border-2 border-dashed border-emerald-300 bg-emerald-50/50">
@@ -289,14 +323,17 @@ export default function Experience() {
               <div className="space-y-2"><Label>Description</Label><Textarea value={newExperience.description} onChange={(e)=>setNewExperience({...newExperience,description:e.target.value})} rows={3}/></div>
               <div className="flex justify-end space-x-3">
                 <Button variant="outline" onClick={()=>setIsAdding(false)}>Cancel</Button>
-                <Button onClick={handleAdd} className="bg-gradient-to-r from-emerald-600 to-green-600 text-white"><Save className="h-4 w-4 mr-2"/>Add Experience</Button>
+                <Button onClick={handleAdd} disabled={adding} className="bg-gradient-to-r from-emerald-600 to-green-600 text-white">
+                  {adding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  {adding ? 'Adding...' : 'Add Experience'}
+                </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
         {/* Experience List */}
-        {experiences.map(exp => (
+        {!loading && experiences.map(exp => (
           <Card key={exp.id} className="border-gray-200 hover:border-emerald-300 transition-colors">
             <CardContent className="p-6">
               {editingId===exp.id && editingExperience ? (
@@ -315,7 +352,10 @@ export default function Experience() {
                   <div className="space-y-2"><Label>Description</Label><Textarea value={editingExperience.description} onChange={(e)=>setEditingExperience({...editingExperience,description:e.target.value})} rows={3}/></div>
                   <div className="flex justify-end space-x-3">
                     <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-                    <Button onClick={()=>handleSave(exp.id)} className="bg-gradient-to-r from-emerald-600 to-green-600 text-white"><Save className="h-4 w-4 mr-2"/>Save Changes</Button>
+                    <Button onClick={()=>handleSave(exp.id)} disabled={saving} className="bg-gradient-to-r from-emerald-600 to-green-600 text-white">
+                      {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -339,8 +379,12 @@ export default function Experience() {
                     </div>
                   </div>
                   <div className="flex space-x-2 mt-3 md:mt-0">
-                    <Button variant="outline" size="sm" onClick={()=>handleEdit(exp.id)} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50"><Edit className="h-4 w-4"/></Button>
-                    <Button variant="outline" size="sm" onClick={()=>handleDelete(exp.id)} className="border-red-200 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4"/></Button>
+                    <Button variant="outline" size="sm" onClick={()=>handleEdit(exp.id)} disabled={saving || deleting === exp.id} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50">
+                      <Edit className="h-4 w-4"/>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={()=>handleDelete(exp.id)} disabled={saving || deleting === exp.id} className="border-red-200 text-red-600 hover:bg-red-50">
+                      {deleting === exp.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4"/>}
+                    </Button>
                   </div>
                 </div>
               )}
@@ -348,7 +392,7 @@ export default function Experience() {
           </Card>
         ))}
 
-        {experiences.length===0 && !isAdding && (
+        {!loading && experiences.length===0 && !isAdding && (
           <div className="text-center py-12 text-gray-500">
             <Briefcase className="h-12 w-12 mx-auto mb-4 text-gray-300"/>
             <p className="text-lg font-medium mb-2">No work experience added yet</p>

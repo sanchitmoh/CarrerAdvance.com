@@ -198,11 +198,11 @@ const users = [
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case "active":
-      return "bg-green-100 text-green-800"
+      return "bg-green-700 text-white"
     case "suspended":
-      return "bg-red-100 text-red-800"
+      return "bg-red-100 text-white"
     case "pending":
-      return "bg-yellow-100 text-yellow-800"
+      return "bg-yellow-100 text-white"
     default:
       return "bg-gray-100 text-gray-800"
   }
@@ -211,17 +211,17 @@ const getStatusColor = (status: string) => {
 const getRoleColor = (role: string) => {
   switch (role.toLowerCase()) {
     case "admin":
-      return "bg-purple-100 text-purple-800"
+      return "bg-purple-600 text-white"
     case "teacher":
-      return "bg-blue-100 text-blue-800"
+      return "bg-blue-600 text-white"
     case "student":
-      return "bg-green-100 text-green-800"
+      return "bg-green-600 text-white"
     case "employer":
-      return "bg-orange-100 text-orange-800"
+      return "bg-orange-600 text-white"
     case "job-seeker":
-      return "bg-cyan-100 text-cyan-800"
+      return "bg-red-600 text-white"
     default:
-      return "bg-gray-100 text-gray-800"
+      return "bg-gray-600 text-white"
   }
 }
 

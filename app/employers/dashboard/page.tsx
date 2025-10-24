@@ -35,7 +35,6 @@ export default function EmployerDashboardPage() {
     totalApplications: 0,
     interviewsScheduled: 0,
     candidatesHired: 0,
-    profileViews: 0,
   })
 
   const [recentApplications, setRecentApplications] = useState<Array<{
@@ -270,7 +269,7 @@ export default function EmployerDashboardPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -331,18 +330,6 @@ export default function EmployerDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="h-8 w-8 text-indigo-600" />
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.profileViews}</p>
-                <p className="text-sm text-gray-600">Profile Views</p>
-                
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

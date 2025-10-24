@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Zap, Sparkles, User, Settings, LogOut, Home, Briefcase, Menu } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
+import { useToast } from '@/hooks/use-toast'
 import { getApiUrl, getAssetUrl } from '@/lib/api-config'
 import Image from 'next/image'
 
@@ -24,6 +25,7 @@ interface JobSeekerNavbarProps {
 export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) {
   const router = useRouter()
   const { logout } = useJobseekerLogout()
+  const { toast } = useToast()
   const [scrolled, setScrolled] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState({
@@ -72,6 +74,11 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
   }, [])
 
   const handleLogout = () => {
+    toast({
+      title: '👋 Logged Out Successfully',
+      description: 'You have been logged out. Thank you for using CareerAdvance!',
+      duration: 3000
+    })
     logout()
     router.push('/job-seekers/login')
   }

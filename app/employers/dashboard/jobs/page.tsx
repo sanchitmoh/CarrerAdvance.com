@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -14,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Plus,
@@ -75,9 +74,10 @@ interface Candidate {
       documents?: string[]
   }
  
-  export default function JobsPage() {
-    const router = useRouter()
-    const [activeTab, setActiveTab] = useState("manage")
+export default function JobsPage() {
+  const { toast } = useToast()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState("manage")
   const [selectedJob, setSelectedJob] = useState<any>(null)
   const [candidateView, setCandidateView] = useState("applied")
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
@@ -646,15 +646,17 @@ interface Candidate {
         // Update existing job
         setLoading(true)
         await employerApiService.updateJob(editingJob.id, jobData)
-        toast({
-          title: "Success",
-          description: "Job updated successfully",
-        })
        
         // Refresh jobs list
         const updatedJobsResponse = await jobsApiService.getJobs()
         setJobs(updatedJobsResponse.data.jobs || [])
         setEditingJob(null)
+        
+        // Show success toast after loading completes
+        toast({
+          title: "Success",
+          description: "Job updated successfully",
+        })
       } else {
         // Add new job
         setLoading(true)
@@ -663,11 +665,13 @@ interface Candidate {
           toast({ title: 'Error', description: res?.message || 'Failed to post job.', variant: 'destructive' })
           return
         }
-        toast({ title: 'Success', description: 'Job posted successfully.' })
         
         // Refresh jobs list
         const updatedJobs = await jobsApiService.getJobs()
         setJobs(updatedJobs.data.jobs || [])
+        
+        // Show success toast after loading completes
+        toast({ title: 'Success', description: 'Job posted successfully.' })
       }
     } catch (err) {
       console.error("Error submitting job:", err)
@@ -1900,19 +1904,7 @@ interface Candidate {
                     </Select>
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="fullAddress" className="text-sm font-medium">
-                    Full Address
-                  </Label>
-                  <Input
-                    id="fullAddress"
-                    value={jobForm.fullAddress}
-                    onChange={(e) => handleInputChange("fullAddress", e.target.value)}
-                    placeholder="Complete street address (optional for remote positions)"
-                    className="mt-1"
-                  />
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1">This will be used to show location on map</p>
-                </div>
+                
               </div>
 
               {/* Application Settings */}

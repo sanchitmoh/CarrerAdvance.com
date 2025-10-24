@@ -15,9 +15,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Eye, Trash2, FileText, Upload, Download, Shield, File } from "lucide-react"
+import { MoreHorizontal, Eye, Trash2, FileText, Upload, Download, Shield, File, Loader2 } from "lucide-react"
 import { useMemo, useRef, useState, useEffect } from "react"
 import { getApiUrl } from "@/lib/api-config"
+import { useToast } from "@/hooks/use-toast"
+
 
 type DocRecord = {
   id: string
@@ -64,6 +66,9 @@ export default function JobSeekerDocumentPage() {
   const [file, setFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState<boolean>(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [loadingDocuments, setLoadingDocuments] = useState<boolean>(false)
+  const [uploading, setUploading] = useState<boolean>(false)
+  const [deleting, setDeleting] = useState<boolean>(false)
 
   // Preview + dialogs state
   const [uploadedDocs, setUploadedDocs] = useState<DocRecord[]>([])
@@ -74,10 +79,8 @@ export default function JobSeekerDocumentPage() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [docToPreview, setDocToPreview] = useState<DocRecord | null>(null)
   const previewUrlsRef = useRef<Set<string>>(new Set())
+const { toast } = useToast()
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5
 
   useEffect(() => {
     // Check hire status on mount
@@ -152,17 +155,6 @@ export default function JobSeekerDocumentPage() {
 
   const requiresCustomName = useMemo(() => category === "Other", [category])
 
-  // Pagination calculations
-  const totalPages = Math.ceil(uploadedDocs.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedDocs = uploadedDocs.slice(startIndex, endIndex)
-
-  // Reset to first page when documents change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [uploadedDocs.length])
-
   // Load documents from API
   const loadDocuments = async () => {
     try {
@@ -226,25 +218,42 @@ export default function JobSeekerDocumentPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!category) {
-      alert("Please select a document category.")
+      toast({
+        title: "Please select a document category.",
+        description: "Please select a document category to upload your document.",
+        variant: "destructive",
+      })
       return
     }
     if (requiresCustomName && !docName.trim()) {
-      alert("Please provide a Document Name for the 'Other' category.")
+      toast({
+        title: "Please provide a Document Name for the 'Other' category.",
+        description: "Please provide a document name for the 'Other' category to upload your document.",
+        variant: "destructive",
+      })
       return
     }
     if (!file) {
-      alert("Please select a file to upload.")
+      toast({
+        title: "Please select a file to upload.",
+        description: "Please select a file to upload your document.",
+        variant: "destructive",
+      })
       return
     }
 
     const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
     if (!jsId) {
-      alert("Please log in to upload documents.")
+      toast({
+        title: "Please log in to upload documents.",
+        description: "Please log in to upload your document.",
+        variant: "destructive",
+      })
       return
     }
 
     try {
+      setUploading(true)
       const formData = new FormData()
       formData.append('jobseeker_id', jsId)
       formData.append('category', category)
@@ -262,7 +271,10 @@ export default function JobSeekerDocumentPage() {
       const result = await response.json()
 
       if (result.success) {
-        alert("Document uploaded successfully.")
+        toast({
+          title: "Success",
+          description: "Document uploaded successfully.",
+        })
         setCategory("")
         setDocName("")
         setDescription("")
@@ -271,11 +283,21 @@ export default function JobSeekerDocumentPage() {
         // Refresh the documents list
         loadDocuments()
       } else {
-        alert(`Upload failed: ${result.message}`)
+        toast({
+          title: "Upload failed.",
+          description: `Upload failed: ${result.message}`,
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Upload error:', error)
-      alert("Upload failed. Please try again.")
+      toast({
+        title: "Upload failed.",
+        description: "Upload failed. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -442,7 +464,7 @@ export default function JobSeekerDocumentPage() {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-xs text-blue-800">
-                <strong>Supported formats:</strong> PDF, DOC, DOCX, Images,CSV 
+                <strong>Supported formats:</strong> PDF, DOC, DOCX, Images, PPT, XLS, CSV
               </p>
               <p className="text-xs text-blue-800 mt-1">
                 <strong>Max size:</strong> 10MB per file
@@ -452,14 +474,30 @@ export default function JobSeekerDocumentPage() {
         </div>
 
         <div className="mt-6 sm:mt-8 flex items-center justify-end">
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto"
-            disabled={!category || (requiresCustomName && !docName.trim()) || !file}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Document
-          </button>
+         {
+          loadingDocuments ? (
+            <Button className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white">
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Loading.....
+            </Button> 
+          ) :  <button
+          type="submit"
+          className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto"
+          disabled={!category || (requiresCustomName && !docName.trim()) || !file || uploading}
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Document
+            </>
+          )}
+        </button>
+         }
         </div>
       </form>
 
@@ -474,6 +512,23 @@ export default function JobSeekerDocumentPage() {
               {uploadedDocs.length} document{uploadedDocs.length !== 1 ? 's' : ''} uploaded
             </p>
           </div>
+          {uploadedDocs.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="sm:self-start"
+              onClick={() => {
+                // Download all documents as a zip (this would require backend implementation)
+                toast({
+                  title: "Coming Soon",
+                  description: "Export functionality will be implemented in a future update.",
+                })
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export All
+            </Button>
+          )}
         </div>
 
         <div className="w-full overflow-x-auto -mx-2 sm:mx-0">
@@ -499,7 +554,7 @@ export default function JobSeekerDocumentPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedDocs.map((doc) => (
+                  uploadedDocs.map((doc) => (
                     <TableRow key={doc.id} className="group hover:bg-muted/50">
                       <TableCell className="py-3 sm:py-4">
                         <div className="flex items-center gap-3">
@@ -580,52 +635,6 @@ export default function JobSeekerDocumentPage() {
             </Table>
           </div>
         </div>
-
-        {/* Pagination */}
-        {uploadedDocs.length > 0 && totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 sm:mt-6 pt-4 border-t">
-            <div className="text-sm text-muted-foreground">
-              Showing {startIndex + 1} to {Math.min(endIndex, uploadedDocs.length)} of {uploadedDocs.length} documents
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="h-8 w-8 p-0"
-              >
-                <span className="sr-only">Previous page</span>
-                ‹
-              </Button>
-              
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    className="h-8 w-8 p-0"
-                  >
-                    {page}
-                  </Button>
-                ))}
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="h-8 w-8 p-0"
-              >
-                <span className="sr-only">Next page</span>
-                ›
-              </Button>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* View Details Dialog */}
@@ -767,12 +776,18 @@ export default function JobSeekerDocumentPage() {
             <AlertDialogCancel className="mt-0 flex-1 sm:flex-none">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700 flex-1 sm:flex-none"
+              disabled={deleting}
               onClick={async () => {
                 if (docToDelete) {
                   try {
+                    setDeleting(true)
                     const jsId = typeof window !== 'undefined' ? window.localStorage.getItem('jobseeker_id') : null
                     if (!jsId) {
-                      alert("Please log in to delete documents.")
+                      toast({
+                        title: "Authentication required",
+                        description: "Please log in to delete documents.",
+                        variant: "destructive",
+                      })
                       return
                     }
 
@@ -793,20 +808,40 @@ export default function JobSeekerDocumentPage() {
                     if (result.success) {
                       // Remove from local state
                       setUploadedDocs((prev) => prev.filter((d) => d.id !== docToDelete.id))
-                      alert("Document deleted successfully.")
+                      toast({
+                        title: "Success",
+                        description: "Document deleted successfully.",
+                      })
                     } else {
-                      alert(`Delete failed: ${result.message}`)
+                      toast({
+                        title: "Delete failed",
+                        description: result.message || "Failed to delete document.",
+                        variant: "destructive",
+                      })
                     }
                   } catch (error) {
                     console.error('Delete error:', error)
-                    alert("Delete failed. Please try again.")
+                    toast({
+                      title: "Delete failed",
+                      description: "Delete failed. Please try again.",
+                      variant: "destructive",
+                    })
+                  } finally {
+                    setDeleting(false)
                   }
                 }
                 setDocToDelete(null)
                 setDeleteOpen(false)
               }}
             >
-              Delete Document
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Document"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
