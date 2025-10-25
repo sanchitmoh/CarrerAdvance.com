@@ -405,7 +405,7 @@ function JobsPageContent() {
 };
   // Actions
   
-const handleApplyJob = (e?: React.MouseEvent) => {
+const handleApplyJob = (jobId?: string | number, e?: React.MouseEvent) => {
   if (e) e.stopPropagation();
   
   const isLoggedIn = checkAuthStatus();
@@ -413,7 +413,7 @@ const handleApplyJob = (e?: React.MouseEvent) => {
   try {
     if (isLoggedIn) {
       // User is logged in, redirect to matching jobs
-      router.push('/job-seeker/dashboard/matching-jobs');
+      router.push('/job-seeker/matching-jobs');
     } else {
       // User is not logged in, redirect to login
       router.push('/job-seekers/login');
@@ -421,7 +421,7 @@ const handleApplyJob = (e?: React.MouseEvent) => {
   } catch (_) {
     // Fallback in case router navigation is blocked
     if (isLoggedIn) {
-      window.location.href = '/job-seeker/dashboard/matching-jobs';
+      window.location.href = '/job-seeker/matching-jobs';
     } else {
       window.location.href = '/job-seekers/login';
     }
@@ -874,7 +874,7 @@ const handleApplyJob = (e?: React.MouseEvent) => {
                 </Button>
                 <Button 
                   type="button" 
-                  onClick={() => handleApplyJob()} 
+                  onClick={(e) => handleApplyJob(selectedJob.id, e)} 
                   className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6"
                 >
                   Apply Now
