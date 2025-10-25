@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/dialog"
 import { ArrowLeft, Plus, Search, Users, Mail, Calendar, DollarSign, Edit, Trash2, Eye } from "lucide-react"
 import Link from "next/link"
-import { getBaseUrl } from "@/lib/api-config"
+import { getBaseUrl, getAssetUrl } from "@/lib/api-config"
 import { fetchDepartments, fetchDesignations, type Department, type Designation } from "@/lib/hrms-api"
+import { useToast } from "@/hooks/use-toast"
 
 type EmployeeRow = {
   id: number
@@ -39,6 +40,7 @@ type EmployeeRow = {
 }
 
 export default function EmployeesPage() {
+  const { toast } = useToast()
   const [employees, setEmployees] = useState<EmployeeRow[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDepartment, setSelectedDepartment] = useState("all")
@@ -64,6 +66,14 @@ export default function EmployeesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [checkingEmpId, setCheckingEmpId] = useState(false)
+  const [empIdError, setEmpIdError] = useState<string | null>(null)
+  const [checkingEditEmpId, setCheckingEditEmpId] = useState(false)
+  const [editEmpIdError, setEditEmpIdError] = useState<string | null>(null)
+  const [empIdTimeout, setEmpIdTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [editEmpIdTimeout, setEditEmpIdTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Form state for adding new employee
   const [formData, setFormData] = useState({
@@ -131,6 +141,70 @@ export default function EmployeesPage() {
 
   const saveEdit = async () => {
     if (!editEmployee) return
+
+    // Validate required fields
+    const requiredFields = [
+      { field: 'name', label: 'Full Name' },
+      { field: 'email', label: 'Email Address' },
+      { field: 'empId', label: 'Employee ID' },
+      { field: 'empType', label: 'Employment Type' }
+    ]
+
+    const missingFields = requiredFields.filter(({ field }) => {
+      const value = (editForm as any)[field]
+      return !value || (typeof value === 'string' && value.trim() === '')
+    })
+
+    if (missingFields.length > 0) {
+      const missingLabels = missingFields.map(f => f.label).join(', ')
+      toast({
+        title: "Validation Error",
+        description: `Please fill in the following required fields: ${missingLabels}`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(editForm.email)) {
+      toast({
+        title: "Validation Error",
+        description: 'Please enter a valid email address',
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate salary and income are numbers (if provided)
+    if (editForm.salary && (isNaN(Number(editForm.salary)) || Number(editForm.salary) <= 0)) {
+      toast({
+        title: "Validation Error",
+        description: 'Please enter a valid salary amount',
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (editForm.income && (isNaN(Number(editForm.income)) || Number(editForm.income) <= 0)) {
+      toast({
+        title: "Validation Error",
+        description: 'Please enter a valid annual income amount',
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if Employee ID has validation error
+    if (editEmpIdError) {
+      toast({
+        title: "Validation Error",
+        description: editEmpIdError,
+        variant: "destructive",
+      })
+      return
+    }
+
     const url = getBaseUrl(`/company-employees/${editEmployee.id}`)
     const payload: any = {
       emp_name: editForm.name,
@@ -168,8 +242,17 @@ export default function EmployeesPage() {
       } : e))
       setIsEditDialogOpen(false)
       setEditEmployee(null)
+      toast({
+        title: "Employee Updated",
+        description: `Employee ${editForm.name} has been successfully updated.`,
+        variant: "default",
+      })
     } else {
-      alert(json?.message || 'Failed to update')
+      toast({
+        title: "Update Failed",
+        description: json?.message || 'Failed to update employee',
+        variant: "destructive",
+      })
     }
   }
 
@@ -191,6 +274,18 @@ export default function EmployeesPage() {
     load()
   }, [])
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (empIdTimeout) {
+        clearTimeout(empIdTimeout)
+      }
+      if (editEmpIdTimeout) {
+        clearTimeout(editEmpIdTimeout)
+      }
+    }
+  }, [empIdTimeout, editEmpIdTimeout])
+
   // Load departments and designations for dropdowns
   useEffect(() => {
     const loadDeps = async () => {
@@ -210,7 +305,200 @@ export default function EmployeesPage() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleFileUpload = async (file: File) => {
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please select an image file (JPG, PNG, GIF, etc.)",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setUploadingImage(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      formData.append('type', 'profile_picture')
+
+      const response = await fetch(getBaseUrl('/upload-image'), {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+
+      const result = await response.json()
+      
+      if (response.ok && result.success) {
+        setFormData(prev => ({ ...prev, image: result.data.path }))
+        setSelectedFile(file)
+        toast({
+          title: "Image Uploaded",
+          description: "Profile image uploaded successfully",
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: result.message || "Failed to upload image",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload image",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const checkEmployeeIdAvailability = async (empId: string, isEdit: boolean = false) => {
+    if (!empId || empId.trim() === '') {
+      if (isEdit) {
+        setEditEmpIdError(null)
+      } else {
+        setEmpIdError(null)
+      }
+      return
+    }
+
+    try {
+      if (isEdit) {
+        setCheckingEditEmpId(true)
+        setEditEmpIdError(null)
+      } else {
+        setCheckingEmpId(true)
+        setEmpIdError(null)
+      }
+      
+      const response = await fetch(getBaseUrl('/api/company-employees/check-emp-id'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          emp_id: empId.trim(),
+          exclude_id: isEdit ? editEmployee?.id : null
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success === false) {
+        if (isEdit) {
+          setEditEmpIdError(data.message || 'Employee ID already exists')
+        } else {
+          setEmpIdError(data.message || 'Employee ID already exists')
+        }
+      } else {
+        if (isEdit) {
+          setEditEmpIdError(null)
+        } else {
+          setEmpIdError(null)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking Employee ID:', error)
+      if (isEdit) {
+        setEditEmpIdError('Error checking Employee ID availability')
+      } else {
+        setEmpIdError('Error checking Employee ID availability')
+      }
+    } finally {
+      if (isEdit) {
+        setCheckingEditEmpId(false)
+      } else {
+        setCheckingEmpId(false)
+      }
+    }
+  }
+
   const handleAddEmployee = async () => {
+    // Validate required fields
+    const requiredFields = [
+      { field: 'name', label: 'Full Name' },
+      { field: 'email', label: 'Email Address' },
+      { field: 'empId', label: 'Employee ID' },
+      { field: 'empType', label: 'Employment Type' },
+      { field: 'salary', label: 'Salary' },
+      { field: 'income', label: 'Annual Income' },
+      { field: 'joiningDate', label: 'Joining Date' },
+      { field: 'emergencyContactName', label: 'Emergency Contact Name' },
+      { field: 'emergencyContactNumber', label: 'Emergency Contact Number' },
+      { field: 'department', label: 'Department' },
+      { field: 'position', label: 'Position' }
+    ]
+
+    const missingFields = requiredFields.filter(({ field }) => {
+      const value = (formData as any)[field]
+      return !value || (typeof value === 'string' && value.trim() === '')
+    })
+
+    if (missingFields.length > 0) {
+      const missingLabels = missingFields.map(f => f.label).join(', ')
+      toast({
+        title: "Validation Error",
+        description: `Please fill in the following required fields: ${missingLabels}`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Validation Error",
+        description: 'Please enter a valid email address',
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate salary and income are numbers
+    if (isNaN(Number(formData.salary)) || Number(formData.salary) <= 0) {
+      toast({
+        title: "Validation Error",
+        description: 'Please enter a valid salary amount',
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (isNaN(Number(formData.income)) || Number(formData.income) <= 0) {
+      toast({
+        title: "Validation Error",
+        description: 'Please enter a valid annual income amount',
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if Employee ID has validation error
+    if (empIdError) {
+      toast({
+        title: "Validation Error",
+        description: empIdError,
+        variant: "destructive",
+      })
+      return
+    }
+
     // Map selected department/designation names to IDs
     const dept = departments.find((d) => d.name === formData.department)
     const desig = designations.find((x) => x.name === formData.position && (!dept || x.department_id === dept.id))
@@ -270,17 +558,32 @@ export default function EmployeesPage() {
           department: "",
           position: "",
         })
+        setSelectedFile(null)
         setIsAddDialogOpen(false)
+        toast({
+          title: "Employee Added",
+          description: `Employee ${formData.name} has been successfully added.`,
+          variant: "default",
+        })
       } else {
-        alert(json?.error || json?.message || 'Failed to add employee')
+        toast({
+          title: "Add Failed",
+          description: json?.error || json?.message || 'Failed to add employee',
+          variant: "destructive",
+        })
       }
     } catch (e) {
-      alert('Failed to add employee')
+      toast({
+        title: "Add Failed",
+        description: 'Failed to add employee',
+        variant: "destructive",
+      })
     }
   }
 
   const handleDeleteEmployee = async (id: number) => {
-    const ok = confirm('Are you sure you want to delete this employee?')
+    const employee = employees.find(emp => emp.id === id)
+    const ok = confirm(`Are you sure you want to delete ${employee?.name || 'this employee'}?`)
     if (!ok) return
     try {
       const url = getBaseUrl(`/company-employees/${id}`)
@@ -288,11 +591,24 @@ export default function EmployeesPage() {
       const json = await res.json().catch(() => ({}))
       if (res.ok && json?.success) {
         setEmployees((prev) => prev.filter((emp) => emp.id !== id))
+        toast({
+          title: "Employee Deleted",
+          description: `${employee?.name || 'Employee'} has been successfully deleted.`,
+          variant: "default",
+        })
       } else {
-        alert(json?.message || 'Failed to delete employee')
+        toast({
+          title: "Delete Failed",
+          description: json?.message || 'Failed to delete employee',
+          variant: "destructive",
+        })
       }
     } catch (e) {
-      alert('Failed to delete employee')
+      toast({
+        title: "Delete Failed",
+        description: 'Failed to delete employee',
+        variant: "destructive",
+      })
     }
   }
 
@@ -419,13 +735,39 @@ export default function EmployeesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="empId">Employee ID *</Label>
-            <Input
-              id="empId"
-              value={formData.empId}
-              onChange={(e) => handleInputChange("empId", e.target.value)}
-              placeholder="e.g., EMP004"
-              className="mt-1"
-            />
+            <div className="relative">
+              <Input
+                id="empId"
+                value={formData.empId}
+                onChange={(e) => {
+                  handleInputChange("empId", e.target.value)
+                  
+                  // Clear existing timeout
+                  if (empIdTimeout) {
+                    clearTimeout(empIdTimeout)
+                  }
+                  
+                  // Set new timeout
+                  const timeoutId = setTimeout(() => {
+                    checkEmployeeIdAvailability(e.target.value, false)
+                  }, 500)
+                  setEmpIdTimeout(timeoutId)
+                }}
+                placeholder="e.g., EMP004"
+                className={`mt-1 ${empIdError ? 'border-red-500' : ''}`}
+              />
+              {checkingEmpId && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                </div>
+              )}
+            </div>
+            {empIdError && (
+              <p className="text-sm text-red-600 mt-1">{empIdError}</p>
+            )}
+            {!empIdError && formData.empId && !checkingEmpId && (
+              <p className="text-sm text-green-600 mt-1">✓ Employee ID is available</p>
+            )}
           </div>
           <div>
             <Label htmlFor="empType">Employment Type *</Label>
@@ -595,19 +937,76 @@ export default function EmployeesPage() {
           </div>
         </div>
 
-        {/* Row 7 */}
-        <div>
-          <Label htmlFor="image">Profile Image URL</Label>
-          <Input
-            id="image"
-            value={formData.image}
-            onChange={(e) => handleInputChange("image", e.target.value)}
-            placeholder="Enter image URL or upload"
-            className="mt-1"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Optional: Provide image URL or leave blank for default avatar
-          </p>
+        {/* Row 7 - Profile Image */}
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="image">Profile Image</Label>
+            <div className="mt-1 space-y-3">
+              {/* File Upload */}
+              <div>
+                <Label htmlFor="file-upload" className="text-sm font-medium text-gray-700">
+                  Upload Photo
+                </Label>
+                <div className="mt-1 flex items-center space-x-3">
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleFileUpload(file)
+                    }}
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    disabled={uploadingImage}
+                  />
+                  {uploadingImage && (
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span>Uploading...</span>
+                    </div>
+                  )}
+                </div>
+                {selectedFile && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ {selectedFile.name} uploaded successfully
+                  </p>
+                )}
+              </div>
+
+              {/* URL Input */}
+              <div>
+                <Label htmlFor="image-url" className="text-sm font-medium text-gray-700">
+                  Or Enter Image URL
+                </Label>
+                <Input
+                  id="image-url"
+                  value={formData.image}
+                  onChange={(e) => handleInputChange("image", e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Preview */}
+              {formData.image && (
+                <div className="mt-3">
+                  <Label className="text-sm font-medium text-gray-700">Preview</Label>
+                  <div className="mt-1 flex items-center space-x-3">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={getAssetUrl(formData.image)} alt="Preview" />
+                      <AvatarFallback>IMG</AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm text-gray-600">
+                      <p>Image will be displayed like this</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Optional: Upload a photo or provide image URL. Leave blank for default avatar.
+            </p>
+          </div>
         </div>
 
         {/* Action buttons */}
@@ -749,22 +1148,22 @@ export default function EmployeesPage() {
 
       {/* Employee List */}
       <div className="grid gap-4">
-        {paginatedEmployees.map((employee) => (
-          <Card key={employee.id}>
+        {paginatedEmployees.map((employee, index) => (
+          <Card key={employee.id || employee.empId || `employee-${index}`}>
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={employee.image || "/placeholder.svg"} alt={employee.name} />
+                    <AvatarImage src={getAssetUrl(employee.image || "/placeholder.svg")} alt={employee.name || "Employee"} />
                     <AvatarFallback>
                       {employee.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                        ?.split(" ")
+                        ?.map((n) => n[0])
+                        ?.join("") || "EMP"}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold text-lg">{employee.name}</h3>
+                    <h3 className="font-semibold text-lg">{employee.name || "Unknown Employee"}</h3>
                     <p className="text-gray-600">
                       {employee.position} • {employee.department}
                     </p>
@@ -792,8 +1191,8 @@ export default function EmployeesPage() {
                       <DollarSign className="h-4 w-4 text-gray-500" />
                       <p className="font-semibold text-green-600">
                         {employee.empType === "parttime"
-                          ? `$${employee.salary}/hr`
-                          : `$${employee.salary.toLocaleString()}/mo`}
+                          ? `$${employee.salary || 0}/hr`
+                          : `$${(employee.salary || 0).toLocaleString()}/mo`}
                       </p>
                     </div>
                   </div>
@@ -832,7 +1231,7 @@ export default function EmployeesPage() {
                             <div className="flex items-center space-x-4">
                               <Avatar className="h-20 w-20">
                                 <AvatarImage
-                                  src={selectedEmployee.image || "/placeholder.svg"}
+                                  src={getAssetUrl(selectedEmployee.image || "/placeholder.svg")}
                                   alt={selectedEmployee.name}
                                 />
                                 <AvatarFallback className="text-lg">
@@ -887,14 +1286,14 @@ export default function EmployeesPage() {
                                     <span>Salary:</span>
                                     <span className="font-medium text-green-600">
                                       {selectedEmployee.empType === "parttime"
-                                        ? `$${selectedEmployee.salary}/hr`
-                                        : `$${selectedEmployee.salary.toLocaleString()}/mo`}
+                                        ? `$${selectedEmployee.salary || 0}/hr`
+                                        : `$${(selectedEmployee.salary || 0).toLocaleString()}/mo`}
                                     </span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Annual Income:</span>
                                     <span className="font-medium text-green-600">
-                                      ${selectedEmployee.income.toLocaleString()}
+                                      ${(selectedEmployee.income || 0).toLocaleString()}
                                     </span>
                                   </div>
                                 </div>
@@ -953,7 +1352,38 @@ export default function EmployeesPage() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="edit_empId">Employee ID *</Label>
-                              <Input id="edit_empId" value={editForm.empId} onChange={(e)=>handleEditChange('empId', e.target.value)} className="mt-1" />
+                              <div className="relative">
+                                <Input 
+                                  id="edit_empId" 
+                                  value={editForm.empId} 
+                                  onChange={(e) => {
+                                    handleEditChange('empId', e.target.value)
+                                    
+                                    // Clear existing timeout
+                                    if (editEmpIdTimeout) {
+                                      clearTimeout(editEmpIdTimeout)
+                                    }
+                                    
+                                    // Set new timeout
+                                    const timeoutId = setTimeout(() => {
+                                      checkEmployeeIdAvailability(e.target.value, true)
+                                    }, 500)
+                                    setEditEmpIdTimeout(timeoutId)
+                                  }}
+                                  className={`mt-1 ${editEmpIdError ? 'border-red-500' : ''}`}
+                                />
+                                {checkingEditEmpId && (
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                  </div>
+                                )}
+                              </div>
+                              {editEmpIdError && (
+                                <p className="text-sm text-red-600 mt-1">{editEmpIdError}</p>
+                              )}
+                              {!editEmpIdError && editForm.empId && !checkingEditEmpId && (
+                                <p className="text-sm text-green-600 mt-1">✓ Employee ID is available</p>
+                              )}
                             </div>
                             <div>
                               <Label htmlFor="edit_empType">Employment Type *</Label>

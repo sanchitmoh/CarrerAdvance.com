@@ -124,7 +124,7 @@ class BlogsApiService {
   }
 
   async deleteBlog(id: number): Promise<{ success: boolean; message?: string }> {
-    const res = await fetch(`${this.baseUrl}/${id}`, { method: 'DELETE', credentials: 'include' });
+    const res = await fetch(`${this.baseUrl}/${id}/delete`, { method: 'DELETE', credentials: 'include' });
     return res.json();
   }
 

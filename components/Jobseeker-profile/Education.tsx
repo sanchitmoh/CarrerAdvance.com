@@ -106,8 +106,14 @@ export default function Education() {
 
   const handleSave = async (id: string) => {
     try {
-      try { (window as any).ProfileSave?.start('Saving education...') } catch {}
+      // Validate required fields
       if (!editingEducation) return;
+      if (!editingEducation.degree || !editingEducation.field || !editingEducation.institution || !editingEducation.location || !editingEducation.endDate) {
+        try { (window as any).ProfileSave?.error('Please fill in all required fields.') } catch {}
+        return;
+      }
+
+      try { (window as any).ProfileSave?.start('Saving education...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
       if (!jobseekerId) {
         console.error('No jobseeker ID found. Please login again.');
@@ -192,6 +198,12 @@ export default function Education() {
 
   const handleAdd = async () => {
     try {
+      // Validate required fields
+      if (!newEducation.degree || !newEducation.field || !newEducation.institution || !newEducation.location || !newEducation.endDate) {
+        try { (window as any).ProfileSave?.error('Please fill in all required fields.') } catch {}
+        return;
+      }
+
       try { (window as any).ProfileSave?.start('Adding education...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id');
       if (!jobseekerId) {
@@ -304,7 +316,7 @@ export default function Education() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Responsive form inputs */}
                     <div className="space-y-2">
-                      <Label htmlFor="newDegree">Degree</Label>
+                      <Label htmlFor="newDegree">Degree <span className="text-red-500">*</span></Label>
                       <Select
                         value={newEducation.degree}
                         onValueChange={(value) => setNewEducation({ ...newEducation, degree: value })}
@@ -322,37 +334,40 @@ export default function Education() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="newField">Field of Study</Label>
+                      <Label htmlFor="newField">Field of Study <span className="text-red-500">*</span></Label>
                       <Input
                         id="newField"
                         value={newEducation.field}
                         onChange={(e) => setNewEducation({ ...newEducation, field: e.target.value })}
                         className="w-full border-emerald-300 focus:border-emerald-500"
                         placeholder="e.g., Computer Science"
+                        required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="newInstitution">Institution</Label>
+                      <Label htmlFor="newInstitution">Institution <span className="text-red-500">*</span></Label>
                       <Input
                         id="newInstitution"
                         value={newEducation.institution}
                         onChange={(e) => setNewEducation({ ...newEducation, institution: e.target.value })}
                         className="w-full border-emerald-300 focus:border-emerald-500"
                         placeholder="e.g., University of Technology"
+                        required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="newLocation">Location</Label>
+                      <Label htmlFor="newLocation">Location <span className="text-red-500">*</span></Label>
                       <Input
                         id="newLocation"
                         value={newEducation.location}
                         onChange={(e) => setNewEducation({ ...newEducation, location: e.target.value })}
                         className="w-full border-emerald-300 focus:border-emerald-500"
                         placeholder="e.g., New York, NY"
+                        required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="newStartDate">Completion Year</Label>
+                      <Label htmlFor="newStartDate">Completion Year <span className="text-red-500">*</span></Label>
                       <Input
                         id="newStartDate"
                         type="number"
@@ -363,6 +378,7 @@ export default function Education() {
                         onChange={(e) => setNewEducation({ ...newEducation, endDate: e.target.value })}
                         className="w-full border-emerald-300 focus:border-emerald-500"
                         placeholder="e.g., 2024"
+                        required
                       />
                     </div>
                     <div className="space-y-2">
@@ -383,7 +399,7 @@ export default function Education() {
                       value={newEducation.description}
                       onChange={(e) => setNewEducation({ ...newEducation, description: e.target.value })}
                       rows={3}
-                      className="w-full border-emerald-300 focus:border-emerald-500"
+                      className="w-full border-emerald-300 focus:border-emerald-500 resize-none"
                       placeholder="Describe your studies, achievements, or relevant coursework..."
                     />
                   </div>
@@ -418,7 +434,7 @@ export default function Education() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Degree</Label>
+                          <Label>Degree <span className="text-red-500">*</span></Label>
                           <Select
                             value={editingEducation.degree}
                             onValueChange={(value) => setEditingEducation({ ...editingEducation, degree: value })}
@@ -436,34 +452,37 @@ export default function Education() {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label>Field of Study</Label>
+                          <Label>Field of Study <span className="text-red-500">*</span></Label>
                           <Input
                             value={editingEducation.field}
                             onChange={(e) => setEditingEducation({ ...editingEducation, field: e.target.value })}
                             className="w-full border-emerald-300 focus:border-emerald-500"
                             placeholder="e.g., Computer Science"
+                            required
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Institution</Label>
+                          <Label>Institution <span className="text-red-500">*</span></Label>
                           <Input
                             value={editingEducation.institution}
                             onChange={(e) => setEditingEducation({ ...editingEducation, institution: e.target.value })}
                             className="w-full border-emerald-300 focus:border-emerald-500"
                             placeholder="e.g., University of Technology"
+                            required
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Location</Label>
+                          <Label>Location <span className="text-red-500">*</span></Label>
                           <Input
                             value={editingEducation.location}
                             onChange={(e) => setEditingEducation({ ...editingEducation, location: e.target.value })}
                             className="w-full border-emerald-300 focus:border-emerald-500"
                             placeholder="e.g., New York, NY"
+                            required
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Completion Year</Label>
+                          <Label>Completion Year <span className="text-red-500">*</span></Label>
                           <Input
                             type="number"
                             min="1900"
@@ -473,6 +492,7 @@ export default function Education() {
                             onChange={(e) => setEditingEducation({ ...editingEducation, endDate: e.target.value })}
                             className="w-full border-emerald-300 focus:border-emerald-500"
                             placeholder="e.g., 2024"
+                            required
                           />
                         </div>
                         <div className="space-y-2">
@@ -491,7 +511,7 @@ export default function Education() {
                           value={editingEducation.description}
                           onChange={(e) => setEditingEducation({ ...editingEducation, description: e.target.value })}
                           rows={3}
-                          className="w-full border-emerald-300 focus:border-emerald-500"
+                          className="w-full border-emerald-300 focus:border-emerald-500 resize-none"
                           placeholder="Describe your studies, achievements, or relevant coursework..."
                         />
                       </div>
@@ -515,7 +535,7 @@ export default function Education() {
                   ) : (
                     // Display Mode
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                      <div className="flex-1">
+                      <div className="flex-1 w-full">
                         <div className="flex items-center space-x-3 mb-2">
                           <School className="h-5 w-5 text-emerald-600" />
                           <div>
@@ -539,7 +559,9 @@ export default function Education() {
                           )}
                         </div>
                         {education.description && (
-                          <p className="text-gray-700 mb-4">{education.description}</p>
+                          <div className="text-gray-700 mb-4 w-full max-w-none">
+                            <div className="whitespace-pre-wrap break-words leading-relaxed overflow-wrap-anywhere text-justify">{education.description}</div>
+                          </div>
                         )}
                         {education.achievements.length > 0 && (
                           <div className="space-y-2">

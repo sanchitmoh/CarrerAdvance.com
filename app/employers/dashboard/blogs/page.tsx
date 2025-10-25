@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, FileText, Search, Edit, Trash2, Calendar, Eye, User, Tag } from "lucide-react"
 import BackButton from "@/components/back-button"
 import { blogsApiService, type EmployerBlogPost } from "@/lib/blogs-api"
+import { useToast } from "@/hooks/use-toast"
 
 interface BlogPostUI {
   id: number
@@ -29,6 +30,7 @@ interface BlogPostUI {
 }
 
 export default function BlogsPage() {
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -38,6 +40,9 @@ export default function BlogsPage() {
 
   const [blogPosts, setBlogPosts] = useState<BlogPostUI[]>([])
   const [loading, setLoading] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [updating, setUpdating] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string>("")
   const [categoriesList, setCategoriesList] = useState<{ id: number; name: string }[]>([])
 
@@ -70,6 +75,11 @@ export default function BlogsPage() {
         }
       } catch (e: any) {
         setError(e?.message || "Failed to load blogs")
+        toast({
+          title: "Error Loading Blogs",
+          description: e?.message || "Failed to load blogs",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
@@ -114,7 +124,8 @@ export default function BlogsPage() {
 
   const handleAddPost = async (status: "draft" | "published") => {
     try {
-      setLoading(true)
+      setCreating(true)
+      setError("")
       const tags = newPost.tags
         .split(",")
         .map((t) => t.trim())
@@ -135,16 +146,27 @@ export default function BlogsPage() {
       await loadBlogs()
       setNewPost({ title: "", content: "", excerpt: "", categoryId: "", tags: "", imageFile: null })
       setIsAddingPost(false)
+      toast({
+        title: "Blog Post Created",
+        description: `Blog post "${newPost.title}" has been ${status === "published" ? "published" : "saved as draft"} successfully.`,
+        variant: "default",
+      })
     } catch (e) {
-      setError((e as any)?.message || "Failed to create blog")
+      const errorMessage = (e as any)?.message || "Failed to create blog"
+      setError(errorMessage)
+      toast({
+        title: "Creation Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
-      setLoading(false)
+      setCreating(false)
     }
   }
 
   const handleUpdatePost = async (data: BlogPostUI, imageFile?: File | null) => {
     try {
-      setLoading(true)
+      setUpdating(true)
       setError("") // Clear any previous errors
       
       // Automatically set status to "published" when updating from draft
@@ -178,24 +200,51 @@ export default function BlogsPage() {
       
       await loadBlogs()
       setEditingPost(null)
+      toast({
+        title: "Blog Post Updated",
+        description: `Blog post "${data.title}" has been updated successfully.`,
+        variant: "default",
+      })
     } catch (e) {
       console.error('Update error:', e)
-      setError((e as any)?.message || "Failed to update blog")
+      const errorMessage = (e as any)?.message || "Failed to update blog"
+      setError(errorMessage)
+      toast({
+        title: "Update Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
-      setLoading(false)
+      setUpdating(false)
     }
   }
 
   const handleDeletePost = async (id: number) => {
+    const post = blogPosts.find(p => p.id === id)
+    const confirmDelete = confirm(`Are you sure you want to delete "${post?.title || 'this blog post'}"? This action cannot be undone.`)
+    if (!confirmDelete) return
+
     try {
-      setLoading(true)
+      setDeleting(true)
+      setError("")
       const res = await blogsApiService.deleteBlog(id)
       if (!res.success) throw new Error(res.message || "Delete failed")
       await loadBlogs()
+      toast({
+        title: "Blog Post Deleted",
+        description: `Blog post "${post?.title || 'Unknown'}" has been deleted successfully.`,
+        variant: "default",
+      })
     } catch (e) {
-      setError((e as any)?.message || "Failed to delete blog")
+      const errorMessage = (e as any)?.message || "Failed to delete blog"
+      setError(errorMessage)
+      toast({
+        title: "Delete Failed",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
-      setLoading(false)
+      setDeleting(false)
     }
   }
 
@@ -214,7 +263,6 @@ export default function BlogsPage() {
 
   const publishedPosts = useMemo(() => blogPosts.filter((post) => post.status === "published"), [blogPosts])
   const draftPosts = useMemo(() => blogPosts.filter((post) => post.status === "draft"), [blogPosts])
-  const archivedPosts = useMemo(() => blogPosts.filter((post) => post.status === "archived"), [blogPosts])
 
   const BlogCard = ({ post }: { post: BlogPostUI }) => (
     <Card className="hover:shadow-md transition-shadow">
@@ -308,9 +356,10 @@ export default function BlogsPage() {
               size="sm"
               onClick={() => handleDeletePost(post.id)}
               className="text-red-600 border-red-600 hover:bg-red-50 text-xs sm:text-sm"
+              disabled={deleting}
             >
               <Trash2 className="h-3 w-3 mr-1" />
-              Delete
+              {deleting ? "Deleting..." : "Delete"}
             </Button>
           </div>
         </div>
@@ -341,7 +390,8 @@ export default function BlogsPage() {
 
     const handleSubmit = async (status: "draft" | "published") => {
       try {
-        setLoading(true)
+        setCreating(true)
+        setError("")
         const tags = tagsInput
           .split(",")
           .map((t) => t.trim())
@@ -370,11 +420,23 @@ export default function BlogsPage() {
         setCategory("")
         setTagsInput("")
         setContent("")
+        setImageFile(null)
         onCancel()
+        toast({
+          title: "Blog Post Created",
+          description: `Blog post "${title}" has been ${status === "published" ? "published" : "saved as draft"} successfully.`,
+          variant: "default",
+        })
       } catch (e) {
-        setError((e as any)?.message || "Failed to create blog")
+        const errorMessage = (e as any)?.message || "Failed to create blog"
+        setError(errorMessage)
+        toast({
+          title: "Creation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        })
       } finally {
-        setLoading(false)
+        setCreating(false)
       }
     }
 
@@ -504,16 +566,16 @@ export default function BlogsPage() {
             variant="outline"
             onClick={() => handleSubmit("draft")}
             className="border-yellow-600 text-yellow-600 hover:bg-yellow-50 order-2"
-            disabled={loading}
+            disabled={creating}
           >
-            Save as Draft
+            {creating ? "Saving..." : "Save as Draft"}
           </Button>
           <Button
             onClick={() => handleSubmit("published")}
             className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 order-1 xs:order-3"
-            disabled={loading}
+            disabled={creating}
           >
-            Publish Post
+            {creating ? "Publishing..." : "Publish Post"}
           </Button>
         </div>
       </div>
@@ -684,9 +746,9 @@ export default function BlogsPage() {
               onSubmit(updatedPost, imageFile)
             }}
             className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 order-1 xs:order-3"
-            disabled={loading}
+            disabled={updating}
           >
-            Update Post
+            {updating ? "Updating..." : "Update Post"}
           </Button>
         </div>
       </div>
@@ -725,9 +787,21 @@ export default function BlogsPage() {
         </Card>
       )}
 
+      {/* Loading Overlay */}
+      {loading && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2 text-blue-800">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="font-medium">Loading blogs...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-3 gap-1 h-auto p-1">
           <TabsTrigger
             value="all"
             className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm px-2 py-2"
@@ -751,14 +825,6 @@ export default function BlogsPage() {
             <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Drafts ({draftPosts.length})</span>
             <span className="sm:hidden">Draft ({draftPosts.length})</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="archived"
-            className="flex items-center justify-center space-x-1 sm:space-x-2 text-xs sm:text-sm px-2 py-2"
-          >
-            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Archived ({archivedPosts.length})</span>
-            <span className="sm:hidden">Arch ({archivedPosts.length})</span>
           </TabsTrigger>
         </TabsList>
 
@@ -981,30 +1047,6 @@ export default function BlogsPage() {
           )}
         </TabsContent>
 
-        {/* Archived Posts Tab */}
-        <TabsContent value="archived" className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {archivedPosts
-              .filter((post) => {
-                const matchesSearch =
-                  post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  post.category.toLowerCase().includes(searchTerm.toLowerCase())
-                return matchesSearch
-              })
-              .map((post) => (
-                <BlogCard key={post.id} post={post} />
-              ))}
-          </div>
-          {archivedPosts.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <Trash2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium mb-2">No archived posts</p>
-              <p className="mb-4 text-sm sm:text-base px-4">Archived posts will appear here</p>
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   )

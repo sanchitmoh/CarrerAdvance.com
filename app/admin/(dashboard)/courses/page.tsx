@@ -22,128 +22,30 @@ interface Course {
   rating: number
   revenue: number
   thumbnail: string
+  created_date: string
+  updated_date: string
 }
 
 export default function CoursesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedFilter, setSelectedFilter] = useState("All Courses")
+  const [sortBy, setSortBy] = useState("newest")
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const coursesPerPage = 8 // Reduced for better mobile experience
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const [courses, setCourses] = useState<Course[]>([
-    {
-      id: "1",
-      title: "Complete Web Development Bootcamp",
-      instructor: "John Smith",
-      category: "Web Development",
-      status: "Published",
-      students: 1247,
-      rating: 4.8,
-      revenue: 24940,
-      thumbnail: "/web-development-course.png",
-    },
-    {
-      id: "2",
-      title: "Digital Marketing Mastery",
-      instructor: "Sarah Johnson",
-      category: "Marketing",
-      status: "Published",
-      students: 892,
-      rating: 4.6,
-      revenue: 17840,
-      thumbnail: "/digital-marketing-course.png",
-    },
-    {
-      id: "3",
-      title: "Data Science with Python",
-      instructor: "Dr. Michael Chen",
-      category: "Data Science",
-      status: "Under Review",
-      students: 0,
-      rating: 0,
-      revenue: 0,
-      thumbnail: "/data-science-course.png",
-    },
-    {
-      id: "4",
-      title: "UI/UX Design Fundamentals",
-      instructor: "Emily Rodriguez",
-      category: "Design",
-      status: "Published",
-      students: 634,
-      rating: 4.9,
-      revenue: 12680,
-      thumbnail: "/ui-ux-design-course.png",
-    },
-    {
-      id: "5",
-      title: "Project Management Professional",
-      instructor: "David Wilson",
-      category: "Business",
-      status: "Under Review",
-      students: 0,
-      rating: 0,
-      revenue: 0,
-      thumbnail: "/project-management-course.png",
-    },
-    {
-      id: "6",
-      title: "Cybersecurity Essentials",
-      instructor: "Lisa Thompson",
-      category: "Technology",
-      status: "Rejected",
-      students: 0,
-      rating: 0,
-      revenue: 0,
-      thumbnail: "/cybersecurity-course.png",
-    },
-    {
-      id: "7",
-      title: "Advanced JavaScript Patterns",
-      instructor: "Alex Johnson",
-      category: "Web Development",
-      status: "Published",
-      students: 543,
-      rating: 4.7,
-      revenue: 10860,
-      thumbnail: "/javascript-course.png",
-    },
-    {
-      id: "8",
-      title: "Machine Learning Fundamentals",
-      instructor: "Dr. Sarah Wilson",
-      category: "Data Science",
-      status: "Published",
-      students: 876,
-      rating: 4.5,
-      revenue: 17520,
-      thumbnail: "/ml-course.png",
-    },
-    {
-      id: "9",
-      title: "Mobile App Development with React Native",
-      instructor: "Mike Brown",
-      category: "Mobile Development",
-      status: "Under Review",
-      students: 0,
-      rating: 0,
-      revenue: 0,
-      thumbnail: "/react-native-course.png",
-    },
-    {
-      id: "10",
-      title: "Content Marketing Strategy",
-      instructor: "Jennifer Lee",
-      category: "Marketing",
-      status: "Published",
-      students: 321,
-      rating: 4.4,
-      revenue: 6420,
-      thumbnail: "/content-marketing-course.png",
-    },
-  ])
+  const [courses, setCourses] = useState<Course[]>([])
+  const [stats, setStats] = useState({
+    total: 0,
+    published: 0,
+    under_review: 0,
+    rejected: 0,
+    total_revenue: 0
+  })
 
   const filterTabs = ["All Courses", "Published", "Under Review", "Rejected"]
 
@@ -157,6 +59,32 @@ export default function CoursesPage() {
       selectedFilter === "All Courses" || course.status === selectedFilter
 
     return matchesSearch && matchesFilter
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case "newest":
+        // Sort by updated_date first, then created_date, then by ID as fallback
+        const aDate = new Date(a.updated_date || a.created_date || '1970-01-01')
+        const bDate = new Date(b.updated_date || b.created_date || '1970-01-01')
+        if (aDate.getTime() !== bDate.getTime()) {
+          return bDate.getTime() - aDate.getTime()
+        }
+        return parseInt(b.id) - parseInt(a.id)
+      case "oldest":
+        const aDateOld = new Date(a.created_date || '1970-01-01')
+        const bDateOld = new Date(b.created_date || '1970-01-01')
+        if (aDateOld.getTime() !== bDateOld.getTime()) {
+          return aDateOld.getTime() - bDateOld.getTime()
+        }
+        return parseInt(a.id) - parseInt(b.id)
+      case "popular":
+        // Sort by number of students
+        return b.students - a.students
+      case "revenue":
+        // Sort by revenue
+        return b.revenue - a.revenue
+      default:
+        return 0
+    }
   })
 
   // Pagination calculations
@@ -165,42 +93,114 @@ export default function CoursesPage() {
   const indexOfFirstCourse = indexOfLastCourse - coursesPerPage
   const currentCourses = filteredCourses.slice(indexOfFirstCourse, indexOfLastCourse)
 
-  // Reset to first page when search or filter changes
+  // Reset to first page when search, filter, or sort changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, selectedFilter])
+    console.log('Filter changed to:', selectedFilter, 'Sort changed to:', sortBy)
+    console.log('Filtered courses count:', filteredCourses.length)
+  }, [searchTerm, selectedFilter, sortBy])
 
   useEffect(() => {
     const controller = new AbortController()
-    const url = getApiUrl('courses/list')
-    fetch(url, { signal: controller.signal, credentials: 'include' })
+    
+    // Fetch courses
+    const coursesUrl = getApiUrl('courses/list')
+    fetch(coursesUrl, { signal: controller.signal, credentials: 'include' })
       .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
       .then(json => {
+        console.log('Courses API response:', json) // Debug log
         const data = Array.isArray(json?.data) ? json.data : []
-        if (data.length === 0) return
-        const mapped: Course[] = data.map((c: any) => ({
-          id: String(c.id ?? c.course_id ?? ''),
-          title: String(c.title ?? c.name ?? 'Untitled Course'),
-          instructor: String(c.instructor ?? c.teacher ?? 'Unknown Instructor'),
-          category: String(c.category ?? 'General'),
-          status: (String(c.status ?? 'Published') as Course['status']),
-          students: Number(c.students ?? c.enrolled ?? 0),
-          rating: Number(c.rating ?? 0),
-          revenue: Number(c.revenue ?? 0),
-          thumbnail: String(c.thumbnail ?? '/course.png')
-        }))
+        if (data.length === 0) {
+          setCourses([])
+          return
+        }
+        const mapped: Course[] = data.map((c: any) => {
+          // Map backend status to frontend status
+          let status: Course['status'] = 'Published'
+          if (c.is_under_review === 1 || c.is_under_review === '1') {
+            status = 'Under Review'
+          } else if (c.is_rejected === 1 || c.is_rejected === '1') {
+            status = 'Rejected'
+          } else if (c.is_published === 1 || c.is_published === '1') {
+            status = 'Published'
+          }
+          
+          return {
+            id: String(c.id ?? c.course_id ?? ''),
+            title: String(c.title ?? c.name ?? c.description ?? 'Untitled Course'),
+            instructor: String(c.teacher_name ?? c.instructor ?? c.teacher ?? 'Unknown Instructor'),
+            category: String(c.category ?? c.course_level ?? 'General'),
+            status: status,
+            students: Number(c.students ?? c.enrolled ?? 0),
+            rating: Number(c.rating ?? 0),
+            revenue: Number(c.revenue ?? 0),
+            thumbnail: String(c.thumbnail ?? c.image ?? '/course.png'),
+            created_date: c.created_date ?? '',
+            updated_date: c.updated_date ?? ''
+          }
+        })
         setCourses(mapped)
       })
-      .catch(() => {})
+      .catch(err => {
+        console.error('Error fetching courses:', err)
+        setCourses([])
+      })
+    
+    // Fetch stats
+    const statsUrl = getApiUrl('courses/stats')
+    fetch(statsUrl, { signal: controller.signal, credentials: 'include' })
+      .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
+      .then(json => {
+        console.log('Stats API response:', json) // Debug log
+        if (json?.success && json?.data) {
+          setStats({
+            total: Number(json.data.total || 0),
+            published: Number(json.data.published || 0),
+            under_review: Number(json.data.under_review || 0),
+            rejected: Number(json.data.rejected || 0),
+            total_revenue: Number(json.data.total_revenue || 0)
+          })
+        } else {
+          // Fallback: calculate stats from courses if API doesn't return stats
+          console.log('Stats API failed, will calculate from courses')
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching stats:', err)
+        // Fallback: calculate stats from courses
+        console.log('Stats API failed, will calculate from courses')
+      })
+    
     return () => controller.abort()
   }, [])
 
-  const totalCourses = courses.length
-  const publishedCount = courses.filter(c => c.status === "Published").length
-  const underReviewCount = courses.filter(c => c.status === "Under Review").length
-  const totalRevenue = courses.reduce((acc, c) => acc + c.revenue, 0)
+  // Update stats when courses change (fallback mechanism)
+  useEffect(() => {
+    if (courses.length > 0 && stats.total === 0) {
+      const calculatedStats = calculateStatsFromCourses()
+      setStats(calculatedStats)
+    }
+  }, [courses, stats.total])
 
-  const handleAction = (action: string, courseId: string) => {
+  // Calculate stats from courses if backend stats are not available
+  const calculateStatsFromCourses = () => {
+    const total = courses.length
+    const published = courses.filter(c => c.status === 'Published').length
+    const under_review = courses.filter(c => c.status === 'Under Review').length
+    const rejected = courses.filter(c => c.status === 'Rejected').length
+    const total_revenue = courses.reduce((sum, c) => sum + c.revenue, 0)
+    
+    return { total, published, under_review, rejected, total_revenue }
+  }
+
+  // Use stats from backend, fallback to calculated stats
+  const finalStats = stats.total > 0 ? stats : calculateStatsFromCourses()
+  const totalCourses = finalStats.total
+  const publishedCount = finalStats.published
+  const underReviewCount = finalStats.under_review
+  const totalRevenue = finalStats.total_revenue
+
+  const handleAction = async (action: string, courseId: string) => {
     if (action === "view") {
       const course = courses.find((c) => c.id === courseId)
       if (course) {
@@ -209,7 +209,104 @@ export default function CoursesPage() {
       }
       return
     }
+
+    if (action === "delete") {
+      const course = courses.find((c) => c.id === courseId)
+      if (course) {
+        setCourseToDelete(course)
+        setIsDeleteDialogOpen(true)
+      }
+      return
+    }
+
+    if (action === "approve" || action === "reject") {
+      await handleCourseReview(courseId, action)
+      return
+    }
+
     console.log(`${action} course:`, courseId)
+  }
+
+  const handleCourseReview = async (courseId: string, action: string) => {
+    setIsLoading(true)
+    try {
+      const reviewUrl = getApiUrl(`courses/review/${courseId}`)
+      const response = await fetch(reviewUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: action,
+          comment: action === 'approve' ? 'Course approved by admin' : 'Course rejected by admin'
+        })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        // Update the course status in the local state
+        setCourses(prevCourses => 
+          prevCourses.map(course => 
+            course.id === courseId 
+              ? {
+                  ...course,
+                  status: action === 'approve' ? 'Published' : 'Rejected'
+                }
+              : course
+          )
+        )
+        
+        // Refresh the page data
+        window.location.reload()
+      } else {
+        console.error('Review failed:', result.message)
+        alert(`Failed to ${action} course: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('Error reviewing course:', error)
+      alert(`Error ${action}ing course: ${error}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete) return
+    
+    setIsLoading(true)
+    try {
+      const deleteUrl = getApiUrl(`courses/delete/${courseToDelete.id}`)
+      const response = await fetch(deleteUrl, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        // Remove the course from local state
+        setCourses(prevCourses => 
+          prevCourses.filter(course => course.id !== courseToDelete.id)
+        )
+        
+        // Close dialog and reset state
+        setIsDeleteDialogOpen(false)
+        setCourseToDelete(null)
+        
+        // Refresh the page data
+        window.location.reload()
+      } else {
+        console.error('Delete failed:', result.message)
+        alert(`Failed to delete course: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('Error deleting course:', error)
+      alert(`Error deleting course: ${error}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -272,6 +369,10 @@ export default function CoursesPage() {
           <CardTitle className="text-[10px] sm:text-xs text-white font-normal">Under Review</CardTitle>
           <CardContent className="text-sm sm:text-lg font-bold text-white p-0 pt-1">⏳ {underReviewCount}</CardContent>
         </Card>
+        <Card className="text-center p-2 sm:p-6 bg-gradient-to-r from-red-400 to-rose-400">
+          <CardTitle className="text-[10px] sm:text-xs text-white font-normal">Rejected</CardTitle>
+          <CardContent className="text-sm sm:text-lg font-bold text-white p-0 pt-1">❌ {stats.rejected}</CardContent>
+        </Card>
         <Card className="text-center p-2 sm:p-6 bg-gradient-to-r from-emerald-400 to-teal-400">
           <CardTitle className="text-[10px] sm:text-xs text-white font-normal ">Total Revenue</CardTitle>
           <CardContent className="text-sm sm:text-lg font-bold text-white p-0 pt-1">💰 ${totalRevenue.toLocaleString()}</CardContent>
@@ -290,7 +391,7 @@ export default function CoursesPage() {
           />
         </div>
 
-        <Select defaultValue="newest">
+        <Select value={sortBy} onValueChange={setSortBy}>
           <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
             <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
             <SelectValue placeholder="Sort by" />
@@ -358,16 +459,6 @@ export default function CoursesPage() {
                       <DropdownMenuItem onClick={() => handleAction("view", course.id)} className="text-xs">
                         <Eye className="mr-2 h-3.5 w-3.5" /> View
                       </DropdownMenuItem>
-                      {course.status === "Under Review" && (
-                        <>
-                          <DropdownMenuItem onClick={() => handleAction("approve", course.id)} className="text-xs">
-                            <CheckCircle className="mr-2 h-3.5 w-3.5" /> Approve
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("reject", course.id)} className="text-xs">
-                            <XCircle className="mr-2 h-3.5 w-3.5" /> Reject
-                          </DropdownMenuItem>
-                        </>
-                      )}
                       <DropdownMenuItem onClick={() => handleAction("delete", course.id)} className="text-red-600 text-xs">
                         <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                       </DropdownMenuItem>
@@ -509,6 +600,53 @@ export default function CoursesPage() {
                   className="w-full text-sm"
                 >
                   Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-[95vw] w-full max-h-[90vh] overflow-y-auto p-0 mx-auto">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b border-gray-100">
+            <DialogTitle className="text-lg font-bold text-red-600">
+              Delete Course
+            </DialogTitle>
+          </DialogHeader>
+          {courseToDelete && (
+            <div className="p-4 space-y-4">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600 text-2xl mx-auto mb-4">
+                  ⚠️
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  Are you sure you want to delete this course?
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  This action cannot be undone. The course "{courseToDelete.title}" will be permanently removed.
+                </p>
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <Button 
+                  onClick={handleDeleteCourse}
+                  disabled={isLoading}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {isLoading ? "Deleting..." : "Yes, Delete Course"}
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsDeleteDialogOpen(false)
+                    setCourseToDelete(null)
+                  }}
+                  variant="outline"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  Cancel
                 </Button>
               </div>
             </div>

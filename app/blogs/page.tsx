@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import BlogCard from '@/components/BlogCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, TrendingUp, Clock, Eye, Newspaper } from 'lucide-react'
+import { Search, TrendingUp, Clock, Eye, Newspaper, X } from 'lucide-react'
 import { getApiUrl } from '@/lib/api-config'
 
 const defaultCategories = ['All', 'Career Tips', 'Technology', 'Networking', 'Interview Tips', 'Career Growth', 'Skills Development']
@@ -133,7 +133,7 @@ export default function BlogsPage() {
     <div className="min-h-screen bg-gray-50 pt-16">
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 text-center">
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-100 text-sm font-semibold mb-6">
             <Newspaper className="w-4 h-4 mr-2" />
             Latest Insights
@@ -149,24 +149,24 @@ export default function BlogsPage() {
             Stay updated with the latest career trends, industry insights, and professional development tips from our experts.
           </p>
           
-          {/* Search */}
-          <form className="max-w-2xl mx-auto" onSubmit={handleSearch}>
+          {/* Search - Made Responsive */}
+          <form className="max-w-2xl mx-auto px-4" onSubmit={handleSearch}>
             <div className="relative">
-              
               <Input
-  type="text"
-  placeholder="Search articles, topics, or authors..."
-  className="pl-12 h-14 text-lg bg-white/10 backdrop-blur-sm border-2 border-white/20 focus:border-white/40 text-white placeholder:text-white rounded-xl"
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
-/>
-
-                <Button 
-                  type="submit"
-                  className="absolute right-2 top-2 bg-white text-emerald-600 hover:bg-gray-100 h-10 px-6 font-semibold rounded-lg"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
+                type="text"
+                placeholder="Search articles, topics, or authors..."
+                className="pl-10 md:pl-12 h-12 md:h-14 text-sm md:text-lg bg-white/10 backdrop-blur-sm border-2 border-white/20 focus:border-white/40 text-white placeholder:text-white rounded-lg md:rounded-xl"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-white" />
+              <Button 
+                type="submit"
+                className="absolute right-1 top-1 md:right-2 md:top-2 bg-white text-emerald-600 hover:bg-gray-100 h-8 md:h-10 px-3 md:px-6 font-semibold rounded-lg text-xs md:text-sm"
+              >
+                <Search className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Search</span>
+              </Button>
             </div>
           </form>
         </div>
@@ -338,23 +338,27 @@ export default function BlogsPage() {
           Showing {blogs.length} of {total} articles
         </div>
       </div>
-      {/* Blog Modal */}
+
+      {/* Blog Modal - Made Responsive */}
       {showBlogModal && selectedBlog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">{selectedBlog.title}</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-4 z-50 pt-20 md:pt-0 md:items-center">
+          <div className="bg-white rounded-lg md:rounded-2xl w-full max-w-sm sm:max-w-md md:max-w-4xl max-h-[85vh] overflow-y-auto md:max-h-[80vh] mt-16 shadow-xl">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 md:p-6 flex justify-between items-center">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 pr-4 md:pr-0">{selectedBlog.title}</h2>
               <button
                 onClick={() => setShowBlogModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                aria-label="Close"
+                title="Close"
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0"
               >
-                ×
+                <X className="h-5 w-5 md:h-6 md:w-6" />
               </button>
             </div>
             
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
+            <div className="p-4 md:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 md:mb-6">
+                <div className="flex items-center space-x-3">
                   <span className="bg-emerald-100 text-emerald-800 text-sm font-semibold px-3 py-1 rounded-full">
                     {selectedBlog.category || 'Blog'}
                   </span>
@@ -378,25 +382,25 @@ export default function BlogsPage() {
                 <img
                   src={selectedBlog.image || selectedBlog.image_default || "/placeholder.svg"}
                   alt={selectedBlog.title}
-                  className="w-full h-64 object-cover rounded-lg mb-6"
+                  className="w-full h-48 md:h-64 object-cover rounded-lg mb-4 md:mb-6"
                 />
               )}
 
               <div className="prose max-w-none">
-                <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                <div className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
                   {selectedBlog.content || selectedBlog.description || selectedBlog.excerpt || 'Content not available.'}
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-gray-200">
+              <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200">
                 <div className="flex items-center">
                   <img
                     src="/placeholder.svg?height=40&width=40&text=AU"
                     alt={selectedBlog.author || 'Author'}
-                    className="w-10 h-10 rounded-full mr-3"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full mr-3"
                   />
                   <div>
-                    <div className="font-semibold text-gray-900">{selectedBlog.author || 'Author'}</div>
+                    <div className="font-semibold text-gray-900 text-sm md:text-base">{selectedBlog.author || 'Author'}</div>
                     <div className="text-sm text-gray-500">Published {selectedBlog.created_date ? new Date(selectedBlog.created_date).toLocaleDateString() : 'Recently'}</div>
                   </div>
                 </div>
@@ -406,5 +410,5 @@ export default function BlogsPage() {
         </div>
       )}
     </div>
-    )
-  }
+  )
+}

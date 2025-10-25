@@ -53,8 +53,10 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { API_BASE_URL } from "@/lib/api-config"
+import { useToast } from "@/hooks/use-toast"
 
 export default function DocumentManagement() {
+  const { toast } = useToast()
   const [documentsPage, setDocumentsPage] = useState(1)
   const [verificationPage, setVerificationPage] = useState(1)
   const [categoryPage, setCategoryPage] = useState(1)
@@ -101,6 +103,8 @@ export default function DocumentManagement() {
   const [employees, setEmployees] = useState<{ id: number; name: string; department?: string }[]>([])
   const [documents, setDocuments] = useState<any[]>([])
   const [mobileActionMenu, setMobileActionMenu] = useState<number | null>(null)
+  const [verifying, setVerifying] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -189,7 +193,15 @@ export default function DocumentManagement() {
   }
 
   const handleAddCategory = async () => {
-    if (!categoryForm.name.trim()) return
+    if (!categoryForm.name.trim()) {
+      toast({
+        title: "Category Creation Failed",
+        description: "Please enter a category name.",
+        variant: "destructive",
+      })
+      return
+    }
+    
     try {
       const companyId = getEmployerId()
       const url = `${API_BASE_URL}/document-categories${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
@@ -197,9 +209,14 @@ export default function DocumentManagement() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name: categoryForm.name, description: categoryForm.description }),
+        body: JSON.stringify({ 
+          name: categoryForm.name, 
+          description: categoryForm.description 
+        }),
       })
+      
       const json = await res.json()
+      
       if (json && json.success) {
         const newCat = {
           id: (json.data?.slug as string) || categoryForm.name.toLowerCase().replace(/\s+/g, "-"),
@@ -207,16 +224,30 @@ export default function DocumentManagement() {
           icon: FileText,
           color: "bg-gray-100 text-gray-800",
         }
+        
         setCategories((prev) => [...prev, newCat])
         setShowCategoryDialog(false)
         setCategoryForm({ name: "", description: "" })
         setUploadForm((f) => ({ ...f, category: newCat.id }))
+  
+        toast({
+          title: "Category Created",
+          description: `"${categoryForm.name}" category has been created successfully.`,
+          variant: "default",
+        })
+      } else {
+        throw new Error(json?.message || "Category creation failed")
       }
-    } catch (e) {
-      // noop
+    } catch (error) {
+      console.error('Category creation error:', error)
+      toast({
+        title: "Category Creation Failed",
+        description: (error as Error)?.message || "Failed to create category. Please try again.",
+        variant: "destructive",
+      })
     }
   }
-
+  
   function getEmployerId() {
     if (typeof document === "undefined") return ""
     const match = document.cookie.match(/(?:^|;\s*)employer_id=([^;]+)/)
@@ -290,7 +321,33 @@ export default function DocumentManagement() {
 
   const handleUploadDocument = async () => {
     const selectedEmployeeId = Number.parseInt(uploadForm.employeeId)
-    if (!uploadFile) return
+    if (!uploadFile) {
+      toast({
+        title: "Upload Failed",
+        description: "Please select a file to upload.",
+        variant: "destructive",
+      })
+      return
+    }
+  
+    if (!uploadForm.employeeId) {
+      toast({
+        title: "Upload Failed",
+        description: "Please select an employee.",
+        variant: "destructive",
+      })
+      return
+    }
+  
+    if (!uploadForm.category) {
+      toast({
+        title: "Upload Failed",
+        description: "Please select a category.",
+        variant: "destructive",
+      })
+      return
+    }
+  
     try {
       const form = new FormData()
       form.append("employee_id", String(selectedEmployeeId))
@@ -300,11 +357,18 @@ export default function DocumentManagement() {
       if (uploadForm.expiryDate) form.append("expiry_date", uploadForm.expiryDate)
       form.append("access_level", uploadForm.accessLevel)
       form.append("file", uploadFile)
-
+  
       const companyId = getEmployerId()
       const url = `${API_BASE_URL}/documents${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
-      const res = await fetch(url, { method: "POST", body: form, credentials: "include" })
+      
+      const res = await fetch(url, { 
+        method: "POST", 
+        body: form, 
+        credentials: "include" 
+      })
+      
       const json = await res.json()
+      
       if (json && json.success) {
         const detectedType = (() => {
           const name = uploadFile.name.toLowerCase()
@@ -313,6 +377,7 @@ export default function DocumentManagement() {
           if (name.endsWith(".xls") || name.endsWith(".xlsx") || name.endsWith(".csv")) return "spreadsheet"
           return "pdf"
         })()
+        
         const computedSize = `${(uploadFile.size / (1024 * 1024)).toFixed(1)} MB`
         const newDocument = {
           id: json.data?.id || documents.length + 1,
@@ -335,13 +400,34 @@ export default function DocumentManagement() {
           fileUrl: json.data?.file_url || "",
           file: null,
         }
+        
         setDocuments([...documents, newDocument])
         setShowUploadDialog(false)
-        setUploadForm({ employeeId: "", category: "", name: "", description: "", expiryDate: "", accessLevel: "hr-only" })
+        setUploadForm({ 
+          employeeId: "", 
+          category: "", 
+          name: "", 
+          description: "", 
+          expiryDate: "", 
+          accessLevel: permissions[0]?.id || "hr-only" 
+        })
         setUploadFile(null)
+  
+        toast({
+          title: "Document Uploaded",
+          description: `"${uploadForm.name || uploadFile.name}" has been successfully uploaded.`,
+          variant: "default",
+        })
+      } else {
+        throw new Error(json?.message || "Upload failed")
       }
-    } catch (e) {
-      // ignore
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast({
+        title: "Upload Failed",
+        description: (error as Error)?.message || "Failed to upload document. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -357,49 +443,194 @@ export default function DocumentManagement() {
     setShowEditDialog(false)
   }
 
-  const handleVerifyDocument = () => {
-    const updatedDocument = {
-      ...selectedDocument,
-      verificationStatus: "verified",
-      verifiedBy: verificationForm.verifier,
-      verifiedDate: new Date().toISOString().split("T")[0],
-      verificationNotes: verificationForm.description,
+  const handleVerifyDocument = async () => {
+    // Validation
+    if (!verificationForm.verifier.trim()) {
+      toast({
+        title: "Verification Failed",
+        description: "Please select a verifier before approving the document.",
+        variant: "destructive",
+      })
+      return
     }
 
-    setDocuments(documents.map((doc) => (doc.id === selectedDocument.id ? updatedDocument : doc)))
-    setShowVerificationDialog(false)
-    setVerificationForm({
-      verifier: "",
-      category: "",
-      description: "",
-      status: "verified",
-      notes: "",
-    })
+    try {
+      setVerifying(true)
+      
+      if (!selectedDocument) {
+        throw new Error("No document selected")
+      }
+
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/documents/${encodeURIComponent(selectedDocument.id)}/verify${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          status: "verified", 
+          verified_by: companyId, 
+          verification_description: verificationForm.notes || null 
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to verify document")
+      }
+
+      const updatedDocument = {
+        ...selectedDocument,
+        verificationStatus: "verified",
+        verifiedBy: verificationForm.verifier,
+        verifiedDate: new Date().toISOString().split("T")[0],
+        verificationNotes: verificationForm.notes,
+      }
+
+      setDocuments(documents.map((doc) => (doc.id === selectedDocument.id ? updatedDocument : doc)))
+      setShowVerificationDialog(false)
+      setVerificationForm({
+        verifier: "",
+        category: "",
+        description: "",
+        status: "verified",
+        notes: "",
+      })
+
+      toast({
+        title: "Document Verified",
+        description: `Document "${selectedDocument.name}" has been successfully verified.`,
+        variant: "default",
+      })
+    } catch (error) {
+      console.error('Verification error:', error)
+      toast({
+        title: "Verification Failed",
+        description: (error as Error)?.message || "Failed to verify document. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setVerifying(false)
+    }
   }
 
-  const handleRejectDocument = () => {
-    const updatedDocument = {
-      ...selectedDocument,
-      verificationStatus: "rejected",
-      verifiedBy: verificationForm.verifier,
-      verifiedDate: new Date().toISOString().split("T")[0],
-      verificationNotes: verificationForm.description,
+  const handleRejectDocument = async () => {
+    // Validation
+    if (!verificationForm.verifier.trim()) {
+      toast({
+        title: "Rejection Failed",
+        description: "Please select a verifier before rejecting the document.",
+        variant: "destructive",
+      })
+      return
     }
 
-    setDocuments(documents.map((doc) => (doc.id === selectedDocument.id ? updatedDocument : doc)))
-    setShowVerificationDialog(false)
-    setVerificationForm({
-      verifier: "",
-      category: "",
-      description: "",
-      status: "rejected",
-      notes: "",
-    })
+    if (!verificationForm.notes.trim()) {
+      toast({
+        title: "Rejection Failed",
+        description: "Please provide a reason for rejecting the document.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setRejecting(true)
+      
+      if (!selectedDocument) {
+        throw new Error("No document selected")
+      }
+
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/documents/${encodeURIComponent(selectedDocument.id)}/verify${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          status: "rejected", 
+          verified_by: companyId, 
+          verification_description: verificationForm.notes 
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to reject document")
+      }
+
+      const updatedDocument = {
+        ...selectedDocument,
+        verificationStatus: "rejected",
+        verifiedBy: verificationForm.verifier,
+        verifiedDate: new Date().toISOString().split("T")[0],
+        verificationNotes: verificationForm.notes,
+      }
+
+      setDocuments(documents.map((doc) => (doc.id === selectedDocument.id ? updatedDocument : doc)))
+      setShowVerificationDialog(false)
+      setVerificationForm({
+        verifier: "",
+        category: "",
+        description: "",
+        status: "rejected",
+        notes: "",
+      })
+
+      toast({
+        title: "Document Rejected",
+        description: `Document "${selectedDocument.name}" has been rejected.`,
+        variant: "default",
+      })
+    } catch (error) {
+      console.error('Rejection error:', error)
+      toast({
+        title: "Rejection Failed",
+        description: (error as Error)?.message || "Failed to reject document. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setRejecting(false)
+    }
   }
 
-  const handleDeleteDocument = (documentId: number) => {
-    setDocuments(documents.filter((doc) => doc.id !== documentId))
+  const handleDeleteDocument = async (documentId: number, documentName: string) => {
+    try {
+      const companyId = getEmployerId()
+      const url = `${API_BASE_URL}/documents/${encodeURIComponent(documentId)}/delete${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      
+      const response = await fetch(url, { 
+        method: 'POST', 
+        credentials: 'include' 
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to delete document")
+      }
+      
+      setDocuments(documents.filter((doc) => doc.id !== documentId))
+      
+      toast({
+        title: "Document Deleted",
+        description: `"${documentName}" has been successfully deleted.`,
+        variant: "default",
+      })
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast({
+        title: "Deletion Failed",
+        description: (error as Error)?.message || "Failed to delete document. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
+  
 
   const handleRemoveByCategory = (categoryId: string) => {
     setDocuments(documents.filter((doc) => doc.category !== categoryId))
@@ -1046,6 +1277,7 @@ export default function DocumentManagement() {
                         <Button
                           size="sm"
                           className="bg-green-600 hover:bg-green-700 text-xs px-3 py-1 h-8"
+                          disabled={verifying || rejecting}
                           onClick={() => {
                             setSelectedDocument(document)
                             setVerificationForm({
@@ -1059,12 +1291,13 @@ export default function DocumentManagement() {
                           }}
                         >
                           <CheckCircle className="h-3 w-3 mr-1" />
-                          Verify
+                          {verifying ? "Verifying..." : "Verify"}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           className="text-red-600 hover:bg-red-50 text-xs px-3 py-1 h-8"
+                          disabled={verifying || rejecting}
                           onClick={() => {
                             setSelectedDocument(document)
                             setVerificationForm({
@@ -1078,7 +1311,7 @@ export default function DocumentManagement() {
                           }}
                         >
                           <X className="h-3 w-3 mr-1" />
-                          Reject
+                          {rejecting ? "Rejecting..." : "Reject"}
                         </Button>
                       </div>
                     </div>
@@ -1619,7 +1852,9 @@ export default function DocumentManagement() {
               </div>
 
               <div>
-                <Label htmlFor="verifier" className="text-sm sm:text-base">Verifier Name</Label>
+                <Label htmlFor="verifier" className="text-sm sm:text-base">
+                  Verifier Name <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={verificationForm.verifier}
                   onValueChange={(value) => setVerificationForm({ ...verificationForm, verifier: value })}
@@ -1637,10 +1872,15 @@ export default function DocumentManagement() {
                     <SelectItem value="Manager">Manager</SelectItem>
                   </SelectContent>
                 </Select>
+                {!verificationForm.verifier && (
+                  <p className="text-xs text-red-500 mt-1">Please select a verifier</p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="notes" className="text-sm sm:text-base">Verification Notes</Label>
+                <Label htmlFor="notes" className="text-sm sm:text-base">
+                  Verification Notes <span className="text-red-500">*</span>
+                </Label>
                 <Textarea
                   id="notes"
                   value={verificationForm.notes}
@@ -1649,46 +1889,28 @@ export default function DocumentManagement() {
                   rows={3}
                   className="text-sm sm:text-base"
                 />
+                {!verificationForm.notes && (
+                  <p className="text-xs text-red-500 mt-1">Please provide verification notes</p>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                <Button onClick={async () => {
-                  if (!selectedDocument) return
-                  try {
-                    const companyId = getEmployerId()
-                    const url = `${API_BASE_URL}/documents/${encodeURIComponent(selectedDocument.id)}/verify${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
-                    await fetch(url, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      credentials: "include",
-                      body: JSON.stringify({ status: "verified", verified_by: companyId, verification_description: verificationForm.notes || null }),
-                    })
-                    handleVerifyDocument()
-                  } catch (e) {
-                    // ignore
-                  }
-                }} className="flex-1 text-sm sm:text-base">
+                <Button 
+                  onClick={handleVerifyDocument} 
+                  className="flex-1 text-sm sm:text-base"
+                  disabled={verifying || rejecting}
+                >
                   <UserCheck className="h-4 w-4 mr-2" />
-                  Approve & Verify
+                  {verifying ? "Verifying..." : "Approve & Verify"}
                 </Button>
-                <Button variant="destructive" onClick={async () => {
-                  if (!selectedDocument) return
-                  try {
-                    const companyId = getEmployerId()
-                    const url = `${API_BASE_URL}/documents/${encodeURIComponent(selectedDocument.id)}/verify${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
-                    await fetch(url, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      credentials: "include",
-                      body: JSON.stringify({ status: "rejected", verified_by: companyId, verification_description: verificationForm.notes || null }),
-                    })
-                    handleRejectDocument()
-                  } catch (e) {
-                    // ignore
-                  }
-                }} className="flex-1 text-sm sm:text-base">
+                <Button 
+                  variant="destructive" 
+                  onClick={handleRejectDocument} 
+                  className="flex-1 text-sm sm:text-base"
+                  disabled={verifying || rejecting}
+                >
                   <AlertTriangle className="h-4 w-4 mr-2" />
-                  Reject
+                  {rejecting ? "Rejecting..." : "Reject"}
                 </Button>
               </div>
               <Button

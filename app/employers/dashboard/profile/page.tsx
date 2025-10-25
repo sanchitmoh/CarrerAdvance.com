@@ -443,6 +443,7 @@ export default function EmployerProfilePage() {
                     id="firstName"
                     value={profileData.firstName}
                     onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    placeholder="Enter your first name"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.firstName}</p>
@@ -455,6 +456,7 @@ export default function EmployerProfilePage() {
                     id="lastName"
                     value={profileData.lastName}
                     onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    placeholder="Enter your last name"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.lastName}</p>
@@ -468,6 +470,7 @@ export default function EmployerProfilePage() {
                     type="email"
                     value={profileData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
+                    placeholder="Enter your email address"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.email}</p>
@@ -482,6 +485,7 @@ export default function EmployerProfilePage() {
                     id="designation"
                     value={profileData.designation}
                     onChange={(e) => handleInputChange("designation", e.target.value)}
+                    placeholder="e.g., HR Manager, CEO, Director"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.designation}</p>
@@ -494,6 +498,7 @@ export default function EmployerProfilePage() {
                     id="phone"
                     value={profileData.phone}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
+                    placeholder="+Country Code Phone Number (e.g., +63 1234567890)"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.phone}</p>
@@ -551,6 +556,7 @@ export default function EmployerProfilePage() {
                     id="companyName"
                     value={profileData.companyName}
                     onChange={(e) => handleInputChange("companyName", e.target.value)}
+                    placeholder="Enter your company name"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.companyName}</p>
@@ -564,6 +570,7 @@ export default function EmployerProfilePage() {
                     type="email"
                     value={profileData.companyEmail}
                     onChange={(e) => handleInputChange("companyEmail", e.target.value)}
+                    placeholder="Enter company email address"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.companyEmail}</p>
@@ -576,6 +583,7 @@ export default function EmployerProfilePage() {
                     id="companyPhone"
                     value={profileData.companyPhone}
                     onChange={(e) => handleInputChange("companyPhone", e.target.value)}
+                    placeholder="+Country Code Phone Number (e.g., +63 1234567890)"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.companyPhone}</p>
@@ -588,6 +596,7 @@ export default function EmployerProfilePage() {
                     id="website"
                     value={profileData.website}
                     onChange={(e) => handleInputChange("website", e.target.value)}
+                    placeholder="https://www.yourcompany.com"
                   />
                 ) : (
                   <p className="mt-1 text-sm text-gray-900">{profileData.website}</p>
@@ -644,6 +653,7 @@ export default function EmployerProfilePage() {
                 value={profileData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 className="mt-1"
+                placeholder="Describe your company, its mission, and what makes it unique"
               />
             ) : (
               <p className="mt-1 text-sm text-gray-900">{profileData.description}</p>
@@ -730,11 +740,12 @@ export default function EmployerProfilePage() {
             <div>
               <Label htmlFor="postcode">Postcode</Label>
               {editingSection === "address" ? (
-                <Input
-                  id="postcode"
-                  value={profileData.postcode}
-                  onChange={(e) => handleInputChange("postcode", e.target.value)}
-                />
+                 <Input
+                   id="postcode"
+                   value={profileData.postcode}
+                   onChange={(e) => handleInputChange("postcode", e.target.value)}
+                   placeholder="Enter postal code"
+                 />
               ) : (
                 <p className="mt-1 text-sm text-gray-900">{profileData.postcode}</p>
               )}
@@ -749,6 +760,7 @@ export default function EmployerProfilePage() {
                 value={profileData.fullAddress}
                 onChange={(e) => handleInputChange("fullAddress", e.target.value)}
                 className="mt-1"
+                placeholder="Enter complete address"
               />
             ) : (
               <p className="mt-1 text-sm text-gray-900">{profileData.fullAddress}</p>

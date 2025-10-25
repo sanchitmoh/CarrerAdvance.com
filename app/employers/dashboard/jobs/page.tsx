@@ -58,6 +58,18 @@ interface Candidate {
   status: "applied" | "reviewed" | "shortlisted" | "contacted" | "rejected" | "hired"
   appliedDate: string
   experience: string
+  workExperience?: {
+    job_title: string
+    company: string
+    country: string
+    city: string
+    starting_month: string
+    starting_year: string
+    ending_month: string
+    ending_year: string
+    currently_working_here: number
+    description: string
+  }[]
   skills: string[]
   summary: string
   education: {
@@ -93,6 +105,18 @@ export default function JobsPage() {
   const [loadingCities, setLoadingCities] = useState(false)
   const [aiSuggestingSkills, setAiSuggestingSkills] = useState(false)
   const [selectedJobFilter, setSelectedJobFilter] = useState<string | null>(null)
+  const [checkingEmpId, setCheckingEmpId] = useState(false)
+  const [empIdError, setEmpIdError] = useState<string | null>(null)
+  const [empIdTimeout, setEmpIdTimeout] = useState<NodeJS.Timeout | null>(null)
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (empIdTimeout) {
+        clearTimeout(empIdTimeout)
+      }
+    }
+  }, [empIdTimeout])
 
   // Fetch jobs from API
   useEffect(() => {
@@ -129,7 +153,7 @@ export default function JobsPage() {
             status: j.status ?? (j.is_status === 'active' ? 'Active' : 'Inactive'),
             description: j.description ?? '',
             requirements: j.requirements ?? '',
-            salary: j.salary ?? (j.min_salary && j.max_salary ? `$${Number(j.min_salary).toLocaleString()} - $${Number(j.max_salary).toLocaleString()}` : ''),
+            salary: j.salary ?? (j.min_salary && j.max_salary ? `$${Number(j.min_salary || 0).toLocaleString()} - $${Number(j.max_salary || 0).toLocaleString()}` : ''),
             candidates: candidateCounts,
           }
         })
@@ -482,6 +506,76 @@ export default function JobsPage() {
     try {
       setEmployeeSubmitting(true)
 
+      // Validate required fields
+      const requiredFields = [
+        { field: 'name', label: 'Full Name' },
+        { field: 'email', label: 'Email Address' },
+        { field: 'empId', label: 'Employee ID' },
+        { field: 'empType', label: 'Employment Type' },
+        { field: 'salary', label: 'Salary' },
+        { field: 'income', label: 'Annual Income' },
+        { field: 'joiningDate', label: 'Joining Date' },
+        { field: 'emergencyContactName', label: 'Emergency Contact Name' },
+        { field: 'emergencyContactNumber', label: 'Emergency Contact Number' },
+        { field: 'department', label: 'Department' },
+        { field: 'position', label: 'Position' }
+      ]
+
+      const missingFields = requiredFields.filter(({ field }) => {
+        const value = (employeeForm as any)[field]
+        return !value || (typeof value === 'string' && value.trim() === '')
+      })
+
+      if (missingFields.length > 0) {
+        const missingLabels = missingFields.map(f => f.label).join(', ')
+        toast({
+          title: 'Missing Required Fields',
+          description: `Please fill in the following required fields: ${missingLabels}`,
+          variant: 'destructive'
+        })
+        return
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(employeeForm.email)) {
+        toast({
+          title: 'Invalid Email',
+          description: 'Please enter a valid email address',
+          variant: 'destructive'
+        })
+        return
+      }
+
+      // Validate salary and income are numbers
+      if (isNaN(Number(employeeForm.salary)) || Number(employeeForm.salary) <= 0) {
+        toast({
+          title: 'Invalid Salary',
+          description: 'Please enter a valid salary amount',
+          variant: 'destructive'
+        })
+        return
+      }
+
+      if (isNaN(Number(employeeForm.income)) || Number(employeeForm.income) <= 0) {
+        toast({
+          title: 'Invalid Annual Income',
+          description: 'Please enter a valid annual income amount',
+          variant: 'destructive'
+        })
+        return
+      }
+
+      // Check if Employee ID has validation error
+      if (empIdError) {
+        toast({
+          title: 'Employee ID Error',
+          description: empIdError,
+          variant: 'destructive'
+        })
+        return
+      }
+
       // Resolve department/designation IDs by name (like Employees page)
       const dept = departments.find((d) => d.name === employeeForm.department)
       const desig = designations.find((x) => x.name === employeeForm.position && (!dept || x.department_id === dept.id))
@@ -584,6 +678,38 @@ export default function JobsPage() {
       toast({ title: 'Error', description: e?.message || 'Failed to upload image.', variant: 'destructive' })
     } finally {
       setImageUploading(false)
+    }
+  }
+
+  const checkEmployeeIdAvailability = async (empId: string) => {
+    if (!empId || empId.trim() === '') {
+      setEmpIdError(null)
+      return
+    }
+
+    try {
+      setCheckingEmpId(true)
+      setEmpIdError(null)
+      
+      const response = await fetch(getBaseUrl('/api/company-employees/check-emp-id'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ emp_id: empId.trim() })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success === false) {
+        setEmpIdError(data.message || 'Employee ID already exists')
+      } else {
+        setEmpIdError(null)
+      }
+    } catch (error) {
+      console.error('Error checking Employee ID:', error)
+      setEmpIdError('Error checking Employee ID availability')
+    } finally {
+      setCheckingEmpId(false)
     }
   }
 
@@ -1103,9 +1229,9 @@ export default function JobsPage() {
             <AvatarImage src={getAssetUrl(candidate.avatar || "/placeholder.svg")} alt={candidate.name} />
             <AvatarFallback className="bg-emerald-100 text-emerald-700">
               {candidate.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
+                ?.split(" ")
+                ?.map((n) => n[0])
+                ?.join("") || "C"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -1269,9 +1395,9 @@ export default function JobsPage() {
                               <AvatarImage src={getAssetUrl(candidate.avatar || "/placeholder.svg")} alt={candidate.name} />
                               <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs">
                                 {candidate.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
+                                  ?.split(" ")
+                                  ?.map((n) => n[0])
+                                  ?.join("") || "C"}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
@@ -1421,18 +1547,40 @@ export default function JobsPage() {
 
                 {/* Experience */}
                 <div className="mb-8">
-                  <h2 className="text-xl font-semibold mb-4">Experience</h2>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Building className="h-6 w-6 text-blue-600" />
+                  <h2 className="text-xl font-semibold mb-4">Work Experience</h2>
+                  {selectedCandidate.workExperience && selectedCandidate.workExperience.length > 0 ? (
+                    <div className="space-y-4">
+                      {selectedCandidate.workExperience.map((exp: any, index: number) => (
+                        <div key={index} className="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg">
+                          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Building className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{exp.job_title}</h3>
+                            <p className="text-gray-600 font-medium">{exp.company}</p>
+                            <p className="text-sm text-gray-500">
+                              {exp.starting_month} {exp.starting_year} - {exp.currently_working_here ? 'Present' : `${exp.ending_month} ${exp.ending_year}`}
+                            </p>
+                            <p className="text-sm text-gray-500">{exp.city}, {exp.country}</p>
+                            {exp.description && (
+                              <p className="text-sm text-gray-700 mt-2">{exp.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{selectedCandidate.designation}</h3>
-                      <p className="text-gray-600">EY Technology</p>
-                      <p className="text-sm text-gray-500">Aug 2022 – Present</p>
-                      <p className="text-sm text-gray-500">{selectedCandidate.location}</p>
+                  ) : (
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Building className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{selectedCandidate.designation}</h3>
+                        <p className="text-gray-600">No detailed experience available</p>
+                        <p className="text-sm text-gray-500">Experience Level: {selectedCandidate.experience}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Education */}
@@ -2556,7 +2704,39 @@ export default function JobsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="emp_code">Employee ID *</Label>
-                <Input id="emp_code" value={employeeForm.empId} onChange={(e) => setEmployeeForm((p) => ({ ...p, empId: e.target.value }))} className="mt-1" />
+                <div className="relative">
+                  <Input 
+                    id="emp_code" 
+                    value={employeeForm.empId} 
+                    onChange={(e) => {
+                      setEmployeeForm((p) => ({ ...p, empId: e.target.value }))
+                      
+                      // Clear existing timeout
+                      if (empIdTimeout) {
+                        clearTimeout(empIdTimeout)
+                      }
+                      
+                      // Set new timeout
+                      const timeoutId = setTimeout(() => {
+                        checkEmployeeIdAvailability(e.target.value)
+                      }, 500)
+                      setEmpIdTimeout(timeoutId)
+                    }}
+                    className={`mt-1 ${empIdError ? 'border-red-500' : ''}`}
+                    placeholder="e.g., EMP001"
+                  />
+                  {checkingEmpId && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+                </div>
+                {empIdError && (
+                  <p className="text-sm text-red-600 mt-1">{empIdError}</p>
+                )}
+                {!empIdError && employeeForm.empId && !checkingEmpId && (
+                  <p className="text-sm text-green-600 mt-1">✓ Employee ID is available</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="emp_type">Employment Type *</Label>

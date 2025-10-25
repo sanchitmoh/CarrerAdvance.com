@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
 import BackButton from "@/components/back-button"
 import Link from "next/link"
 import {
@@ -80,6 +81,7 @@ const normalizeJob = (job: any): Job => {
 }
 
 export default function JobsPage() {
+  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedFilter, setSelectedFilter] = useState("all")
   const [activeTab, setActiveTab] = useState("all")
@@ -129,7 +131,7 @@ export default function JobsPage() {
           company: j.company ?? j.company_name,
               location: j.location ?? location,
           type: j.type ?? j.job_type ?? 'Full-time',
-          salary: j.salary ?? '$0 - $0',
+          salary: j.salary ?? (j.min_salary && j.max_salary ? `$${Number(j.min_salary).toLocaleString()} - $${Number(j.max_salary).toLocaleString()}` : '$0 - $0'),
           status: j.status ?? 'Active',
               applications: j.applications ?? j.app_count ?? j.applied_count ?? j.total_applications ?? 0,
           datePosted: j.datePosted ?? j.created_at,
@@ -152,6 +154,13 @@ export default function JobsPage() {
         console.error('Error fetching jobs:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch jobs')
         setJobs([])
+        
+        // Show error toast for fetch errors
+        toast({
+          title: "Error Loading Jobs",
+          description: err instanceof Error ? err.message : 'Failed to fetch jobs',
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
@@ -256,6 +265,13 @@ export default function JobsPage() {
       const data = await response.json()
 
       if (data.success) {
+        // Show success toast
+        toast({
+          title: "Job Deleted Successfully",
+          description: "The job has been removed from the system.",
+          variant: "default",
+        })
+
         // Remove job from local state
     const updatedJobs = jobs.filter(job => job.id !== jobId)
     setJobs(updatedJobs)
@@ -296,7 +312,7 @@ export default function JobsPage() {
                   company: j.company ?? j.company_name,
                   location: j.location ?? location,
                   type: j.type ?? j.job_type ?? 'Full-time',
-                  salary: j.salary ?? '$0 - $0',
+                  salary: j.salary ?? (j.min_salary && j.max_salary ? `$${Number(j.min_salary).toLocaleString()} - $${Number(j.max_salary).toLocaleString()}` : '$0 - $0'),
                   status: j.status ?? 'Active',
                   applications: j.applications ?? j.app_count ?? j.applied_count ?? j.total_applications ?? 0,
                   datePosted: j.datePosted ?? j.created_at,
@@ -326,11 +342,21 @@ export default function JobsPage() {
 
         fetchJobs()
       } else {
-        alert(`Failed to delete job: ${data.message}`)
+        // Show error toast
+        toast({
+          title: "Failed to Delete Job",
+          description: data.message || "An error occurred while deleting the job.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Error deleting job:', error)
-      alert('Error deleting job. Please try again.')
+      // Show error toast
+      toast({
+        title: "Error Deleting Job",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 

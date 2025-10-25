@@ -391,17 +391,42 @@ function JobsPageContent() {
     
     fetchJobs(newTitle, newLocation, newType, 1, sortBy);
   };
-
+  //authentication 
+  const checkAuthStatus = () => {
+  if (typeof window === 'undefined') return false;
+  
+  // Check for job-seeker token in localStorage
+  const jobSeekerToken = localStorage.getItem('job-seeker-token');
+  // Or check for auth token (adjust based on your auth implementation)
+  const authToken = localStorage.getItem('auth-token');
+  const userRole = localStorage.getItem('user-role');
+  
+  return !!(jobSeekerToken || (authToken && userRole === 'job-seeker'));
+};
   // Actions
-  const handleApplyJob = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    try {
+  
+const handleApplyJob = (e?: React.MouseEvent) => {
+  if (e) e.stopPropagation();
+  
+  const isLoggedIn = checkAuthStatus();
+  
+  try {
+    if (isLoggedIn) {
+      // User is logged in, redirect to matching jobs
+      router.push('/job-seeker/dashboard/matching-jobs');
+    } else {
+      // User is not logged in, redirect to login
       router.push('/job-seekers/login');
-    } catch (_) {
-      // Fallback in case router navigation is blocked
+    }
+  } catch (_) {
+    // Fallback in case router navigation is blocked
+    if (isLoggedIn) {
+      window.location.href = '/job-seeker/dashboard/matching-jobs';
+    } else {
       window.location.href = '/job-seekers/login';
     }
-  };
+  }
+};
 
   const handleViewDetails = (job: Job, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -661,13 +686,17 @@ function JobsPageContent() {
                 </Button>
               </div>
             </div>
-          ) : (
-            jobs.map((job: any) => (
-              <div key={job.id} className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-lg transition-shadow duration-300">
-                <JobCard job={job} onApply={(e?: any) => handleApplyJob()} onViewDetails={() => handleViewDetails(job)} />
-              </div>
-            ))
-          )}
+  ) : (
+    jobs.map((job: any) => (
+      <div key={job.id} className="rounded-xl border border-gray-200 bg-white p-4 hover:shadow-lg transition-shadow duration-300">
+        <JobCard 
+          job={job} 
+          onApply={(e?: any) => handleApplyJob(job.id, e)} 
+          onViewDetails={() => handleViewDetails(job)} 
+        />
+      </div>
+    ))
+  )}
         </div>
 
         {/* Pagination */}

@@ -42,6 +42,8 @@ import {
   type TimeTrackingStatus
 } from "@/lib/time-tracking-api"
 import { fetchCompanyEmployees, type CompanyEmployee } from "@/lib/hrms-api"
+import { useToast } from "@/hooks/use-toast"
+import { Loader2 } from "lucide-react"
 
 // Employee Details Modal Component - Made mobile responsive
 function EmployeeDetailsModal({
@@ -73,7 +75,7 @@ function EmployeeDetailsModal({
     total_work_hours: activeSession.totalWorkHours,
     total_break_hours: activeSession.totalBreakHours,
     overtime_hours: activeSession.overtimeHours,
-    is_active: activeSession.isActive ? 1 : 0,
+    is_active: session.isActive ? 1 : 0,
     created_at: '',
     updated_at: ''
   }) : 'clocked-out'
@@ -282,6 +284,8 @@ export default function TimeTrackerPage() {
   const [selectedEmployee, setSelectedEmployee] = useState("")
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [loading, setLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const { toast } = useToast()
 
   // Helper function to format dates consistently
   const formatDate = (dateString: string) => {
@@ -348,14 +352,27 @@ export default function TimeTrackerPage() {
   useEffect(() => {
     const loadEmployees = async () => {
       try {
+        setLoading(true)
         const employeeList = await fetchCompanyEmployees()
         setEmployees(employeeList)
+        toast({
+          title: "Employees Loaded",
+          description: "Employee data has been loaded successfully.",
+          variant: "default",
+        })
       } catch (error) {
         console.error("Failed to fetch employees:", error)
+        toast({
+          title: "Loading Failed",
+          description: "Failed to load employee data. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
       }
     }
     loadEmployees()
-  }, [])
+  }, [toast])
 
   // Fetch active sessions and today's summary
   useEffect(() => {
@@ -368,14 +385,24 @@ export default function TimeTrackerPage() {
         ])
         setActiveSessions(sessions)
         setTodaySummary(summary)
+        toast({
+          title: "Time Data Loaded",
+          description: "Time tracking data has been updated.",
+          variant: "default",
+        })
       } catch (error) {
         console.error("Failed to fetch time tracking data:", error)
+        toast({
+          title: "Loading Failed",
+          description: "Failed to load time tracking data. Please try again.",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
     }
     loadData()
-  }, [])
+  }, [toast])
 
   // Fetch time records when date changes
   useEffect(() => {
@@ -386,14 +413,24 @@ export default function TimeTrackerPage() {
         setTimeRecords(records)
         // Reset pagination when date changes
         setTimeRecordsPage(1)
+        toast({
+          title: "Records Updated",
+          description: `Time records for ${formatDate(selectedDate)} have been loaded.`,
+          variant: "default",
+        })
       } catch (error) {
         console.error("Failed to fetch time records:", error)
+        toast({
+          title: "Loading Failed",
+          description: "Failed to load time records. Please try again.",
+          variant: "destructive",
+        })
       } finally {
         setLoading(false)
       }
     }
     loadTimeRecords()
-  }, [selectedDate])
+  }, [selectedDate, toast])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -424,18 +461,22 @@ export default function TimeTrackerPage() {
   // Clock action handler
   const handleClockAction = async (action: ClockAction) => {
     if (!selectedEmployee) {
-      alert("Please select an employee first")
+      toast({
+        title: "Action Failed",
+        description: "Please select an employee first.",
+        variant: "destructive",
+      })
       return
     }
 
     try {
-      setLoading(true)
+      setActionLoading(action)
       const result = await performClockAction({
         employee_id: parseInt(selectedEmployee),
         action,
-        location: "Office", // You can get this from geolocation API
+        location: "Office",
         device_info: navigator.userAgent,
-        ip_address: "" // Will be set by backend
+        ip_address: ""
       })
 
       if (result.success) {
@@ -452,14 +493,42 @@ export default function TimeTrackerPage() {
           const records = await getTimeRecords(selectedDate, selectedDate)
           setTimeRecords(records)
         }
+
+        const employeeName = employees.find(emp => emp.id === parseInt(selectedEmployee))?.name || "Employee"
+        
+        toast({
+          title: "Action Successful",
+          description: `${employeeName} has been ${getActionDescription(action)} successfully.`,
+          variant: "default",
+        })
       } else {
-        alert(result.message)
+        throw new Error(result.message || "Action failed")
       }
     } catch (error) {
       console.error("Clock action failed:", error)
-      alert("Failed to perform clock action")
+      toast({
+        title: "Action Failed",
+        description: (error as Error)?.message || "Failed to perform clock action. Please try again.",
+        variant: "destructive",
+      })
     } finally {
-      setLoading(false)
+      setActionLoading(null)
+    }
+  }
+
+  // Helper function to get action description
+  const getActionDescription = (action: string) => {
+    switch (action) {
+      case 'clock-in':
+        return 'clocked in'
+      case 'clock-out':
+        return 'clocked out'
+      case 'break-start':
+        return 'started break'
+      case 'break-end':
+        return 'ended break'
+      default:
+        return 'updated'
     }
   }
 
@@ -520,51 +589,61 @@ export default function TimeTrackerPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8 py-4">
-      {/* Header - Fixed desktop alignment */}
-      {/* Header - Fixed desktop alignment */}
-<div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-4 sm:p-6 text-white">
-  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-    {/* Left section - Back button and title */}
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1 w-full">
-      <Link href="/employers/dashboard/employee-managment" className="w-full sm:w-auto">
-        <Button
-          variant="secondary"
-          size="sm"
-          className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm w-full sm:w-auto justify-center sm:justify-start"
-        >
-          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-          Back to Employment
-        </Button>
-      </Link>
-      <div className="text-center sm:text-left w-full sm:w-auto mt-2 sm:mt-0">
-        <h1 className="text-xl sm:text-2xl font-bold mb-1">Time Tracker</h1>
-        <p className="text-green-100 text-sm sm:text-base">
-          Monitor work hours, breaks, and calculate overtime with location tracking
-        </p>
-      </div>
-    </div>
+      {/* Global Loader Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl p-6 flex flex-col items-center space-y-4 shadow-2xl">
+            <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+            <p className="text-lg font-medium text-gray-900">Loading Time Tracker Data...</p>
+            <p className="text-sm text-gray-600">Please wait while we fetch the latest information</p>
+          </div>
+        </div>
+      )}
 
-    {/* Right section - Time and Export button */}
-    <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto">
-      <div className="flex items-center gap-3 bg-white/10 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 w-full sm:w-auto justify-center">
-        <p className="text-sm text-green-100 whitespace-nowrap">Current Time</p>
-        <p className="text-lg sm:text-xl font-mono font-bold bg-white/10 px-2 sm:px-3 py-1 rounded">
-          {currentTime ? currentTime.toLocaleTimeString() : '--:--:--'}
-        </p>
-      </div>
-      <Button 
-        variant="secondary" 
-        className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm whitespace-nowrap w-full sm:w-auto justify-center"
-      >
-        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-        Export Report
-      </Button>
-    </div>
-  </div>
-</div>
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-4 sm:p-6 text-white">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Left section - Back button and title */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1 w-full">
+            <Link href="/employers/dashboard/employee-managment" className="w-full sm:w-auto">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm w-full sm:w-auto justify-center sm:justify-start"
+              >
+                <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                Back to Employment
+              </Button>
+            </Link>
+            <div className="text-center sm:text-left w-full sm:w-auto mt-2 sm:mt-0">
+              <h1 className="text-xl sm:text-2xl font-bold mb-1">Time Tracker</h1>
+              <p className="text-green-100 text-sm sm:text-base">
+                Monitor work hours, breaks, and calculate overtime with location tracking
+              </p>
+            </div>
+          </div>
 
-      {/* Rest of the component remains the same */}
-      {/* Quick Stats - Mobile responsive grid */}
+          {/* Right section - Time and Export button */}
+          <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-3 sm:gap-4 w-full sm:w-auto">
+            <div className="flex items-center gap-3 bg-white/10 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 w-full sm:w-auto justify-center">
+              <p className="text-sm text-green-100 whitespace-nowrap">Current Time</p>
+              <p className="text-lg sm:text-xl font-mono font-bold bg-white/10 px-2 sm:px-3 py-1 rounded">
+                {currentTime ? currentTime.toLocaleTimeString() : '--:--:--'}
+              </p>
+            </div>
+            <Button 
+              variant="secondary" 
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm whitespace-nowrap w-full sm:w-auto justify-center"
+              disabled={loading}
+            >
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+              Export Report
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-3 sm:p-4">
@@ -624,7 +703,7 @@ export default function TimeTrackerPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Quick Clock Actions - Mobile responsive */}
+        {/* Quick Clock Actions */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
@@ -653,19 +732,27 @@ export default function TimeTrackerPage() {
               <Button
                 className="bg-green-600 hover:bg-green-700 text-xs sm:text-sm h-9 sm:h-10"
                 onClick={() => handleClockAction('clock-in')}
-                disabled={loading || !selectedEmployee}
+                disabled={loading || actionLoading !== null || !selectedEmployee}
               >
-                <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Clock In
+                {actionLoading === 'clock-in' ? (
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                ) : (
+                  <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                )}
+                {actionLoading === 'clock-in' ? 'Processing...' : 'Clock In'}
               </Button>
               <Button
                 variant="outline"
                 className="border-red-200 text-red-600 hover:bg-red-50 bg-transparent text-xs sm:text-sm h-9 sm:h-10"
                 onClick={() => handleClockAction('clock-out')}
-                disabled={loading || !selectedEmployee}
+                disabled={loading || actionLoading !== null || !selectedEmployee}
               >
-                <Square className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Clock Out
+                {actionLoading === 'clock-out' ? (
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                ) : (
+                  <Square className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                )}
+                {actionLoading === 'clock-out' ? 'Processing...' : 'Clock Out'}
               </Button>
             </div>
 
@@ -674,19 +761,27 @@ export default function TimeTrackerPage() {
                 variant="outline"
                 className="border-yellow-200 text-yellow-600 hover:bg-yellow-50 bg-transparent text-xs sm:text-sm h-9 sm:h-10"
                 onClick={() => handleClockAction('break-start')}
-                disabled={loading || !selectedEmployee}
+                disabled={loading || actionLoading !== null || !selectedEmployee}
               >
-                <Pause className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Start Break
+                {actionLoading === 'break-start' ? (
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                ) : (
+                  <Pause className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                )}
+                {actionLoading === 'break-start' ? 'Processing...' : 'Start Break'}
               </Button>
               <Button
                 variant="outline"
                 className="border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent text-xs sm:text-sm h-9 sm:h-10"
                 onClick={() => handleClockAction('break-end')}
-                disabled={loading || !selectedEmployee}
+                disabled={loading || actionLoading !== null || !selectedEmployee}
               >
-                <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                End Break
+                {actionLoading === 'break-end' ? (
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
+                ) : (
+                  <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                )}
+                {actionLoading === 'break-end' ? 'Processing...' : 'End Break'}
               </Button>
             </div>
 
@@ -699,7 +794,7 @@ export default function TimeTrackerPage() {
           </CardContent>
         </Card>
 
-        {/* Current Status - Mobile responsive with Pagination */}
+        {/* Current Status */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
@@ -711,7 +806,7 @@ export default function TimeTrackerPage() {
             <div className="space-y-3 sm:space-y-4">
               {loading ? (
                 <div className="text-center py-6 sm:py-8 text-gray-500">
-                  <Clock className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-300 animate-spin" />
+                  <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-300 animate-spin" />
                   <p className="text-sm sm:text-base">Loading employee status...</p>
                 </div>
               ) : employees.length === 0 ? (
@@ -826,7 +921,7 @@ export default function TimeTrackerPage() {
         </Card>
       </div>
 
-      {/* Time Records - Mobile responsive with Enhanced Pagination */}
+      {/* Time Records */}
       <Card>
         <CardHeader className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row items-start sm:items-center justify-between pb-3">
           <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
@@ -839,8 +934,9 @@ export default function TimeTrackerPage() {
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="w-full sm:w-40 text-sm"
+              disabled={loading}
             />
-            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm" disabled={loading}>
               <Filter className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Filter
             </Button>
@@ -867,7 +963,7 @@ export default function TimeTrackerPage() {
                   {loading ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-6 sm:py-8 text-gray-500 px-4">
-                        <Clock className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-gray-300 animate-spin" />
+                        <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-gray-300 animate-spin" />
                         <p className="text-sm sm:text-base">Loading time records...</p>
                       </TableCell>
                     </TableRow>
@@ -935,7 +1031,7 @@ export default function TimeTrackerPage() {
               </Table>
             </div>
 
-            {/* Time Records Pagination Controls - Always visible when there are records */}
+            {/* Time Records Pagination Controls */}
             {timeRecords.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between px-3 sm:px-6 py-3 border-t space-y-2 sm:space-y-0">
                 <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
@@ -990,7 +1086,7 @@ export default function TimeTrackerPage() {
         </CardContent>
       </Card>
 
-      {/* Employee Details Modal - Now mobile responsive */}
+      {/* Employee Details Modal */}
       <EmployeeDetailsModal
         isOpen={isEmployeeDetailsOpen}
         onClose={() => {
