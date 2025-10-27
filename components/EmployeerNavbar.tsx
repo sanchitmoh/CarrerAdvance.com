@@ -116,14 +116,15 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
                          <DropdownMenuTrigger asChild>
                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                  <Avatar className="h-12 w-12">
-                   <AvatarImage 
-                     src={user.avatar || "/placeholder.svg?height=32&width=32"} 
-                     alt="User"
-                     onError={(e) => {
-                       console.log('Avatar image failed to load:', user.avatar)
-                       e.currentTarget.style.display = 'none'
-                     }}
-                   />
+                   {user.avatar ? (
+                     <AvatarImage 
+                       src={user.avatar} 
+                       alt={user.name}
+                       onError={() => {
+                         console.log('Avatar image failed to load:', user.avatar)
+                       }}
+                     />
+                   ) : null}
                    <AvatarFallback className="bg-emerald-500 text-white">
                      {user.name && user.name !== 'Employer' 
                        ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)

@@ -15,6 +15,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Heart, Search, MapPin, Building, Calendar, DollarSign, HeartOff, ExternalLink } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 
 interface SavedJob {
   id: string
@@ -34,6 +36,7 @@ interface SavedJob {
 }
 
 export default function SavedJobsPage() {
+  const { toast } = useToast()
   const [savedJobs, setSavedJobs] = useState<SavedJob[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -43,6 +46,9 @@ export default function SavedJobsPage() {
   
   // Apply job loading state
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null)
+  
+  // Remove job loading state
+  const [removingJobId, setRemovingJobId] = useState<string | null>(null)
 
   
 
@@ -67,14 +73,43 @@ export default function SavedJobsPage() {
   const handleRemoveJob = async (jobId: string) => {
     const jobseekerId = localStorage.getItem("jobseeker_id")
     if (!jobseekerId) return
+    
+    setRemovingJobId(jobId)
+    
     // optimistic remove
     const prev = savedJobs
     setSavedJobs(prev.filter((job) => job.id !== jobId))
+    
     try {
-      await fetch(`/api/seeker/jobs/remove_saved_job?jobseeker_id=${encodeURIComponent(jobseekerId)}&job_id=${encodeURIComponent(jobId)}`)
-    } catch {
-      // revert on failure
+      const response = await fetch(`/api/seeker/jobs/remove_saved_job?jobseeker_id=${encodeURIComponent(jobseekerId)}&job_id=${encodeURIComponent(jobId)}`)
+      
+      if (!response.ok) {
+        // revert on failure
+        setSavedJobs(prev)
+        toast({
+          title: "Failed to unsave job",
+          description: "Please try again",
+          variant: "destructive",
+          duration: 3000,
+        })
+      } else {
+        toast({
+          title: "Job unsaved",
+          description: "Job removed from your saved list",
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      // revert on error
       setSavedJobs(prev)
+      toast({
+        title: "Network error",
+        description: "Failed to unsave job. Please check your connection.",
+        variant: "destructive",
+        duration: 5000,
+      })
+    } finally {
+      setRemovingJobId(null)
     }
   }
 
@@ -84,7 +119,12 @@ export default function SavedJobsPage() {
       
       const jobseekerId = localStorage.getItem("jobseeker_id")
       if (!jobseekerId) {
-        alert("Please login to apply for jobs.")
+        toast({
+          title: "Login required",
+          description: "Please login to apply for jobs",
+          variant: "destructive",
+          duration: 3000,
+        })
         return
       }
 
@@ -102,28 +142,51 @@ export default function SavedJobsPage() {
       const markApplied = () => setSavedJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, applied: true } : j))
 
       if (response.ok && (!contentType || !contentType.includes("application/json"))) {
-        alert("Application submitted successfully.")
+        toast({
+          title: "Application submitted!",
+          description: "Your application has been sent successfully",
+          duration: 5000,
+        })
         markApplied()
         return
       }
 
       if (response.ok && data?.success !== false) {
-        alert("Application submitted successfully.")
+        toast({
+          title: "Application submitted!",
+          description: "Your application has been sent successfully",
+          duration: 5000,
+        })
         markApplied()
         return
       }
 
       const message = data?.message || "Failed to apply"
       if (typeof message === "string" && message.toLowerCase().includes("already applied")) {
-        alert("You already applied to this job.")
+        toast({
+          title: "Already applied",
+          description: "You have already applied to this job",
+          variant: "destructive",
+          duration: 5000,
+        })
         markApplied()
         return
       }
 
-      alert(message)
+      toast({
+        title: "Application failed",
+        description: message,
+        variant: "destructive",
+        duration: 5000,
+      })
     } catch (err) {
       console.error("Error applying to job:", err)
-      alert("An error occurred while applying. Please try again.")
+      toast({
+        title: "Application error",
+        description: "An error occurred while applying. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      })
     } finally {
       setApplyingJobId(null)
     }
@@ -182,6 +245,7 @@ export default function SavedJobsPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 space-y-4 sm:space-y-6">
+      <Toaster />
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -391,8 +455,22 @@ export default function SavedJobsPage() {
                               </div>
 
                               <div className="flex flex-col gap-3 pt-4 border-t flex-shrink-0">
-                                <Button onClick={() => handleRemoveJob(selectedJob.id)} variant="outline" className="border-pink-200 text-pink-600 hover:bg-pink-50 text-sm w-full sm:w-auto">
-                                  <HeartOff className="h-4 w-4 mr-2" /> Unsave Job
+                                <Button 
+                                  onClick={() => handleRemoveJob(selectedJob.id)} 
+                                  disabled={removingJobId === selectedJob.id}
+                                  variant="outline" 
+                                  className="border-pink-200 text-pink-600 hover:bg-pink-50 text-sm w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {removingJobId === selectedJob.id ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                                      Unsaving...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <HeartOff className="h-4 w-4 mr-2" /> Unsave Job
+                                    </>
+                                  )}
                                 </Button>
 
                                 <div className="flex flex-col sm:flex-row gap-3">
@@ -426,8 +504,18 @@ export default function SavedJobsPage() {
                         </DialogContent>
                       </Dialog>
 
-                      <Button onClick={() => handleRemoveJob(job.id)} variant="outline" size="sm" className="border-pink-200 text-pink-600 hover:bg-pink-50 text-sm py-2 w-full sm:w-auto">
-                        <HeartOff className="h-4 w-4" />
+                      <Button 
+                        onClick={() => handleRemoveJob(job.id)} 
+                        disabled={removingJobId === job.id}
+                        variant="outline" 
+                        size="sm" 
+                        className="border-pink-200 text-pink-600 hover:bg-pink-50 text-sm py-2 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {removingJobId === job.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                        ) : (
+                          <HeartOff className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>

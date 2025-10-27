@@ -45,10 +45,15 @@ export default function ProfilePage() {
           return;
         }
 
-        const response = await fetch(`/api/seeker/profile/get_profile_completion?jobseeker_id=${jobseekerId}`);
+        const response = await fetch(`/api/seeker/profile/check_complete?jobseeker_id=${jobseekerId}`);
         const data = await response.json();
         
-        if (data.success && data.data) {
+        // Handle new response format with completion_score
+        if (data.success && data.completion_score !== undefined) {
+          setProfileCompletion(data.completion_score);
+          console.log('Profile completion updated:', data.completion_score, '%');
+        } else if (data.success && data.data) {
+          // Fallback for old format
           setProfileCompletion(data.data);
         }
 
@@ -67,6 +72,26 @@ export default function ProfilePage() {
     loadProfileCompletion();
   }, []);
 
+  // Function to refresh profile completion
+  const refreshProfileCompletion = async () => {
+    try {
+      const jobseekerId = localStorage.getItem('jobseeker_id');
+      if (!jobseekerId) return;
+      
+      const response = await fetch(`/api/seeker/profile/check_complete?jobseeker_id=${jobseekerId}`);
+      const data = await response.json();
+      
+      if (data.success && data.completion_score !== undefined) {
+        setProfileCompletion(data.completion_score);
+        console.log('Profile completion refreshed:', data.completion_score, '%');
+      } else if (data.success && data.data) {
+        setProfileCompletion(data.data);
+      }
+    } catch (error) {
+      console.error('Error refreshing profile completion:', error);
+    }
+  };
+
   // Global save loader + toasts that child components can trigger via window.ProfileSave
   useEffect(() => {
     const handlerStart = (e: any) => {
@@ -78,6 +103,8 @@ export default function ProfilePage() {
       setIsSaving(false)
       const msg = (e && e.detail && e.detail.message) || 'Saved successfully.'
       toast({ title: 'Success', description: msg })
+      // Refresh profile completion after successful save
+      refreshProfileCompletion()
     }
     const handlerError = (e: any) => {
       setIsSaving(false)
@@ -92,7 +119,10 @@ export default function ProfilePage() {
     // Expose helpers for components to call without importing toast here
     ;(window as any).ProfileSave = {
       start: (message?: string) => window.dispatchEvent(new CustomEvent('js-profile-save:start', { detail: { message } })),
-      success: (message?: string) => window.dispatchEvent(new CustomEvent('js-profile-save:success', { detail: { message } })),
+      success: (message?: string) => {
+        window.dispatchEvent(new CustomEvent('js-profile-save:success', { detail: { message } }))
+        refreshProfileCompletion()
+      },
       error: (message?: string) => window.dispatchEvent(new CustomEvent('js-profile-save:error', { detail: { message } })),
     }
 
