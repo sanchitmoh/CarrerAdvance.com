@@ -393,40 +393,54 @@ function JobsPageContent() {
   };
   //authentication 
   const checkAuthStatus = () => {
-  if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined') return false;
+    
+    // Check for job-seeker token in localStorage
+    const jobSeekerToken = localStorage.getItem('job-seeker-token');
+    // Or check for auth token (adjust based on your auth implementation)
+    const authToken = localStorage.getItem('auth-token');
+    const userRole = localStorage.getItem('user-role');
+    // Also check for session cookies
+    const sessionToken = document.cookie.includes('session');
+    // Check for seeker_id in cookies
+    const seekerId = document.cookie.includes('seeker_id');
+    
+    // Return true if any authentication method is present
+    return !!(jobSeekerToken || (authToken && userRole === 'job-seeker') || sessionToken || seekerId);
+  };
   
-  // Check for job-seeker token in localStorage
-  const jobSeekerToken = localStorage.getItem('job-seeker-token');
-  // Or check for auth token (adjust based on your auth implementation)
-  const authToken = localStorage.getItem('auth-token');
-  const userRole = localStorage.getItem('user-role');
-  
-  return !!(jobSeekerToken || (authToken && userRole === 'job-seeker'));
-};
   // Actions
   
-const handleApplyJob = (jobId?: string | number, e?: React.MouseEvent) => {
-  if (e) e.stopPropagation();
-  
-  const isLoggedIn = checkAuthStatus();
-  
-  try {
-    if (isLoggedIn) {
-      // User is logged in, redirect to matching jobs
-      router.push('/job-seeker/matching-jobs');
-    } else {
-      // User is not logged in, redirect to login
-      router.push('/job-seekers/login');
+  const handleApplyJob = (jobId?: string | number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    
+    const isLoggedIn = checkAuthStatus();
+    console.log('Apply button clicked. Is logged in:', isLoggedIn, 'Job ID:', jobId);
+    
+    // Store the job ID for when user logs in and is redirected to matching jobs
+    if (jobId) {
+      localStorage.setItem('pending_job_id', String(jobId));
+      localStorage.setItem('pending_job_source', 'public_jobs_page');
+      localStorage.setItem('redirect_after_login', '/job-seekers/dashboard/matching-jobs');
     }
-  } catch (_) {
-    // Fallback in case router navigation is blocked
+    
+    // Always redirect to matching jobs page if logged in
     if (isLoggedIn) {
-      window.location.href = '/job-seeker/matching-jobs';
-    } else {
+      console.log('User is logged in, redirecting to matching jobs...');
+      // Use window.location.href for a hard redirect to ensure we go to matching jobs
+      window.location.href = '/job-seekers/dashboard/matching-jobs';
+      return;
+    }
+    
+    // User is not logged in, redirect to login
+    console.log('User is not logged in, redirecting to login...');
+    try {
+      router.push('/job-seekers/login');
+    } catch (error) {
+      console.error('Navigation error:', error);
       window.location.href = '/job-seekers/login';
     }
-  }
-};
+  };
 
   const handleViewDetails = (job: Job, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();

@@ -25,6 +25,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Target,
   Search,
   MapPin,
@@ -33,6 +43,8 @@ import {
   DollarSign,
   Heart,
   ExternalLink,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react"
 
 interface MatchBreakdown {
@@ -103,6 +115,14 @@ export default function MatchingJobsPage() {
 
   // Apply job loading state
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null)
+  
+  // Profile incomplete dialog state
+  const [profileIncompleteDialog, setProfileIncompleteDialog] = useState({
+    open: false,
+    missingFields: [] as string[],
+    completionScore: 0,
+    message: ""
+  })
 
   // Load saved jobs from localStorage once
   useEffect(() => {
@@ -313,18 +333,73 @@ export default function MatchingJobsPage() {
     return "text-orange-600 bg-orange-100 border-orange-200"
   }
 
-  // Apply handler - robust handling like your earlier version
+  // Check if profile is complete with detailed information
+  const checkProfileComplete = async (jobseekerId: string): Promise<{ complete: boolean; missingFields?: string[]; completionScore?: number; message?: string }> => {
+    try {
+      const response = await fetch(`/api/seeker/profile/check_complete?jobseeker_id=${jobseekerId}`)
+      if (!response.ok) {
+        return { complete: false, message: "Unable to verify profile completion" }
+      }
+      
+      const data = await response.json()
+      
+      // Handle different response formats
+      if (data?.complete === true) {
+        return { complete: true }
+      }
+      
+      if (data?.complete === false) {
+        const missingFields = data.missing_fields || data.missingFields || []
+        const message = data.message || "Your profile is incomplete"
+        
+        return { 
+          complete: false, 
+          missingFields,
+          message 
+        }
+      }
+      
+      return { complete: false, message: "Profile completion status could not be determined" }
+    } catch (error) {
+      console.error("Error checking profile completion:", error)
+      return { complete: false, message: "Error checking profile completion" }
+    }
+  }
+
+  // Apply handler - robust handling with profile completion check
   const handleApply = async (jobId: string) => {
     try {
-      setApplyingJobId(jobId)
-      
       const jobseekerId = localStorage.getItem("jobseeker_id")
       if (!jobseekerId) {
-        alert("Please login to apply for jobs.")
+        setProfileIncompleteDialog({
+          open: true,
+          missingFields: [],
+          completionScore: 0,
+          message: "Please login to apply for jobs."
+        })
         console.warn("No jobseeker ID found. Please login again.")
         return
       }
 
+      setApplyingJobId(jobId)
+
+      // Check if profile is complete before applying
+      const profileCheck = await checkProfileComplete(jobseekerId)
+      
+      if (!profileCheck.complete) {
+        // Show beautiful alert dialog
+        setProfileIncompleteDialog({
+          open: true,
+          missingFields: profileCheck.missingFields || [],
+          completionScore: profileCheck.completionScore || 0,
+          message: profileCheck.message || "Your profile is incomplete"
+        })
+        
+        setApplyingJobId(null)
+        return
+      }
+
+      // Profile is complete, proceed with application
       const response = await fetch("/api/seeker/profile/apply_job", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -874,6 +949,80 @@ export default function MatchingJobsPage() {
           </DialogContent>
         )}
       </Dialog>
+
+      {/* Profile Incomplete Alert Dialog */}
+      <AlertDialog open={profileIncompleteDialog.open} onOpenChange={(open) => {
+        setProfileIncompleteDialog(prev => ({ ...prev, open }))
+      }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex-shrink-0">
+                {profileIncompleteDialog.missingFields.length === 0 ? (
+                  <AlertCircle className="h-8 w-8 text-orange-500" />
+                ) : (
+                  <AlertCircle className="h-8 w-8 text-yellow-500" />
+                )}
+              </div>
+              <AlertDialogTitle className="text-xl font-bold text-gray-900">
+                Profile Incomplete
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-gray-600 space-y-3">
+              <p className="font-medium">
+                {profileIncompleteDialog.message || "Your profile needs to be completed before you can apply for jobs."}
+              </p>
+              
+              {profileIncompleteDialog.completionScore > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Profile Completion</span>
+                    <span className="text-sm font-bold text-emerald-600">
+                      {profileIncompleteDialog.completionScore}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-emerald-500 to-green-500 h-2 rounded-full transition-all duration-500" 
+                      style={{ width: `${profileIncompleteDialog.completionScore}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    You need at least 70% completion to apply for jobs
+                  </p>
+                </div>
+              )}
+
+              {profileIncompleteDialog.missingFields.length > 0 && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm font-semibold text-red-800 mb-2">
+                    Missing Information:
+                  </p>
+                  <ul className="space-y-1">
+                    {profileIncompleteDialog.missingFields.map((field, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm text-red-700">
+                        <span className="text-red-500 mt-1">•</span>
+                        <span>{field}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">
+              Maybe Later
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => window.location.href = "/job-seekers/dashboard/profile"}
+              className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"
+            >
+              Complete Profile Now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
