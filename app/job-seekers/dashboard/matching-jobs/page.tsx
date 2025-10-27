@@ -46,6 +46,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface MatchBreakdown {
   skills?: { score?: number; matched_skills?: string[]; missing_skills?: string[] }
@@ -83,11 +84,15 @@ export default function MatchingJobsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalRecords, setTotalRecords] = useState(0)
+  const { toast } = useToast()
 
   // Filters + UI state
   const [searchTerm, setSearchTerm] = useState("")
   const [locationFilter, setLocationFilter] = useState("all")
   
+  // Loading states
+  const [savingJobId, setSavingJobId] = useState<string | null>(null)
+  const [loadingLocations, setLoadingLocations] = useState(false)
 
   // Debounced search term
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
@@ -276,6 +281,15 @@ export default function MatchingJobsPage() {
 
         if (!isMounted) return
         setJobs(formatted)
+        
+        // Show success toast when jobs are loaded
+        if (formatted.length > 0) {
+          toast({
+            title: "Jobs loaded successfully",
+            description: `Found ${formatted.length} matching jobs`,
+            duration: 3000,
+          })
+        }
       } catch (err: any) {
         if (err?.name === "AbortError") return
         console.error("Error loading matching jobs:", err)
@@ -285,6 +299,14 @@ export default function MatchingJobsPage() {
             "Failed to load matching jobs. Please check your network or try again."
         )
         setJobs([])
+        
+        // Show error toast
+        toast({
+          title: "Failed to load jobs",
+          description: "Please try again later",
+          variant: "destructive",
+          duration: 5000,
+        })
       } finally {
         if (!isMounted) return
         setLoading(false)
@@ -298,7 +320,7 @@ export default function MatchingJobsPage() {
       controller.abort()
     }
     // NOTE: searchTerm is intentionally omitted to keep search client-side (same as your previous logic).
-  }, [locationFilter, currentPage, debouncedSearchTerm])
+  }, [locationFilter, currentPage, debouncedSearchTerm, toast])
 
   // No client-side filtering needed - all filtering is handled by backend
   // Just sort by match score for display
@@ -309,8 +331,6 @@ export default function MatchingJobsPage() {
   if (locationFilter !== "all" && !locations.includes(locationFilter)) {
     locations = ["all", locationFilter, ...locations.filter((v) => v !== locationFilter)]
   }
-
-
 
   // Format date safely
   const formatDate = (dateString: string) => {
@@ -412,7 +432,13 @@ export default function MatchingJobsPage() {
         : {}
 
       if (response.ok && (!contentType || !contentType.includes("application/json"))) {
-        alert("Application submitted successfully.")
+        // Show success toast
+        toast({
+          title: "Application submitted!",
+          description: "Your application has been sent successfully",
+          duration: 5000,
+        })
+        
         // Remove the applied job from the list without refreshing
         setJobs((prev) => prev.filter((j) => j.id !== jobId))
         if (selectedJob && selectedJob.id === jobId) {
@@ -423,7 +449,13 @@ export default function MatchingJobsPage() {
       }
 
       if (response.ok && (data as any)?.success !== false) {
-        alert("Application submitted successfully.")
+        // Show success toast
+        toast({
+          title: "Application submitted!",
+          description: "Your application has been sent successfully",
+          duration: 5000,
+        })
+        
         // Remove the applied job from the list without refreshing
         setJobs((prev) => prev.filter((j) => j.id !== jobId))
         if (selectedJob && selectedJob.id === jobId) {
@@ -435,14 +467,29 @@ export default function MatchingJobsPage() {
 
       const message = (data as any)?.message || "Failed to apply"
       if (typeof message === "string" && message.toLowerCase().includes("already applied")) {
-        alert("You already applied to this job.")
+        toast({
+          title: "Already applied",
+          description: "You have already applied to this job",
+          variant: "destructive",
+          duration: 5000,
+        })
         return
       }
 
-      alert(message)
+      toast({
+        title: "Application failed",
+        description: message,
+        variant: "destructive",
+        duration: 5000,
+      })
     } catch (err) {
       console.error("Error applying to job:", err)
-      alert("An error occurred while applying. Please try again.")
+      toast({
+        title: "Application error",
+        description: "An error occurred while applying. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      })
     } finally {
       setApplyingJobId(null)
     }
@@ -452,9 +499,17 @@ export default function MatchingJobsPage() {
   const toggleSaveJob = async (jobId: string) => {
     const jobseekerId = localStorage.getItem("jobseeker_id")
     if (!jobseekerId) {
-      alert("Please login to save jobs.")
+      toast({
+        title: "Login required",
+        description: "Please login to save jobs",
+        variant: "destructive",
+        duration: 3000,
+      })
       return
     }
+
+    // Show loading state
+    setSavingJobId(jobId)
 
     // Optimistic UI update
     const wasSaved = savedJobs.includes(jobId)
@@ -467,6 +522,18 @@ export default function MatchingJobsPage() {
         if (!res.ok) {
           // revert on failure
           setSavedJobs((prev) => (prev.includes(jobId) ? prev : [...prev, jobId]))
+          toast({
+            title: "Failed to unsave job",
+            description: "Please try again",
+            variant: "destructive",
+            duration: 3000,
+          })
+        } else {
+          toast({
+            title: "Job unsaved",
+            description: "Job removed from your saved list",
+            duration: 3000,
+          })
         }
       } else {
         // Save job
@@ -478,11 +545,31 @@ export default function MatchingJobsPage() {
         if (!res.ok) {
           // revert on failure
           setSavedJobs((prev) => prev.filter((id) => id !== jobId))
+          toast({
+            title: "Failed to save job",
+            description: "Please try again",
+            variant: "destructive",
+            duration: 3000,
+          })
+        } else {
+          toast({
+            title: "Job saved!",
+            description: "Job added to your saved list",
+            duration: 3000,
+          })
         }
       }
     } catch (e) {
       // revert on error
       setSavedJobs((prev) => (wasSaved ? (prev.includes(jobId) ? prev : [...prev, jobId]) : prev.filter((id) => id !== jobId)))
+      toast({
+        title: "Network error",
+        description: "Failed to save job. Please check your connection.",
+        variant: "destructive",
+        duration: 5000,
+      })
+    } finally {
+      setSavingJobId(null)
     }
   }
 
@@ -652,8 +739,18 @@ export default function MatchingJobsPage() {
                         </Button>
 
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => toggleSaveJob(job.id)} className={`${savedJobs.includes(job.id) ? "bg-pink-100 border-pink-200 text-pink-600" : "border-gray-200 text-gray-600"} p-2`}>
-                            <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => toggleSaveJob(job.id)} 
+                            disabled={savingJobId === job.id}
+                            className={`${savedJobs.includes(job.id) ? "bg-pink-100 border-pink-200 text-pink-600" : "border-gray-200 text-gray-600"} p-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {savingJobId === job.id ? (
+                              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-current"></div>
+                            ) : (
+                              <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
+                            )}
                           </Button>
 
                           <Button variant="outline" size="sm" onClick={() => openDetails(job)} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs px-2 sm:px-3">
@@ -914,11 +1011,21 @@ export default function MatchingJobsPage() {
               <div className="flex justify-between pt-4 border-t flex-shrink-0">
                 <Button 
                   variant="outline" 
-                  className={`${savedJobs.includes(selectedJob.id) ? "border-pink-200 text-pink-600 hover:bg-pink-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"}`} 
+                  className={`${savedJobs.includes(selectedJob.id) ? "border-pink-200 text-pink-600 hover:bg-pink-50" : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"} disabled:opacity-50 disabled:cursor-not-allowed`} 
                   onClick={() => toggleSaveJob(selectedJob.id)}
+                  disabled={savingJobId === selectedJob.id}
                 >
-                  <Heart className="h-4 w-4 mr-2" />
-                  {savedJobs.includes(selectedJob.id) ? "Unsave" : "Save Job"}
+                  {savingJobId === selectedJob.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Heart className="h-4 w-4 mr-2" />
+                      {savedJobs.includes(selectedJob.id) ? "Unsave" : "Save Job"}
+                    </>
+                  )}
                 </Button>
                 <div className="flex space-x-3">
                   {selectedJob.url && (

@@ -415,11 +415,11 @@ export default function EmployerProfilePage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <BackButton />
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div>
+      <BackButton />
           <h1 className="text-2xl font-bold text-white">Profile Management</h1>
           <p className="text-white">Manage your personal and company information</p>
         </div>

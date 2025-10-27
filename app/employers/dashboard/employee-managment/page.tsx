@@ -740,10 +740,10 @@ export default function EmploymentManagementPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <BackButton/>
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-6 text-white">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
+      <BackButton/>
             <h1 className="text-3xl font-bold mb-2">Employment Management Analytics</h1>
             <p className="text-blue-100">Comprehensive HR analytics and workforce management tools</p>
           </div>

@@ -359,67 +359,133 @@ function ResumeBuilderContent() {
           }
 
           // Map imported data (support multi-entry lists)
-          const experienceItems = Array.isArray(importedData.experience_list) && importedData.experience_list.length
-            ? importedData.experience_list.map((desc: string, idx: number) => {
+          const experienceItems = Array.isArray(importedData.experience) && importedData.experience.length
+            ? importedData.experience.map((exp: any, idx: number) => {
+                // Check if it's already an object with structured fields
+                if (exp.title && exp.company) {
+                  return {
+                    id: String(idx + 1),
+                    title: exp.title,
+                    company: exp.company,
+                    location: exp.location || "",
+                    startDate: exp.startDate || "",
+                    endDate: exp.endDate || "",
+                    current: exp.current || false,
+                    description: exp.description || "",
+                  }
+                }
+                // If it's an object with description, try to infer
+                const desc = exp.description || String(exp)
                 const inferred = inferExperience(desc)
                 return {
-                id: String(idx + 1),
+                  id: String(idx + 1),
                   title: inferred.title,
                   company: inferred.company,
-                location: "",
-                startDate: "",
-                endDate: "",
-                current: false,
+                  location: "",
+                  startDate: "",
+                  endDate: "",
+                  current: false,
                   description: String(inferred.description || desc).substring(0, 500),
                 }
               })
-            : (importedData.experience
-                ? (() => { const inferred = inferExperience(importedData.experience); return [{
-                    id: "1",
-                    title: inferred.title,
-                    company: inferred.company,
-                    location: "",
-                    startDate: "",
-                    endDate: "",
-                    current: false,
-                    description: String(inferred.description || importedData.experience).substring(0, 500),
-                  }] })()
-                : resumeData.experience)
+            : (Array.isArray(importedData.experience_list) && importedData.experience_list.length
+                ? importedData.experience_list.map((desc: string, idx: number) => {
+                    const inferred = inferExperience(desc)
+                    return {
+                      id: String(idx + 1),
+                      title: inferred.title,
+                      company: inferred.company,
+                      location: "",
+                      startDate: "",
+                      endDate: "",
+                      current: false,
+                      description: String(inferred.description || desc).substring(0, 500),
+                    }
+                  })
+                : (importedData.experience
+                    ? (() => { const inferred = inferExperience(String(importedData.experience)); return [{
+                        id: "1",
+                        title: inferred.title,
+                        company: inferred.company,
+                        location: "",
+                        startDate: "",
+                        endDate: "",
+                        current: false,
+                        description: String(inferred.description || importedData.experience).substring(0, 500),
+                      }] })()
+                    : resumeData.experience))
 
-          const educationItems = Array.isArray(importedData.education_list) && importedData.education_list.length
-            ? importedData.education_list.map((desc: string, idx: number) => {
+          const educationItems = Array.isArray(importedData.education) && importedData.education.length
+            ? importedData.education.map((edu: any, idx: number) => {
+                // Check if it's already an object with structured fields
+                if (edu.degree && edu.school) {
+                  return {
+                    id: String(idx + 1),
+                    degree: edu.degree,
+                    school: edu.school,
+                    location: edu.location || "",
+                    graduationDate: edu.graduationDate || edu.end || "",
+                    gpa: edu.gpa || "",
+                    description: edu.description || "",
+                    fieldOfStudy: edu.fieldOfStudy || "",
+                  }
+                }
+                // If it's an object with description, try to infer
+                const desc = edu.description || String(edu)
                 const inferred = inferEducation(desc)
                 return {
-                id: String(idx + 1),
+                  id: String(idx + 1),
                   degree: inferred.degree,
                   school: inferred.school,
-                location: "",
-                graduationDate: "",
-                gpa: "",
+                  location: "",
+                  graduationDate: "",
+                  gpa: "",
                   description: String(inferred.description || desc).substring(0, 300),
                 }
               })
-            : (importedData.education
-                ? (() => { const inferred = inferEducation(importedData.education); return [{
-                    id: "1",
-                    degree: inferred.degree,
-                    school: inferred.school,
-                    location: "",
-                    graduationDate: "",
-                    gpa: "",
-                    description: String(inferred.description || importedData.education).substring(0, 300),
-                  }] })()
-                : resumeData.education)
+            : (Array.isArray(importedData.education_list) && importedData.education_list.length
+                ? importedData.education_list.map((desc: string, idx: number) => {
+                    const inferred = inferEducation(desc)
+                    return {
+                      id: String(idx + 1),
+                      degree: inferred.degree,
+                      school: inferred.school,
+                      location: "",
+                      graduationDate: "",
+                      gpa: "",
+                      description: String(inferred.description || desc).substring(0, 300),
+                    }
+                  })
+                : (importedData.education
+                    ? (() => { const inferred = inferEducation(String(importedData.education)); return [{
+                        id: "1",
+                        degree: inferred.degree,
+                        school: inferred.school,
+                        location: "",
+                        graduationDate: "",
+                        gpa: "",
+                        description: String(inferred.description || importedData.education).substring(0, 300),
+                      }] })()
+                    : resumeData.education))
 
-          const projectItems = Array.isArray(importedData.projects_list) && importedData.projects_list.length
-            ? importedData.projects_list.map((desc: string, idx: number) => ({
+          const projectItems = Array.isArray(importedData.projects) && importedData.projects.length
+            ? importedData.projects.map((proj: any, idx: number) => ({
                 id: String(idx + 1),
-                name: "Imported Project",
-                date: "",
-                description: String(desc).substring(0, 400),
-                technologies: [],
+                name: proj.name || "Imported Project",
+                date: proj.date || "",
+                description: proj.description || String(proj).substring(0, 400),
+                technologies: proj.technologies || [],
+                link: proj.link || "",
               }))
-            : resumeData.projects
+            : (Array.isArray(importedData.projects_list) && importedData.projects_list.length
+                ? importedData.projects_list.map((desc: string, idx: number) => ({
+                    id: String(idx + 1),
+                    name: "Imported Project",
+                    date: "",
+                    description: String(desc).substring(0, 400),
+                    technologies: [],
+                  }))
+                : resumeData.projects)
 
           const skillsArray = Array.isArray(importedData.skills_list) && importedData.skills_list.length
             ? importedData.skills_list
