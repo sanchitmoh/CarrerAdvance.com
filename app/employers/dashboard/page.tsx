@@ -393,7 +393,7 @@ export default function EmployerDashboardPage() {
               <Calendar className="h-5 w-5 text-emerald-600" />
               <span>Upcoming Interviews</span>
             </CardTitle>
-            <Link href="/employers/dashboard/interviews">
+            <Link href="/employers/dashboard/interview-tracker">
               <Button variant="outline" size="sm">
                 View All
                 <ArrowRight className="h-4 w-4 ml-2" />

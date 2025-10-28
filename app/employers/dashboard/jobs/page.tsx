@@ -1421,6 +1421,9 @@ export default function JobsPage() {
             {/* Main profile content */}
             <div className="flex-1 overflow-y-auto">
               <div className="p-4 sm:p-6">
+                {/** Normalize status once for reliable checks */}
+                {(() => { return null })()}
+                {/**/}
                 {/* Header */}
                 <div className="text-center mb-6">
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 break-words">{selectedCandidate.name}</h1>
@@ -1630,13 +1633,15 @@ export default function JobsPage() {
                 <div className="mb-8">
                   <h2 className="text-xl font-semibold mb-4">Resume</h2>
                   <div className="flex items-center space-x-4">
-                    <Button variant="outline" onClick={() => {
-                      const url = selectedCandidate.resumeUrl ? getAssetUrl(selectedCandidate.resumeUrl) : ''
-                      if (url) window.open(url, '_blank')
-                    }}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview Resume
-                    </Button>
+                    {(((selectedCandidate.status || '') as string).toString().toLowerCase() !== "hired") && (
+                      <Button variant="outline" onClick={() => {
+                        const url = selectedCandidate.resumeUrl ? getAssetUrl(selectedCandidate.resumeUrl) : ''
+                        if (url) window.open(url, '_blank')
+                      }}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview Resume
+                      </Button>
+                    )}
                     <Button variant="outline" onClick={async () => {
                       const url = selectedCandidate.resumeUrl ? getAssetUrl(selectedCandidate.resumeUrl) : ''
                       if (!url) return

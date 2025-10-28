@@ -306,14 +306,6 @@ export default function InterviewTrackerPage() {
               </Button>
             ) : (
               <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full sm:w-auto text-emerald-600 border-emerald-600 hover:bg-emerald-50 bg-transparent"
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  Edit
-                </Button>
                 {interview.status === "scheduled" && (
                   <Button
                     size="sm"
