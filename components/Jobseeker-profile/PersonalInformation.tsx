@@ -17,125 +17,175 @@ const locationData = {
   'Philippines': {
     provinces: [
       { name: 'Metro Manila', cities: ['Manila', 'Quezon City', 'Makati', 'Taguig', 'Pasig', 'Marikina', 'Caloocan', 'Malabon', 'Navotas', 'Parañaque', 'Las Piñas', 'Muntinlupa', 'San Juan', 'Mandaluyong', 'Pasay', 'Pateros', 'Valenzuela'] },
-      { name: 'Cebu', cities: ['Cebu City', 'Mandaue City', 'Lapu-Lapu City', 'Talisay City', 'Danao City', 'Toledo City', 'Naga City', 'Carcar City'] },
-      { name: 'Davao', cities: ['Davao City', 'Digos City', 'Tagum City', 'Panabo City', 'Samal City'] },
-      { name: 'Batangas', cities: ['Batangas City', 'Lipa City', 'Tanauan City', 'Santo Tomas', 'Calaca'] },
-      { name: 'Pampanga', cities: ['Angeles City', 'San Fernando City', 'Mabalacat City', 'Mexico', 'Arayat'] },
-      { name: 'Laguna', cities: ['Calamba', 'San Pablo', 'Santa Rosa', 'Biñan', 'Los Baños', 'San Pedro'] },
-      { name: 'Cavite', cities: ['Dasmariñas', 'Bacoor', 'Imus', 'General Trias', 'Trece Martires', 'Tagaytay'] },
-      { name: 'Rizal', cities: ['Antipolo', 'Taytay', 'Cainta', 'Angono', 'Binangonan', 'Rodriguez'] }
+      { name: 'Cebu', cities: ['Cebu City', 'Mandaue City', 'Lapu-Lapu City', 'Talisay City', 'Danao City', 'Toledo City', 'Naga City', 'Carcar City', 'Bogo City', 'Minglanilla', 'Consolacion', 'Liloan', 'Compostela', 'Cordova'] },
+      { name: 'Davao del Sur', cities: ['Davao City', 'Digos City', 'Santa Cruz', 'Bansalan', 'Matanao', 'Hagonoy', 'Kiblawan', 'Magsaysay', 'Padada', 'Sulop'] },
+      { name: 'Batangas', cities: ['Batangas City', 'Lipa City', 'Tanauan City', 'Santo Tomas', 'Calaca', 'Nasugbu', 'Bauan', 'Balayan', 'Cuenca', 'San Juan', 'Lian', 'Taal', 'Lemery', 'Ibaan'] },
+      { name: 'Pampanga', cities: ['Angeles City', 'San Fernando City', 'Mabalacat City', 'Mexico', 'Arayat', 'Apalit', 'Bacolor', 'Candaba', 'Floridablanca', 'Guagua', 'Lubao', 'Magalang', 'Masantol', 'Porac'] },
+      { name: 'Bulacan', cities: ['Malolos City', 'Meycauayan City', 'San Jose del Monte City', 'Santa Maria', 'Marilao', 'Bocaue', 'Guiguinto', 'Balagtas', 'Plaridel', 'Pulilan', 'Calumpit', 'Hagonoy', 'Paombong', 'Bulakan'] },
+      { name: 'Cavite', cities: ['Dasmariñas City', 'Bacoor City', 'Imus City', 'General Trias City', 'Trece Martires City', 'Tagaytay City', 'Kawit', 'Silang', 'Naic', 'Tanza', 'Rosario', 'Carmona', 'Gen. Mariano Alvarez', 'Amadeo'] },
+      { name: 'Laguna', cities: ['Calamba City', 'Santa Rosa City', 'San Pablo City', 'Biñan City', 'Cabuyao City', 'San Pedro City', 'Los Baños', 'Santa Cruz', 'Magdalena', 'Pagsanjan', 'Liliw', 'Nagcarlan', 'Victoria', 'Bay'] },
+      { name: 'Rizal', cities: ['Antipolo City', 'Taytay', 'Cainta', 'Binangonan', 'Angono', 'Rodriguez', 'San Mateo', 'Baras', 'Tanay', 'Morong', 'Jalajala', 'Pililla', 'Cardona'] },
+      { name: 'Pangasinan', cities: ['Dagupan City', 'San Carlos City', 'Urdaneta City', 'Alaminos City', 'Lingayen', 'Mangaldan', 'Binmaley', 'Calasiao', 'Manaoag', 'Bayambang', 'Malasiqui', 'Santa Barbara', 'Mapandan', 'Sison'] },
+      { name: 'Iloilo', cities: ['Iloilo City', 'Passi City', 'Santa Barbara', 'Cabtatuan', 'Pototan', 'Miagao', 'Tigbauan', 'Oton', 'Barotac Nuevo', 'Dingle', 'Dueñas', 'San Miguel', 'Guimbal', 'Leganes'] },
+      { name: 'Negros Occidental', cities: ['Bacolod City', 'Bago City', 'Cadiz City', 'Escalante City', 'Himamaylan City', 'Kabankalan City', 'La Carlota City', 'Sagay City', 'San Carlos City', 'Silay City', 'Talisay City', 'Victorias City', 'Sipalay City', 'Manapla'] },
+      { name: 'Bohol', cities: ['Tagbilaran City', 'Dauis', 'Panglao', 'Carmen', 'Guindulman', 'Jagna', 'Loon', 'Mabini', 'Talibon', 'Tubigon', 'Ubay', 'Valencia', 'Baclayon', 'Cortes'] },
+      { name: 'Albay', cities: ['Legazpi City', 'Ligao City', 'Tabaco City', 'Daraga', 'Camalig', 'Guinobatan', 'Polangui', 'Malilipot', 'Sto. Domingo', 'Rapu-Rapu', 'Jovellar', 'Libon', 'Oas', 'Pio Duran'] },
+      { name: 'Cagayan', cities: ['Tuguegarao City', 'Aparri', 'Gonzaga', 'Lal-lo', 'Solana', 'Iguig', 'Peñablanca', 'Amulung', 'Claveria', 'Abulug', 'Sta. Ana', 'Buguey', 'Ballesteros', 'Alcala'] }
     ]
   },
-  'United States': {
-    provinces: [
-      { name: 'California', cities: ['Los Angeles', 'San Francisco', 'San Diego', 'Sacramento', 'San Jose', 'Oakland', 'Fresno', 'Long Beach', 'Bakersfield', 'Anaheim', 'Santa Ana', 'Riverside', 'Stockton', 'Irvine', 'Chula Vista'] },
-      { name: 'New York', cities: ['New York City', 'Buffalo', 'Rochester', 'Yonkers', 'Syracuse', 'Albany', 'New Rochelle', 'Mount Vernon', 'Schenectady', 'Utica'] },
-      { name: 'Texas', cities: ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth', 'El Paso', 'Arlington', 'Corpus Christi', 'Plano', 'Lubbock', 'Laredo', 'Garland', 'Irving', 'Amarillo'] },
-      { name: 'Florida', cities: ['Miami', 'Orlando', 'Tampa', 'Jacksonville', 'Fort Lauderdale', 'Tallahassee', 'Hialeah', 'Port St. Lucie', 'Cape Coral', 'Pembroke Pines', 'Hollywood', 'Miramar', 'Gainesville'] },
-      { name: 'Illinois', cities: ['Chicago', 'Aurora', 'Rockford', 'Joliet', 'Naperville', 'Springfield', 'Peoria', 'Elgin', 'Waukegan', 'Cicero'] },
-      { name: 'Pennsylvania', cities: ['Philadelphia', 'Pittsburgh', 'Allentown', 'Erie', 'Reading', 'Scranton', 'Bethlehem', 'Lancaster', 'Harrisburg', 'Altoona'] },
-      { name: 'Ohio', cities: ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Akron', 'Dayton', 'Parma', 'Canton', 'Youngstown', 'Lorain'] },
-      { name: 'Georgia', cities: ['Atlanta', 'Augusta', 'Columbus', 'Savannah', 'Athens', 'Sandy Springs', 'Roswell', 'Macon', 'Albany', 'Johns Creek'] }
-    ]
-  },
-  'Canada': {
-    provinces: [
-      { name: 'Ontario', cities: ['Toronto', 'Ottawa', 'Mississauga', 'Brampton', 'Hamilton', 'London', 'Windsor', 'Kitchener', 'Markham', 'Vaughan', 'Richmond Hill', 'Burlington', 'Oshawa', 'Barrie'] },
-      { name: 'Quebec', cities: ['Montreal', 'Quebec City', 'Laval', 'Gatineau', 'Longueuil', 'Sherbrooke', 'Saguenay', 'Lévis', 'Trois-Rivières', 'Terrebonne', 'Saint-Jean-sur-Richelieu', 'Repentigny'] },
-      { name: 'British Columbia', cities: ['Vancouver', 'Surrey', 'Burnaby', 'Richmond', 'Abbotsford', 'Victoria', 'Coquitlam', 'Saanich', 'Delta', 'Kelowna', 'Langley', 'Kamloops', 'Nanaimo'] },
-      { name: 'Alberta', cities: ['Calgary', 'Edmonton', 'Red Deer', 'Lethbridge', 'Medicine Hat', 'St. Albert', 'Grande Prairie', 'Airdrie', 'Spruce Grove', 'Leduc', 'Fort McMurray'] },
-      { name: 'Manitoba', cities: ['Winnipeg', 'Brandon', 'Steinbach', 'Thompson', 'Portage la Prairie', 'Winkler', 'Selkirk', 'Morden', 'Flin Flon', 'The Pas'] },
-      { name: 'Saskatchewan', cities: ['Saskatoon', 'Regina', 'Prince Albert', 'Moose Jaw', 'Swift Current', 'Yorkton', 'North Battleford', 'Estevan', 'Weyburn', 'Cranbrook'] }
-    ]
-  },
-  'United Kingdom': {
-    provinces: [
-      { name: 'England', cities: ['London', 'Birmingham', 'Manchester', 'Liverpool', 'Leeds', 'Sheffield', 'Bristol', 'Newcastle', 'Nottingham', 'Leicester', 'Coventry', 'Bradford', 'Stoke-on-Trent', 'Wolverhampton', 'Plymouth'] },
-      { name: 'Scotland', cities: ['Edinburgh', 'Glasgow', 'Aberdeen', 'Dundee', 'Paisley', 'East Kilbride', 'Livingston', 'Hamilton', 'Cumbernauld', 'Kirkcaldy', 'Dunfermline', 'Ayr', 'Perth', 'Inverness'] },
-      { name: 'Wales', cities: ['Cardiff', 'Swansea', 'Newport', 'Wrexham', 'Barry', 'Caerphilly', 'Rhondda', 'Port Talbot', 'Bridgend', 'Llanelli', 'Merthyr Tydfil', 'Cwmbran', 'Aberdare', 'Colwyn Bay'] },
-      { name: 'Northern Ireland', cities: ['Belfast', 'Derry', 'Lisburn', 'Newtownabbey', 'Bangor', 'Craigavon', 'Castlereagh', 'Antrim', 'Newry', 'Carrickfergus', 'Newtownards', 'Coleraine', 'Omagh', 'Larne'] }
-    ]
-  },
+  
+    'United States': {
+      provinces: [
+        { name: 'California', cities: ['Los Angeles', 'San Francisco', 'San Diego', 'Sacramento', 'San Jose', 'Oakland', 'Fresno', 'Long Beach', 'Bakersfield', 'Anaheim', 'Santa Barbara', 'Riverside', 'Berkeley', 'Palo Alto', 'Santa Monica'] },
+        { name: 'New York', cities: ['New York City', 'Buffalo', 'Rochester', 'Yonkers', 'Syracuse', 'Albany', 'New Rochelle', 'Mount Vernon', 'Schenectady', 'Utica', 'White Plains', 'Troy', 'Binghamton', 'Ithaca', 'Poughkeepsie'] },
+        { name: 'Texas', cities: ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth', 'El Paso', 'Arlington', 'Corpus Christi', 'Plano', 'Lubbock', 'Amarillo', 'Laredo', 'Irving', 'Garland', 'McKinney'] },
+        { name: 'Florida', cities: ['Miami', 'Orlando', 'Tampa', 'Jacksonville', 'Fort Lauderdale', 'Tallahassee', 'Hialeah', 'Port St. Lucie', 'Cape Coral', 'Pembroke Pines', 'St. Petersburg', 'Hollywood', 'Gainesville', 'Clearwater', 'Coral Springs'] },
+        { name: 'Illinois', cities: ['Chicago', 'Aurora', 'Rockford', 'Joliet', 'Naperville', 'Springfield', 'Peoria', 'Elgin', 'Waukegan', 'Cicero', 'Champaign', 'Bloomington', 'Decatur', 'Arlington Heights', 'Evanston'] },
+        { name: 'Washington', cities: ['Seattle', 'Spokane', 'Tacoma', 'Vancouver', 'Bellevue', 'Kent', 'Everett', 'Renton', 'Federal Way', 'Yakima', 'Bellingham', 'Kirkland', 'Redmond', 'Olympia', 'Richland'] },
+        { name: 'Colorado', cities: ['Denver', 'Colorado Springs', 'Aurora', 'Fort Collins', 'Lakewood', 'Thornton', 'Arvada', 'Westminster', 'Pueblo', 'Centennial', 'Boulder', 'Greeley', 'Longmont', 'Loveland', 'Grand Junction'] },
+        { name: 'Arizona', cities: ['Phoenix', 'Tucson', 'Mesa', 'Chandler', 'Glendale', 'Scottsdale', 'Gilbert', 'Tempe', 'Peoria', 'Surprise', 'Yuma', 'Avondale', 'Flagstaff', 'Goodyear', 'Lake Havasu City'] },
+        { name: 'Pennsylvania', cities: ['Philadelphia', 'Pittsburgh', 'Allentown', 'Erie', 'Reading', 'Scranton', 'Bethlehem', 'Lancaster', 'Harrisburg', 'York', 'Altoona', 'Wilkes-Barre', 'Chester', 'State College', 'Williamsport'] },
+        { name: 'Ohio', cities: ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Akron', 'Dayton', 'Parma', 'Canton', 'Youngstown', 'Lorain', 'Hamilton', 'Springfield', 'Elyria', 'Mentor', 'Cleveland Heights'] },
+        { name: 'Georgia', cities: ['Atlanta', 'Augusta', 'Columbus', 'Macon', 'Savannah', 'Athens', 'Sandy Springs', 'Roswell', 'Johns Creek', 'Albany', 'Warner Robins', 'Alpharetta', 'Marietta', 'Valdosta', 'Smyrna'] },
+        { name: 'Michigan', cities: ['Detroit', 'Grand Rapids', 'Warren', 'Sterling Heights', 'Ann Arbor', 'Lansing', 'Flint', 'Dearborn', 'Livonia', 'Troy', 'Westland', 'Farmington Hills', 'Kalamazoo', 'Wyoming', 'Rochester Hills'] },
+        { name: 'North Carolina', cities: ['Charlotte', 'Raleigh', 'Greensboro', 'Durham', 'Winston-Salem', 'Fayetteville', 'Cary', 'Wilmington', 'High Point', 'Greenville', 'Asheville', 'Concord', 'Gastonia', 'Jacksonville', 'Chapel Hill'] },
+        { name: 'Massachusetts', cities: ['Boston', 'Worcester', 'Springfield', 'Cambridge', 'Lowell', 'Brockton', 'Quincy', 'Lynn', 'New Bedford', 'Fall River', 'Newton', 'Somerville', 'Lawrence', 'Framingham', 'Haverhill'] },
+        { name: 'Nevada', cities: ['Las Vegas', 'Henderson', 'Reno', 'North Las Vegas', 'Sparks', 'Carson City', 'Elko', 'Mesquite', 'Boulder City', 'Fernley', 'Winnemucca', 'Fallon', 'Lovelock', 'Yerington', 'Wells'] }
+      ]
+    },
+    
+      'Canada': {
+        provinces: [
+          { name: 'Ontario', cities: ['Toronto', 'Ottawa', 'Mississauga', 'Brampton', 'Hamilton', 'London', 'Windsor', 'Kitchener', 'Markham', 'Vaughan', 'Burlington', 'Oakville', 'Richmond Hill', 'Sudbury', 'Thunder Bay'] },
+          { name: 'Quebec', cities: ['Montreal', 'Quebec City', 'Laval', 'Gatineau', 'Longueuil', 'Sherbrooke', 'Saguenay', 'Lévis', 'Trois-Rivières', 'Terrebonne', 'Drummondville', 'Saint-Jean-sur-Richelieu', 'Repentigny', 'Brossard', 'Dollard-des-Ormeaux'] },
+          { name: 'British Columbia', cities: ['Vancouver', 'Surrey', 'Burnaby', 'Richmond', 'Abbotsford', 'Victoria', 'Coquitlam', 'Saanich', 'Delta', 'Kelowna', 'Nanaimo', 'Kamloops', 'Prince George', 'Chilliwack', 'Maple Ridge'] },
+          { name: 'Alberta', cities: ['Calgary', 'Edmonton', 'Red Deer', 'Lethbridge', 'Medicine Hat', 'St. Albert', 'Grande Prairie', 'Airdrie', 'Spruce Grove', 'Leduc', 'Fort McMurray', 'Lloydminster', 'Chestermere', 'Camrose', 'Brooks'] },
+          { name: 'Manitoba', cities: ['Winnipeg', 'Brandon', 'Steinbach', 'Thompson', 'Portage la Prairie', 'Winkler', 'Selkirk', 'Morden', 'Flin Flon', 'The Pas', 'Dauphin', 'Stonewall', 'Altona', 'Neepawa', 'Swan River'] },
+          { name: 'Saskatchewan', cities: ['Saskatoon', 'Regina', 'Prince Albert', 'Moose Jaw', 'Swift Current', 'Yorkton', 'North Battleford', 'Estevan', 'Weyburn', 'Martensville', 'Lloydminster', 'Melfort', 'Melville', 'Kindersley', 'La Ronge'] },
+          { name: 'Nova Scotia', cities: ['Halifax', 'Sydney', 'Dartmouth', 'Truro', 'New Glasgow', 'Glace Bay', 'Bedford', 'Sydney Mines', 'Amherst', 'Bridgewater', 'Yarmouth', 'Kentville', 'Wolfville', 'Antigonish', 'Lunenburg'] },
+          { name: 'New Brunswick', cities: ['Moncton', 'Saint John', 'Fredericton', 'Miramichi', 'Dieppe', 'Riverview', 'Quispamsis', 'Bathurst', 'Edmundston', 'Oromocto', 'Campbellton', 'Shediac', 'Grand Falls', 'Sussex', 'Caraquet'] },
+          { name: 'Newfoundland and Labrador', cities: ["St. John's", 'Mount Pearl', 'Corner Brook', 'Conception Bay South', 'Grand Falls-Windsor', 'Paradise', 'Gander', 'Happy Valley-Goose Bay', 'Labrador City', 'Stephenville', 'Clarenville', 'Bay Roberts', 'Carbonear', 'Deer Lake', 'Channel-Port aux Basques'] },
+          { name: 'Prince Edward Island', cities: ['Charlottetown', 'Summerside', 'Stratford', 'Cornwall', 'Montague', 'Kensington', 'Souris', 'Alberton', 'Tignish', 'Georgetown', 'Morell', 'Murray River', 'Crapaud', 'Borden-Carleton', 'Victoria'] },
+          { name: 'Northwest Territories', cities: ['Yellowknife', 'Hay River', 'Inuvik', 'Fort Smith', 'Behchokǫ̀', 'Norman Wells', 'Fort Simpson', 'Tuktoyaktuk', 'Whatì', 'Délı̨nę', 'Fort Providence', 'Fort Resolution', 'Paulatuk', 'Sachs Harbour', 'Ulukhaktok'] },
+          { name: 'Yukon', cities: ['Whitehorse', 'Dawson City', 'Watson Lake', 'Haines Junction', 'Carmacks', 'Mayo', 'Faro', 'Teslin', 'Pelly Crossing', 'Ross River', 'Carcross', 'Tagish', 'Mount Lorne', 'Ibex Valley', 'Old Crow'] },
+          { name: 'Nunavut', cities: ['Iqaluit', 'Rankin Inlet', 'Arviat', 'Cambridge Bay', 'Baker Lake', 'Pond Inlet', 'Igloolik', 'Kugluktuk', 'Pangnirtung', 'Cape Dorset', 'Gjoa Haven', 'Resolute', 'Coral Harbour', 'Taloyoak', 'Hall Beach'] },
+          { name: 'Northern Ontario', cities: ['Timmins', 'Sault Ste. Marie', 'North Bay', 'Kenora', 'Elliot Lake', 'Dryden', 'Temiskaming Shores', 'Cochrane', 'Marathon', 'Manitouwadge', 'Red Lake', 'Sioux Lookout', 'Kapuskasing', 'Hearst', 'Geraldton'] },
+          { name: 'Eastern Townships', cities: ['Bromont', 'Cowansville', 'Farnham', 'Granby', 'Magog', 'Sutton', 'Waterloo', 'Knowlton', 'Dunham', 'Sweetsburg', 'Austin', 'Potton', 'Stanstead', 'Hatley', 'North Hatley'] }
+        ]
+      },
+    
+      
+        'United Kingdom': {
+          provinces: [
+            { name: 'England', cities: ['London', 'Birmingham', 'Manchester', 'Liverpool', 'Leeds', 'Sheffield', 'Bristol', 'Newcastle', 'Nottingham', 'Leicester', 'Coventry', 'Bradford', 'Stoke-on-Trent', 'Wolverhampton', 'Plymouth'] },
+            { name: 'Scotland', cities: ['Edinburgh', 'Glasgow', 'Aberdeen', 'Dundee', 'Paisley', 'East Kilbride', 'Livingston', 'Hamilton', 'Cumbernauld', 'Kirkcaldy', 'Inverness', 'Perth', 'Stirling', 'Ayr', 'Falkirk'] },
+            { name: 'Wales', cities: ['Cardiff', 'Swansea', 'Newport', 'Wrexham', 'Barry', 'Caerphilly', 'Rhondda', 'Port Talbot', 'Bridgend', 'Llanelli', 'Merthyr Tydfil', 'Bangor', 'Aberystwyth', 'Carmarthen', 'Haverfordwest'] },
+            { name: 'Northern Ireland', cities: ['Belfast', 'Derry', 'Lisburn', 'Newtownabbey', 'Bangor', 'Craigavon', 'Castlereagh', 'Antrim', 'Newry', 'Carrickfergus', 'Ballymena', 'Coleraine', 'Portadown', 'Omagh', 'Enniskillen'] },
+            { name: 'Greater London', cities: ['Westminster', 'Camden', 'Islington', 'Kensington', 'Chelsea', 'Hammersmith', 'Wandsworth', 'Lambeth', 'Southwark', 'Tower Hamlets', 'Hackney', 'Haringey', 'Barnet', 'Brent', 'Ealing'] },
+            { name: 'West Midlands', cities: ['Birmingham', 'Coventry', 'Wolverhampton', 'Dudley', 'Walsall', 'Solihull', 'Stourbridge', 'Halesowen', 'Oldbury', 'Smethwick', 'West Bromwich', 'Sutton Coldfield', 'Warley', 'Rowley Regis', 'Tipton'] },
+            { name: 'Greater Manchester', cities: ['Manchester', 'Salford', 'Bolton', 'Stockport', 'Oldham', 'Rochdale', 'Bury', 'Wigan', 'Trafford', 'Tameside', 'Altrincham', 'Ashton-under-Lyne', 'Eccles', 'Farnworth', 'Radcliffe'] },
+            { name: 'West Yorkshire', cities: ['Leeds', 'Bradford', 'Wakefield', 'Huddersfield', 'Halifax', 'Dewsbury', 'Keighley', 'Pudsey', 'Morley', 'Batley', 'Bingley', 'Brighouse', 'Castleford', 'Ossett', 'Sowerby Bridge'] },
+            { name: 'Merseyside', cities: ['Liverpool', 'Birkenhead', 'St Helens', 'Bootle', 'Southport', 'Wallasey', 'Bebington', 'Huyton', 'Crosby', 'Formby', 'Litherland', 'Prescot', 'Maghull', 'Kirkby', 'Newton-le-Willows'] },
+            { name: 'South East England', cities: ['Brighton', 'Southampton', 'Portsmouth', 'Oxford', 'Reading', 'Milton Keynes', 'Slough', 'Crawley', 'Worthing', 'Eastbourne', 'Basingstoke', 'Guildford', 'Maidenhead', 'Winchester', 'Chatham'] },
+            { name: 'East of England', cities: ['Luton', 'Norwich', 'Peterborough', 'Southend-on-Sea', 'Watford', 'Ipswich', 'Colchester', 'Chelmsford', 'Basildon', 'Harlow', 'Stevenage', 'Bedford', 'Cambridge', 'Huntingdon', 'St Albans'] },
+            { name: 'South West England', cities: ['Bristol', 'Plymouth', 'Bournemouth', 'Swindon', 'Exeter', 'Gloucester', 'Torquay', 'Cheltenham', 'Bath', 'Weston-super-Mare', 'Poole', 'Salisbury', 'Taunton', 'Yeovil', 'Truro'] },
+            { name: 'East Midlands', cities: ['Nottingham', 'Leicester', 'Derby', 'Northampton', 'Lincoln', 'Mansfield', 'Chesterfield', 'Loughborough', 'Corby', 'Kettering', 'Grantham', 'Boston', 'Melton Mowbray', 'Oakham', 'Stamford'] },
+            { name: 'North East England', cities: ['Newcastle upon Tyne', 'Sunderland', 'Middlesbrough', 'Gateshead', 'South Shields', 'Hartlepool', 'Darlington', 'Stockton-on-Tees', 'Washington', 'Jarrow', 'Peterlee', 'Seaham', 'Consett', 'Stanley', 'Blyth'] },
+            { name: 'Scottish Highlands and Islands', cities: ['Inverness', 'Fort William', 'Thurso', 'Wick', 'Ullapool', 'Stornoway', 'Portree', 'Kyle of Lochalsh', 'Oban', 'Lochgilphead', 'Campbeltown', 'Dunoon', 'Tobermory', 'Lerwick', 'Kirkwall'] }
+          ]
+        }
+      ,
   'Australia': {
     provinces: [
-      { name: 'New South Wales', cities: ['Sydney', 'Newcastle', 'Wollongong', 'Maitland', 'Albury', 'Wagga Wagga', 'Tamworth', 'Orange', 'Dubbo', 'Nowra', 'Bathurst', 'Lismore', 'Bowral', 'Grafton'] },
-      { name: 'Victoria', cities: ['Melbourne', 'Geelong', 'Ballarat', 'Bendigo', 'Shepparton', 'Warrnambool', 'Mildura', 'Traralgon', 'Melton', 'Sunbury', 'Echuca', 'Wodonga', 'Colac', 'Hamilton'] },
-      { name: 'Queensland', cities: ['Brisbane', 'Gold Coast', 'Townsville', 'Cairns', 'Toowoomba', 'Rockhampton', 'Mackay', 'Bundaberg', 'Hervey Bay', 'Gladstone', 'Mount Isa', 'Maryborough', 'Gympie', 'Warwick'] },
-      { name: 'Western Australia', cities: ['Perth', 'Fremantle', 'Rockingham', 'Mandurah', 'Bunbury', 'Geraldton', 'Kalgoorlie', 'Albany', 'Broome', 'Port Hedland', 'Karratha', 'Newman', 'Esperance', 'Kununurra'] },
-      { name: 'South Australia', cities: ['Adelaide', 'Mount Gambier', 'Whyalla', 'Murray Bridge', 'Port Augusta', 'Port Pirie', 'Port Lincoln', 'Kadina', 'Berri', 'Roxby Downs', 'Naracoorte', 'Millicent', 'Gawler', 'Victor Harbor'] },
-      { name: 'Tasmania', cities: ['Hobart', 'Launceston', 'Devonport', 'Burnie', 'Ulverstone', 'George Town', 'Kingston', 'New Norfolk', 'Scottsdale', 'Queenstown', 'Smithton', 'Wynyard', 'Penguin', 'Sheffield'] }
+      { name: 'New South Wales', cities: ['Sydney', 'Newcastle', 'Wollongong', 'Maitland', 'Albury', 'Wagga Wagga', 'Tamworth', 'Orange', 'Dubbo', 'Nowra'] },
+      { name: 'Victoria', cities: ['Melbourne', 'Geelong', 'Ballarat', 'Bendigo', 'Shepparton', 'Warrnambool', 'Mildura', 'Traralgon', 'Melton', 'Sunbury'] },
+      { name: 'Queensland', cities: ['Brisbane', 'Gold Coast', 'Townsville', 'Cairns', 'Toowoomba', 'Rockhampton', 'Mackay', 'Bundaberg', 'Hervey Bay', 'Gladstone'] },
+      { name: 'Western Australia', cities: ['Perth', 'Fremantle', 'Rockingham', 'Mandurah', 'Bunbury', 'Geraldton', 'Kalgoorlie', 'Albany', 'Broome', 'Port Hedland'] },
+      { name: 'South Australia', cities: ['Adelaide', 'Mount Gambier', 'Whyalla', 'Murray Bridge', 'Port Augusta', 'Port Pirie', 'Port Lincoln', 'Kadina', 'Berri', 'Roxby Downs'] }
     ]
   },
   'Germany': {
     provinces: [
-      { name: 'Bavaria', cities: ['Munich', 'Nuremberg', 'Augsburg', 'Regensburg', 'Würzburg', 'Ingolstadt', 'Fürth', 'Erlangen', 'Bayreuth', 'Bamberg', 'Aschaffenburg', 'Landshut', 'Kempten', 'Rosenheim'] },
-      { name: 'North Rhine-Westphalia', cities: ['Cologne', 'Düsseldorf', 'Dortmund', 'Essen', 'Duisburg', 'Bochum', 'Wuppertal', 'Bielefeld', 'Bonn', 'Münster', 'Gelsenkirchen', 'Mönchengladbach', 'Aachen', 'Krefeld'] },
-      { name: 'Baden-Württemberg', cities: ['Stuttgart', 'Mannheim', 'Karlsruhe', 'Freiburg', 'Heidelberg', 'Heilbronn', 'Ulm', 'Pforzheim', 'Reutlingen', 'Tübingen', 'Konstanz', 'Villingen-Schwenningen', 'Esslingen', 'Ludwigsburg'] },
-      { name: 'Lower Saxony', cities: ['Hanover', 'Braunschweig', 'Osnabrück', 'Oldenburg', 'Göttingen', 'Hildesheim', 'Salzgitter', 'Wolfsburg', 'Emden', 'Delmenhorst', 'Wilhelmshaven', 'Celle', 'Peine', 'Goslar'] },
-      { name: 'Hesse', cities: ['Frankfurt', 'Wiesbaden', 'Kassel', 'Darmstadt', 'Offenbach', 'Fulda', 'Gießen', 'Marburg', 'Rüsselsheim', 'Hanau', 'Wetzlar', 'Bad Homburg', 'Rodgau', 'Oberursel'] }
+      { name: 'Bavaria', cities: ['Munich', 'Nuremberg', 'Augsburg', 'Regensburg', 'Würzburg', 'Ingolstadt', 'Fürth', 'Erlangen', 'Bayreuth', 'Bamberg'] },
+      { name: 'North Rhine-Westphalia', cities: ['Cologne', 'Düsseldorf', 'Dortmund', 'Essen', 'Duisburg', 'Bochum', 'Wuppertal', 'Bielefeld', 'Bonn', 'Münster'] },
+      { name: 'Baden-Württemberg', cities: ['Stuttgart', 'Mannheim', 'Karlsruhe', 'Freiburg', 'Heidelberg', 'Heilbronn', 'Ulm', 'Pforzheim', 'Reutlingen', 'Tübingen'] },
+      { name: 'Lower Saxony', cities: ['Hanover', 'Braunschweig', 'Osnabrück', 'Oldenburg', 'Göttingen', 'Hildesheim', 'Salzgitter', 'Wolfsburg', 'Emden', 'Delmenhorst'] },
+      { name: 'Hesse', cities: ['Frankfurt', 'Wiesbaden', 'Kassel', 'Darmstadt', 'Offenbach', 'Fulda', 'Gießen', 'Marburg', 'Rüsselsheim', 'Hanau'] }
     ]
   },
   'France': {
     provinces: [
-      { name: 'Île-de-France', cities: ['Paris', 'Boulogne-Billancourt', 'Saint-Denis', 'Argenteuil', 'Montreuil', 'Créteil', 'Nanterre', 'Vitry-sur-Seine', 'Colombes', 'Aulnay-sous-Bois', 'Rueil-Malmaison', 'Saint-Maur-des-Fossés', 'Champigny-sur-Marne', 'Aubervilliers'] },
-      { name: 'Auvergne-Rhône-Alpes', cities: ['Lyon', 'Saint-Étienne', 'Grenoble', 'Villeurbanne', 'Valence', 'Annecy', 'Chambéry', 'Clermont-Ferrand', 'Vénissieux', 'Saint-Priest', 'Vaulx-en-Velin', 'Caluire-et-Cuire', 'Bron', 'Rillieux-la-Pape'] },
-      { name: 'Provence-Alpes-Côte d\'Azur', cities: ['Marseille', 'Nice', 'Toulon', 'Aix-en-Provence', 'Avignon', 'Cannes', 'Antibes', 'La Seyne-sur-Mer', 'Hyères', 'Fréjus', 'Grasse', 'Draguignan', 'Carpentras', 'Aubagne'] },
-      { name: 'Occitanie', cities: ['Toulouse', 'Montpellier', 'Nîmes', 'Perpignan', 'Béziers', 'Montauban', 'Albi', 'Carcassonne', 'Narbonne', 'Sète', 'Lunel', 'Agde', 'Mazamet', 'Castres'] },
-      { name: 'Nouvelle-Aquitaine', cities: ['Bordeaux', 'Limoges', 'Poitiers', 'La Rochelle', 'Angoulême', 'Bayonne', 'Pau', 'Agen', 'Brive-la-Gaillarde', 'Niort', 'Bergerac', 'Périgueux', 'Mont-de-Marsan', 'Dax'] }
+      { name: 'Île-de-France', cities: ['Paris', 'Boulogne-Billancourt', 'Saint-Denis', 'Argenteuil', 'Montreuil', 'Créteil', 'Nanterre', 'Vitry-sur-Seine', 'Colombes', 'Aulnay-sous-Bois'] },
+      { name: 'Auvergne-Rhône-Alpes', cities: ['Lyon', 'Saint-Étienne', 'Grenoble', 'Villeurbanne', 'Valence', 'Annecy', 'Chambéry', 'Clermont-Ferrand', 'Vénissieux', 'Saint-Priest'] },
+      { name: 'Provence-Alpes-Côte d\'Azur', cities: ['Marseille', 'Nice', 'Toulon', 'Aix-en-Provence', 'Avignon', 'Cannes', 'Antibes', 'La Seyne-sur-Mer', 'Hyères', 'Fréjus'] },
+      { name: 'Occitanie', cities: ['Toulouse', 'Montpellier', 'Nîmes', 'Perpignan', 'Béziers', 'Montauban', 'Albi', 'Carcassonne', 'Narbonne', 'Sète'] },
+      { name: 'Nouvelle-Aquitaine', cities: ['Bordeaux', 'Limoges', 'Poitiers', 'La Rochelle', 'Angoulême', 'Bayonne', 'Pau', 'Agen', 'Brive-la-Gaillarde', 'Niort'] }
     ]
   },
   'Japan': {
     provinces: [
-      { name: 'Tokyo', cities: ['Tokyo', 'Shibuya', 'Shinjuku', 'Shibuya', 'Chiyoda', 'Chuo', 'Minato', 'Taito', 'Sumida', 'Koto', 'Shinagawa', 'Meguro', 'Ota', 'Setagaya', 'Nakano'] },
-      { name: 'Osaka', cities: ['Osaka', 'Sakai', 'Higashiosaka', 'Toyonaka', 'Takatsuki', 'Hirakata', 'Suita', 'Yao', 'Ibaraki', 'Neyagawa', 'Kishiwada', 'Izumi', 'Tondabayashi', 'Kadoma', 'Moriguchi'] },
-      { name: 'Kanagawa', cities: ['Yokohama', 'Kawasaki', 'Sagamihara', 'Yokosuka', 'Fujisawa', 'Chigasaki', 'Atsugi', 'Yamato', 'Odawara', 'Kamakura', 'Zama', 'Miura', 'Ebina', 'Ayase', 'Hiratsuka'] },
-      { name: 'Aichi', cities: ['Nagoya', 'Toyota', 'Toyohashi', 'Okazaki', 'Ichinomiya', 'Kasugai', 'Anjo', 'Kariya', 'Komaki', 'Inazawa', 'Seto', 'Handa', 'Tokai', 'Obu', 'Toyoake'] },
-      { name: 'Hyogo', cities: ['Kobe', 'Himeji', 'Nishinomiya', 'Amagasaki', 'Ashiya', 'Itami', 'Kakogawa', 'Takarazuka', 'Akashi', 'Sanda', 'Takarazuka', 'Miki', 'Kawanishi', 'Tatsuno', 'Aioi'] }
+      { name: 'Tokyo', cities: ['Tokyo', 'Shibuya', 'Shinjuku', 'Chiyoda', 'Chuo', 'Minato', 'Taito', 'Sumida', 'Koto', 'Shinagawa'] },
+      { name: 'Osaka', cities: ['Osaka', 'Sakai', 'Higashiosaka', 'Toyonaka', 'Takatsuki', 'Hirakata', 'Suita', 'Yao', 'Ibaraki', 'Neyagawa'] },
+      { name: 'Kanagawa', cities: ['Yokohama', 'Kawasaki', 'Sagamihara', 'Yokosuka', 'Fujisawa', 'Chigasaki', 'Atsugi', 'Yamato', 'Odawara', 'Kamakura'] },
+      { name: 'Aichi', cities: ['Nagoya', 'Toyota', 'Toyohashi', 'Okazaki', 'Ichinomiya', 'Kasugai', 'Anjo', 'Kariya', 'Komaki', 'Inazawa'] },
+      { name: 'Hyogo', cities: ['Kobe', 'Himeji', 'Nishinomiya', 'Amagasaki', 'Ashiya', 'Itami', 'Kakogawa', 'Takarazuka', 'Akashi', 'Sanda'] }
     ]
   },
-  'India': {
-    provinces: [
-      { name: 'Maharashtra', cities: ['Mumbai', 'Pune', 'Nagpur', 'Thane', 'Nashik', 'Aurangabad', 'Solapur', 'Amravati', 'Kolhapur', 'Sangli', 'Malegaon', 'Jalgaon', 'Akola', 'Latur', 'Ahmadnagar'] },
-      { name: 'Karnataka', cities: ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum', 'Gulbarga', 'Davanagere', 'Bellary', 'Bijapur', 'Shimoga', 'Tumkur', 'Raichur', 'Bidar', 'Hospet', 'Gadag'] },
-      { name: 'Tamil Nadu', cities: ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Tiruppur', 'Erode', 'Vellore', 'Thoothukkudi', 'Dindigul', 'Thanjavur', 'Ranipet', 'Sivakasi', 'Karur'] },
-      { name: 'Gujarat', cities: ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Junagadh', 'Gandhinagar', 'Nadiad', 'Morbi', 'Surendranagar', 'Bharuch', 'Anand', 'Palanpur', 'Valsad'] },
-      { name: 'Delhi', cities: ['New Delhi', 'Central Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'North East Delhi', 'North West Delhi', 'South West Delhi', 'Shahdara', 'New Delhi', 'Central Delhi', 'North Delhi', 'South Delhi', 'East Delhi'] }
-    ]
-  },
+  
+    'India': {
+      provinces: [
+        { name: 'Maharashtra', cities: ['Mumbai', 'Pune', 'Nagpur', 'Thane', 'Nashik', 'Aurangabad', 'Solapur', 'Amravati', 'Kolhapur', 'Sangli', 'Nanded', 'Jalgaon', 'Akola', 'Latur', 'Dhule'] },
+        { name: 'Karnataka', cities: ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum', 'Gulbarga', 'Davanagere', 'Bellary', 'Bijapur', 'Shimoga', 'Tumkur', 'Raichur', 'Bidar', 'Hospet', 'Udupi'] },
+        { name: 'Tamil Nadu', cities: ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Tiruppur', 'Erode', 'Vellore', 'Thoothukkudi', 'Dindigul', 'Thanjavur', 'Ranipet', 'Kanchipuram', 'Kumbakonam'] },
+        { name: 'Gujarat', cities: ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Junagadh', 'Gandhinagar', 'Nadiad', 'Morbi', 'Anand', 'Bharuch', 'Navsari', 'Veraval', 'Porbandar'] },
+        { name: 'Delhi', cities: ['New Delhi', 'Central Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'North East Delhi', 'North West Delhi', 'South West Delhi', 'Shahdara', 'Karol Bagh', 'Rohini', 'Pitampura', 'Dwarka', 'Vasant Kunj'] },
+        { name: 'Uttar Pradesh', cities: ['Lucknow', 'Kanpur', 'Varanasi', 'Agra', 'Allahabad', 'Meerut', 'Ghaziabad', 'Aligarh', 'Moradabad', 'Bareilly', 'Saharanpur', 'Gorakhpur', 'Faizabad', 'Jhansi', 'Mathura'] },
+        { name: 'Rajasthan', cities: ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Bikaner', 'Ajmer', 'Bhilwara', 'Alwar', 'Bharatpur', 'Sikar', 'Pali', 'Sri Ganganagar', 'Tonk', 'Hanumangarh', 'Chittorgarh'] },
+        { name: 'West Bengal', cities: ['Kolkata', 'Howrah', 'Durgapur', 'Asansol', 'Siliguri', 'Bardhaman', 'Malda', 'Kharagpur', 'Haldia', 'Krishnanagar', 'Darjeeling', 'Jalpaiguri', 'Baharampur', 'Cooch Behar', 'Balurghat'] },
+        { name: 'Madhya Pradesh', cities: ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar', 'Dewas', 'Satna', 'Ratlam', 'Rewa', 'Katni', 'Burhanpur', 'Shivpuri', 'Chhindwara', 'Mandsaur'] },
+        { name: 'Punjab', cities: ['Chandigarh', 'Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Hoshiarpur', 'Mohali', 'Pathankot', 'Moga', 'Abohar', 'Malerkotla', 'Khanna', 'Phagwara', 'Barnala'] },
+        { name: 'Haryana', cities: ['Gurgaon', 'Faridabad', 'Panipat', 'Ambala', 'Yamunanagar', 'Rohtak', 'Hisar', 'Karnal', 'Sonipat', 'Panchkula', 'Bhiwani', 'Sirsa', 'Bahadurgarh', 'Jind', 'Thanesar'] },
+        { name: 'Kerala', cities: ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Kollam', 'Thrissur', 'Kannur', 'Alappuzha', 'Kottayam', 'Palakkad', 'Manjeri', 'Thalassery', 'Pathanamthitta', 'Ponnani', 'Tirur', 'Changanassery'] },
+        { name: 'Andhra Pradesh', cities: ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool', 'Kakinada', 'Kadapa', 'Anantapur', 'Rajahmundry', 'Tirupati', 'Eluru', 'Ongole', 'Chittoor', 'Hindupur', 'Proddatur'] },
+        { name: 'Telangana', cities: ['Hyderabad', 'Warangal', 'Nizamabad', 'Khammam', 'Karimnagar', 'Ramagundam', 'Mahbubnagar', 'Adilabad', 'Siddipet', 'Nalgonda', 'Mancherial', 'Sangareddy', 'Miryalaguda', 'Jagtial', 'Vikarabad'] },
+        { name: 'Bihar', cities: ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Purnia', 'Darbhanga', 'Arrah', 'Begusarai', 'Katihar', 'Munger', 'Chapra', 'Sasaram', 'Hajipur', 'Siwan', 'Sitamarhi'] }
+      ]
+    }
+  ,
   'Singapore': {
     provinces: [
-      { name: 'Central Region', cities: ['Singapore', 'Marina Bay', 'Orchard', 'Raffles Place', 'Clarke Quay', 'Chinatown', 'Little India', 'Bugis', 'Dhoby Ghaut', 'City Hall', 'Esplanade', 'Bras Basah', 'Rochor', 'Kallang', 'Geylang'] },
-      { name: 'East Region', cities: ['Tampines', 'Pasir Ris', 'Bedok', 'Changi', 'Simei', 'Eunos', 'Kembangan', 'Paya Lebar', 'Aljunied', 'MacPherson', 'Kallang', 'Geylang', 'Marine Parade', 'Katong', 'Joo Chiat'] },
-      { name: 'North Region', cities: ['Woodlands', 'Sembawang', 'Yishun', 'Ang Mo Kio', 'Seletar', 'Punggol', 'Sengkang', 'Hougang', 'Serangoon', 'Bishan', 'Toa Payoh', 'Braddell', 'Lorong Chuan', 'Marymount', 'Bishan'] },
-      { name: 'North East Region', cities: ['Sengkang', 'Punggol', 'Hougang', 'Serangoon', 'Ang Mo Kio', 'Bishan', 'Toa Payoh', 'Braddell', 'Lorong Chuan', 'Marymount', 'Bishan', 'Toa Payoh', 'Braddell', 'Lorong Chuan', 'Marymount'] },
-      { name: 'West Region', cities: ['Jurong', 'Boon Lay', 'Pioneer', 'Joo Koon', 'Gul Circle', 'Tuas', 'Clementi', 'Dover', 'Buona Vista', 'Holland Village', 'Queenstown', 'Redhill', 'Tiong Bahru', 'Outram Park', 'Tanjong Pagar'] }
+      { name: 'Central Region', cities: ['Singapore', 'Marina Bay', 'Orchard', 'Raffles Place', 'Clarke Quay', 'Chinatown', 'Little India', 'Bugis', 'Dhoby Ghaut', 'City Hall'] },
+      { name: 'East Region', cities: ['Tampines', 'Pasir Ris', 'Bedok', 'Changi', 'Simei', 'Eunos', 'Kembangan', 'Paya Lebar', 'Aljunied', 'MacPherson'] },
+      { name: 'North Region', cities: ['Woodlands', 'Sembawang', 'Yishun', 'Ang Mo Kio', 'Seletar', 'Punggol', 'Sengkang', 'Hougang', 'Serangoon', 'Bishan'] },
+      { name: 'North East Region', cities: ['Sengkang', 'Punggol', 'Hougang', 'Serangoon', 'Ang Mo Kio', 'Bishan', 'Toa Payoh', 'Braddell', 'Lorong Chuan', 'Marymount'] },
+      { name: 'West Region', cities: ['Jurong', 'Boon Lay', 'Pioneer', 'Joo Koon', 'Gul Circle', 'Tuas', 'Clementi', 'Dover', 'Buona Vista', 'Holland Village'] }
     ]
   },
   'Malaysia': {
     provinces: [
-      { name: 'Selangor', cities: ['Kuala Lumpur', 'Shah Alam', 'Petaling Jaya', 'Subang Jaya', 'Klang', 'Ampang', 'Kajang', 'Selayang', 'Rawang', 'Semenyih', 'Banting', 'Kuala Selangor', 'Sabak Bernam', 'Hulu Selangor', 'Gombak'] },
-      { name: 'Johor', cities: ['Johor Bahru', 'Kluang', 'Batu Pahat', 'Muar', 'Kulai', 'Segamat', 'Pontian', 'Kota Tinggi', 'Mersing', 'Tangkak', 'Labis', 'Yong Peng', 'Parit Raja', 'Ayer Hitam', 'Simpang Renggam'] },
-      { name: 'Penang', cities: ['George Town', 'Butterworth', 'Bukit Mertajam', 'Nibong Tebal', 'Bayan Lepas', 'Tanjung Bungah', 'Batu Ferringhi', 'Gelugor', 'Air Itam', 'Pulau Tikus', 'Tanjung Tokong', 'Batu Maung', 'Bayan Baru', 'Sungai Dua', 'Sungai Nibong'] },
-      { name: 'Perak', cities: ['Ipoh', 'Taiping', 'Sitiawan', 'Teluk Intan', 'Kuala Kangsar', 'Lumut', 'Kampar', 'Batu Gajah', 'Simpang Pulai', 'Tanjung Malim', 'Parit Buntar', 'Bagan Serai', 'Kuala Kurau', 'Bagan Datoh', 'Hilir Perak'] },
-      { name: 'Sabah', cities: ['Kota Kinabalu', 'Sandakan', 'Tawau', 'Lahad Datu', 'Keningau', 'Kudat', 'Semporna', 'Beaufort', 'Papar', 'Kota Belud', 'Tuaran', 'Ranau', 'Tambunan', 'Tenom', 'Pensiangan'] }
+      { name: 'Selangor', cities: ['Kuala Lumpur', 'Shah Alam', 'Petaling Jaya', 'Subang Jaya', 'Klang', 'Ampang', 'Kajang', 'Selayang', 'Rawang', 'Semenyih'] },
+      { name: 'Johor', cities: ['Johor Bahru', 'Kluang', 'Batu Pahat', 'Muar', 'Kulai', 'Segamat', 'Pontian', 'Kota Tinggi', 'Mersing', 'Tangkak'] },
+      { name: 'Penang', cities: ['George Town', 'Butterworth', 'Bukit Mertajam', 'Nibong Tebal', 'Bayan Lepas', 'Tanjung Bungah', 'Batu Ferringhi', 'Gelugor', 'Air Itam', 'Pulau Tikus'] },
+      { name: 'Perak', cities: ['Ipoh', 'Taiping', 'Sitiawan', 'Teluk Intan', 'Kuala Kangsar', 'Lumut', 'Kampar', 'Batu Gajah', 'Simpang Pulai', 'Tanjung Malim'] },
+      { name: 'Sabah', cities: ['Kota Kinabalu', 'Sandakan', 'Tawau', 'Lahad Datu', 'Keningau', 'Kudat', 'Semporna', 'Beaufort', 'Papar', 'Kota Belud'] }
     ]
   },
   'Indonesia': {
     provinces: [
-      { name: 'Jakarta', cities: ['Jakarta', 'Central Jakarta', 'North Jakarta', 'South Jakarta', 'East Jakarta', 'West Jakarta', 'Thousand Islands', 'Kepulauan Seribu', 'Jakarta Pusat', 'Jakarta Utara', 'Jakarta Selatan', 'Jakarta Timur', 'Jakarta Barat', 'Kepulauan Seribu', 'Jakarta'] },
-      { name: 'West Java', cities: ['Bandung', 'Bogor', 'Depok', 'Tangerang', 'Bekasi', 'Cirebon', 'Sukabumi', 'Cianjur', 'Karawang', 'Purwakarta', 'Subang', 'Indramayu', 'Sumedang', 'Majalengka', 'Kuningan'] },
-      { name: 'East Java', cities: ['Surabaya', 'Malang', 'Kediri', 'Blitar', 'Mojokerto', 'Pasuruan', 'Probolinggo', 'Lumajang', 'Jember', 'Banyuwangi', 'Bondowoso', 'Situbondo', 'Tuban', 'Lamongan', 'Gresik'] },
-      { name: 'Central Java', cities: ['Semarang', 'Surakarta', 'Salatiga', 'Magelang', 'Pekalongan', 'Tegal', 'Cilacap', 'Banyumas', 'Purbalingga', 'Banjarnegara', 'Kebumen', 'Purworejo', 'Wonosobo', 'Temanggung', 'Kendal'] },
-      { name: 'Banten', cities: ['Serang', 'Tangerang', 'Cilegon', 'Lebak', 'Pandeglang', 'Rangkasbitung', 'Curug', 'Balaraja', 'Cikupa', 'Cisauk', 'Cisoka', 'Cikande', 'Kibin', 'Malingping', 'Bayah'] }
+      { name: 'Jakarta', cities: ['Jakarta', 'Central Jakarta', 'North Jakarta', 'South Jakarta', 'East Jakarta', 'West Jakarta', 'Thousand Islands'] },
+      { name: 'West Java', cities: ['Bandung', 'Bogor', 'Depok', 'Tangerang', 'Bekasi', 'Cirebon', 'Sukabumi', 'Cianjur', 'Karawang', 'Purwakarta'] },
+      { name: 'East Java', cities: ['Surabaya', 'Malang', 'Kediri', 'Blitar', 'Mojokerto', 'Pasuruan', 'Probolinggo', 'Lumajang', 'Jember', 'Banyuwangi'] },
+      { name: 'Central Java', cities: ['Semarang', 'Surakarta', 'Salatiga', 'Magelang', 'Pekalongan', 'Tegal', 'Cilacap', 'Banyumas', 'Purbalingga', 'Banjarnegara'] },
+      { name: 'Banten', cities: ['Serang', 'Tangerang', 'Cilegon', 'Lebak', 'Pandeglang', 'Rangkasbitung', 'Curug', 'Balaraja', 'Cikupa', 'Cisauk'] }
     ]
   },
   'Thailand': {
     provinces: [
-      { name: 'Bangkok', cities: ['Bangkok', 'Chatuchak', 'Bang Sue', 'Dusit', 'Phaya Thai', 'Ratchathewi', 'Sathon', 'Bang Rak', 'Khlong Toei', 'Watthana', 'Bangkok Noi', 'Bangkok Yai', 'Thon Buri', 'Khlong San', 'Rat Burana'] },
-      { name: 'Chiang Mai', cities: ['Chiang Mai', 'Mae Rim', 'Mae Taeng', 'Chom Thong', 'Doi Tao', 'Hot', 'Om Koi', 'Samoeng', 'San Pa Tong', 'San Kamphaeng', 'Sankampaeng', 'Saraphi', 'Wiang Haeng', 'Mae Chaem', 'Mae On'] },
-      { name: 'Phuket', cities: ['Phuket', 'Kathu', 'Thalang', 'Mueang Phuket', 'Rawai', 'Chalong', 'Karon', 'Patong', 'Kamala', 'Surin', 'Bang Tao', 'Nai Harn', 'Kata', 'Kata Noi', 'Nai Thon'] },
-      { name: 'Pattaya', cities: ['Pattaya', 'Bang Lamung', 'Sattahip', 'Si Racha', 'Ban Bueng', 'Phanat Nikhom', 'Ko Chan', 'Nong Yai', 'Phan Thong', 'Chon Buri', 'Mueang Chon Buri', 'Bang Saen', 'Bang Phra', 'Ko Sichang', 'Ko Loi'] },
-      { name: 'Krabi', cities: ['Krabi', 'Ao Nang', 'Railay', 'Phi Phi', 'Ko Lanta', 'Ko Yao', 'Ko Poda', 'Ko Hong', 'Ko Poda', 'Ko Poda', 'Ko Poda', 'Ko Poda', 'Ko Poda', 'Ko Poda', 'Ko Poda'] }
+      { name: 'Bangkok', cities: ['Bangkok', 'Chatuchak', 'Bang Sue', 'Dusit', 'Phaya Thai', 'Ratchathewi', 'Sathon', 'Bang Rak', 'Khlong Toei', 'Watthana'] },
+      { name: 'Chiang Mai', cities: ['Chiang Mai', 'Mae Rim', 'Mae Taeng', 'Chom Thong', 'Doi Tao', 'Hot', 'Om Koi', 'Samoeng', 'San Pa Tong', 'San Kamphaeng'] },
+      { name: 'Phuket', cities: ['Phuket', 'Kathu', 'Thalang', 'Mueang Phuket', 'Rawai', 'Chalong', 'Karon', 'Patong', 'Kamala', 'Surin'] },
+      { name: 'Pattaya', cities: ['Pattaya', 'Bang Lamung', 'Sattahip', 'Si Racha', 'Ban Bueng', 'Phanat Nikhom', 'Ko Chan', 'Nong Yai', 'Phan Thong', 'Chon Buri'] },
+      { name: 'Krabi', cities: ['Krabi', 'Ao Nang', 'Railay', 'Phi Phi', 'Ko Lanta', 'Ko Yao', 'Ko Hong'] }
     ]
   }
 }
