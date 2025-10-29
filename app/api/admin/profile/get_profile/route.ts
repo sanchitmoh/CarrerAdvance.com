@@ -29,65 +29,88 @@ export async function GET(request: NextRequest) {
     console.log('Fetching admin profile for ID:', adminIdToUse);
     console.log('Backend URL:', getBaseUrl('admin/profile/get_profile'));
 
-    // Try to forward the request to the PHP backend
+    // Try to forward the request to the PHP backend using configured base URL
     try {
-      // Use the working test backend endpoint
-      const response = await fetch(`http://localhost:8080/test_backend.php?admin_id=${encodeURIComponent(adminIdToUse)}`, {
+      const base = getBaseUrl('admin/profile/get_profile');
+      const url = new URL(base);
+      if (adminIdToUse) {
+        url.searchParams.set('admin_id', String(adminIdToUse));
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (adminJwt) {
+        headers['Authorization'] = `Bearer ${adminJwt}`;
+      }
+
+      const requestUrl = url.toString();
+      console.log('Calling backend URL:', requestUrl);
+
+      let response = await fetch(requestUrl, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers
       });
 
       console.log('Backend response status:', response.status);
 
+      // If 404 on hosts requiring explicit index.php, retry once with /index.php
+      if (response.status === 404) {
+        try {
+          const withIndex = requestUrl.replace(/:\/\//, '://').replace(/\/api\//, '/index.php/api/');
+          if (withIndex !== requestUrl) {
+            console.log('Retrying with index.php URL:', withIndex);
+            response = await fetch(withIndex, { method: 'GET', headers });
+            console.log('Retry response status:', response.status);
+          }
+        } catch (retryErr) {
+          console.error('Retry failed:', retryErr);
+        }
+      }
+
       if (!response.ok) {
-        console.error('Backend error:', response.status, response.statusText);
+        const text = await response.text().catch(() => '');
+        console.error('Backend error body:', text);
         throw new Error(`Backend error: ${response.status} ${response.statusText}`);
       }
 
-      // Get the raw response text first to debug
-      const responseText = await response.text();
-      console.log('Backend raw response:', responseText);
-      
-      // Try to parse as JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('Backend response data:', data);
-      } catch (jsonError) {
-        console.error('JSON parsing error:', jsonError);
-        console.error('Raw response that failed to parse:', responseText);
-        throw new Error(`Invalid JSON response from backend: ${jsonError.message}`);
+      // Safely handle non-JSON responses from the backend
+      const contentType = response.headers.get('content-type') || '';
+      const rawText = await response.text();
+      console.log('Backend raw response (first 300 chars):', rawText.slice(0, 300));
+
+      if (/application\/json/i.test(contentType)) {
+        try {
+          const data = JSON.parse(rawText);
+          return NextResponse.json(data);
+        } catch (e) {
+          console.error('JSON parse failed despite JSON content-type:', e);
+          return NextResponse.json({
+            success: false,
+            message: 'Invalid JSON response from backend',
+            raw: rawText.slice(0, 1000)
+          }, { status: 502 });
+        }
       }
-      
-      return NextResponse.json(data);
+
+      // Try JSON parse even without JSON header; otherwise, return raw for debugging
+      try {
+        const data = JSON.parse(rawText);
+        return NextResponse.json(data);
+      } catch {
+        return NextResponse.json({
+          success: false,
+          message: 'Backend returned non-JSON content',
+          raw: rawText.slice(0, 2000),
+          contentType
+        }, { status: 502 });
+      }
     } catch (backendError) {
       console.error('Backend connection failed:', backendError);
-      
-      // Fallback: Return mock data for testing
-      const mockAdminData = {
-        success: true,
-        data: {
-          id: parseInt(adminIdToUse) || 3,
-          username: adminIdToUse === '198' ? 'sanchitmohite15@gmail.com' : `admin_${adminIdToUse}`,
-          firstname: adminIdToUse === '198' ? 'Sanchit' : 'Admin',
-          lastname: adminIdToUse === '198' ? 'Santosh Mohite' : `User ${adminIdToUse}`,
-          email: adminIdToUse === '198' ? 'sanchitmohite15@gmail.com' : `admin${adminIdToUse}@gmail.com`,
-          mobile_no: adminIdToUse === '198' ? '+919987457734' : '1234567890',
-          address: adminIdToUse === '198' ? '' : '123 Admin Street',
-          role: 1,
-          is_active: 1,
-          is_verify: 1,
-          is_admin: 1,
-          last_ip: adminIdToUse === '198' ? '' : '127.0.0.1',
-          created_at: adminIdToUse === '198' ? '2025-08-29 11:44:27' : '2024-01-01 00:00:00',
-          updated_at: adminIdToUse === '198' ? '2025-08-29 11:44:27' : '2024-01-01 00:00:00'
-        }
-      };
-      
-      console.log('Using mock data due to backend error');
-      return NextResponse.json(mockAdminData);
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to fetch profile from backend'
+      }, { status: 502 });
     }
   } catch (error) {
     console.error('Error fetching admin profile:', error);

@@ -109,11 +109,11 @@ class BlogsApiService {
       if (employerId) form.append('employer_id', employerId);
       if ((payload as any).imageFile) form.append('image', (payload as any).imageFile as File);
       // Use POST for multipart so CodeIgniter can parse fields via $this->input->post
-      const res = await fetch(`${this.baseUrl}/${id}`, { method: 'POST', body: form, credentials: 'include' });
+      const res = await fetch(`${this.baseUrl}/${id}/update`, { method: 'POST', body: form, credentials: 'include' });
       return res.json();
     } else {
       const payloadWithEmployerId = { ...payload, employer_id: employerId };
-      const res = await fetch(`${this.baseUrl}/${id}`, {
+      const res = await fetch(`${this.baseUrl}/${id}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payloadWithEmployerId),

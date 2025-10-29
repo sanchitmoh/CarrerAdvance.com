@@ -341,6 +341,22 @@ export default function PersonalInformation() {
 
   const handleSave = async () => {
     try {
+      // Basic required fields validation without altering existing UI/logic
+      const requiredFields = [
+        'firstName',
+        'lastName',
+        'email',
+        'phone',
+        'jobCategory',
+        'yourTitle',
+        'experience',
+        'dateOfBirth'
+      ] as const
+      const hasEmptyRequired = requiredFields.some((field) => !String((formData as any)[field] || '').trim())
+      if (hasEmptyRequired) {
+        try { (window as any).ProfileSave?.error('Please fill all details') } catch {}
+        return
+      }
       try { (window as any).ProfileSave?.start('Saving personal information...') } catch {}
       const jobseekerId = localStorage.getItem('jobseeker_id')
       if (!jobseekerId) return
@@ -509,9 +525,10 @@ export default function PersonalInformation() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {/* First Name */}
           <div className="space-y-2">
-            <Label htmlFor="firstName" className="text-gray-700 font-medium">First Name</Label>
+            <Label htmlFor="firstName" className="text-gray-700 font-medium">First Name <span className='text-red-500'>*</span></Label>
             <Input
               id="firstName"
+              required
               value={formData.firstName}
               onChange={(e) => handleInputChange('firstName', e.target.value)}
               disabled={!isEditing}
@@ -521,7 +538,7 @@ export default function PersonalInformation() {
 
           {/* Last Name */}
           <div className="space-y-2">
-            <Label htmlFor="lastName" className="text-gray-700 font-medium">Last Name</Label>
+            <Label htmlFor="lastName" className="text-gray-700 font-medium">Last Name <span className='text-red-500'>*</span></Label>
             <Input
               id="lastName"
               value={formData.lastName}
@@ -533,7 +550,7 @@ export default function PersonalInformation() {
 
           {/* Email */}
           <div className="space-y-2 relative">
-            <Label htmlFor="email" className="text-gray-700 font-medium">Email Address</Label>
+            <Label htmlFor="email" className="text-gray-700 font-medium">Email Address<span className='text-red-500'>*</span></Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
@@ -549,7 +566,7 @@ export default function PersonalInformation() {
 
           {/* Phone */}
           <div className="space-y-2 relative">
-            <Label htmlFor="phone" className="text-gray-700 font-medium">Phone Number</Label>
+            <Label htmlFor="phone" className="text-gray-700 font-medium">Phone Number<span className='text-red-500'>*</span></Label>
             <div className="relative">
               <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
@@ -564,8 +581,8 @@ export default function PersonalInformation() {
 
           {/* Job Category */}
           <div className="space-y-2">
-            <Label htmlFor="jobCategory" className="text-gray-700 font-medium">Job Category</Label>
-            <Select value={formData.jobCategory} onValueChange={(val) => handleInputChange('jobCategory', val)} disabled={!isEditing}>
+            <Label htmlFor="jobCategory" className="text-gray-700 font-medium">Job Category<span className='text-red-500'>*</span></Label>
+            <Select required value={formData.jobCategory} onValueChange={(val) => handleInputChange('jobCategory', val)} disabled={!isEditing}>
               <SelectTrigger className={isEditing ? "border-emerald-300 focus:border-emerald-500" : "bg-gray-50"}>
                 <SelectValue />
               </SelectTrigger>
@@ -577,9 +594,10 @@ export default function PersonalInformation() {
 
           {/* Your Title */}
           <div className="space-y-2">
-            <Label htmlFor="yourTitle" className="text-gray-700 font-medium">Your Title</Label>
+            <Label htmlFor="yourTitle" className="text-gray-700 font-medium">Your Title<span className='text-red-500'>*</span></Label>
             <Input
               id="yourTitle"
+              required
               value={formData.yourTitle}
               onChange={(e) => handleInputChange('yourTitle', e.target.value)}
               disabled={!isEditing}
@@ -590,8 +608,8 @@ export default function PersonalInformation() {
 
           {/* Experience */}
           <div className="space-y-2">
-            <Label htmlFor="experience" className="text-gray-700 font-medium">Experience Level</Label>
-            <Select value={formData.experience} onValueChange={(val) => handleInputChange('experience', val)} disabled={!isEditing}>
+            <Label htmlFor="experience" className="text-gray-700 font-medium">Experience Level <span className='text-red-500'>*</span></Label>
+            <Select required value={formData.experience} onValueChange={(val) => handleInputChange('experience', val)} disabled={!isEditing}>
               <SelectTrigger className={isEditing ? "border-emerald-300 focus:border-emerald-500" : "bg-gray-50"}>
                 <SelectValue />
               </SelectTrigger>
@@ -643,9 +661,10 @@ export default function PersonalInformation() {
 
           {/* Date of Birth */}
           <div className="space-y-2">
-            <Label htmlFor="dateOfBirth" className="text-gray-700 font-medium">Date of Birth</Label>
+            <Label htmlFor="dateOfBirth" className="text-gray-700 font-medium">Date of Birth <span className='text-red-500'>*</span></Label>
             <Input
               id="dateOfBirth"
+              required
               type="date"
               value={formData.dateOfBirth}
               onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
