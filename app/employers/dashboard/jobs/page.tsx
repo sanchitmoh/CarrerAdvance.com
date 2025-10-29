@@ -1203,6 +1203,10 @@ export default function JobsPage() {
     <Card
       className="hover:shadow-md transition-shadow cursor-pointer border border-gray-200 hover:border-emerald-300 rounded-xl"
       onClick={() => {
+        // In the Hired list, the card itself should not trigger any action; only the + button is active
+        if ((candidate.status || '').toLowerCase() === 'hired') {
+          return
+        }
         setSelectedCandidate(candidate)
         setShowCandidateProfile(true)
         // Auto-move to reviewed when viewing an applied candidate

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { FileText, Plus, Palette, Upload, ArrowLeft } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
+import { getApiUrl, getAssetUrl } from "@/lib/api-config"
 import BackButton from '@/components/back-button'   
 
 export const dynamic = 'force-dynamic'
@@ -34,44 +35,39 @@ function ResumeBuilderContent() {
     }
   }, [searchParams])
 
-  const templates = [
-  {
-    id: "modern",
-    name: "Modern Professional",
-    description: "Clean and professional design perfect for corporate roles",
-    preview: "/resume6.jpeg",
-  },
-  {
-    id: "creative",
-    name: "Creative",
-    description: "Eye-catching design for creative and design roles",
-    preview: "/resume1.jpeg",
-  },
-  {
-    id: "minimal",
-    name: "Minimal",
-    description: "Simple and elegant design that focuses on content",
-    preview: "/resume4.jpeg",
-  },
-  {
-    id: "executive",
-    name: "Executive",
-    description: "Sophisticated design for senior-level positions",
-    preview: "/resume2.jpeg",
-  },
-  {
-    id: "technical",
-    name: "Technical",
-    description: "Structured layout ideal for technical roles",
-    preview: "/resume3.jpeg",
-  },
-  {
-    id: "academic",
-    name: "Academic",
-    description: "Traditional format suitable for academic positions",
-    preview: "/resume5.jpeg",
-  },
-]
+  const [templates, setTemplates] = useState<any[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const url = getApiUrl('resume/templates')
+        const res = await fetch(url, { credentials: 'include' })
+        const contentType = res.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) {
+          const text = await res.text()
+          throw new Error(text?.slice(0, 300) || 'Non-JSON response')
+        }
+        const json = await res.json()
+        if (!json?.success) throw new Error(json?.message || 'Failed to load templates')
+        const items = Array.isArray(json.templates) ? json.templates : []
+        setTemplates(items)
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load templates')
+        // Fallback minimal examples to keep UI usable
+        setTemplates([
+          { id: 'modern', name: 'Modern Professional', image_url: '/resume6.jpeg', category_name: 'General', is_premium: false },
+          { id: 'creative', name: 'Creative', image_url: '/resume1.jpeg', category_name: 'Creative', is_premium: false },
+        ])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadTemplates()
+  }, [])
 
   const handleCreateResume = (templateId: string) => {
     // Generate a unique identifier for new resumes (not a database ID)
@@ -162,6 +158,12 @@ function ResumeBuilderContent() {
 
       {/* Template Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {loading && (
+          <div className="col-span-full text-center text-gray-600">Loading templates…</div>
+        )}
+        {error && !loading && (
+          <div className="col-span-full text-center text-red-600 text-sm">{error}</div>
+        )}
         {templates.map((template) => (
           <Card
             key={template.id}
@@ -169,14 +171,15 @@ function ResumeBuilderContent() {
           >
             <CardContent className="p-6">
               <div className="aspect-[3/4] bg-gray-100 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                <img
-                  src={template.preview || "/placeholder.svg"}
-                  alt={template.name}
-                  className="w-full h-full object-cover rounded-lg"
-                />
+                <img src={getAssetUrl(template.image_url || "/placeholder.svg")} alt={template.name} className="w-full h-full object-cover rounded-lg" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">{template.name}</h3>
-              <p className="text-sm text-gray-600 mb-4">{template.description}</p>
+              {template.category_name && (
+                <p className="text-xs text-gray-600 mb-2">Category: {template.category_name}</p>
+              )}
+              {template.is_premium && (
+                <p className="text-xs text-amber-600 mb-2">Premium</p>
+              )}
               <Button
                 onClick={() => handleCreateResume(template.id)}
                 className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white"

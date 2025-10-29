@@ -984,7 +984,8 @@ function ResumeBuilderContent() {
       alert('Please save your resume first to download.')
       return
     }
-    const url = getApiUrl(`resume/${format}/${id}`)
+    const templateParam = searchParams.get('template')
+    const url = getApiUrl(`resume/${format}/${id}`) + (templateParam ? `?template_id=${encodeURIComponent(templateParam)}` : '')
     window.open(url, '_blank')
   }
 
