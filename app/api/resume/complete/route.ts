@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server"
+import { getBackendUrl } from "@/lib/api-config"
 
 // Proxies to the PHP backend Resume/complete_job_analysis endpoint
 export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    const base = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE_URL
-    if (!base) {
-      return NextResponse.json({ success: false, message: "Backend base URL not configured" }, { status: 500 })
-    }
-
-    // Ensure no trailing slash issues
-    const url = `${base.replace(/\/$/, "")}/api/resume/complete`
+    // Build backend URL using shared config helper
+    const url = getBackendUrl('/api/resume/complete')
 
     const res = await fetch(url, {
       method: "POST",

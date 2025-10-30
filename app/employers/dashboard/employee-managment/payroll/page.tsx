@@ -1323,65 +1323,6 @@ export default function PayrollManagementPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="p-4 sm:p-6 pb-3">
-                <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-                  <span>Overtime Settings</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg space-y-3 sm:space-y-0">
-                  <div className="min-w-0">
-                    <Label htmlFor="overtime-mode" className="text-xs sm:text-sm font-medium">
-                      Overtime Mode
-                    </Label>
-                    <p className="text-xs text-gray-600">
-                      Global or individual settings
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className={`text-xs sm:text-sm ${overtimeSettings === "global" ? "font-medium" : "text-gray-500"}`}>
-                      Global
-                    </span>
-                    <Switch
-                      checked={overtimeSettings === "individual"}
-                      onCheckedChange={(checked) => setOvertimeSettings(checked ? "individual" : "global")}
-                    />
-                    <span className={`text-xs sm:text-sm ${overtimeSettings === "individual" ? "font-medium" : "text-gray-500"}`}>
-                      Individual
-                    </span>
-                  </div>
-                </div>
-
-                {overtimeSettings === "global" ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="overtime-threshold" className="text-xs sm:text-sm">OT Threshold (hrs/wk)</Label>
-                      <Input id="overtime-threshold" type="number" placeholder="40" className="text-sm h-9" />
-                    </div>
-                    <div>
-                      <Label htmlFor="overtime-rate" className="text-xs sm:text-sm">OT Rate Multiplier</Label>
-                      <Input id="overtime-rate" type="number" step="0.1" placeholder="1.5" className="text-sm h-9" />
-                    </div>
-                    <div>
-                      <Label htmlFor="weekend-rate" className="text-xs sm:text-sm">Weekend Multiplier</Label>
-                      <Input id="weekend-rate" type="number" step="0.1" placeholder="2.0" className="text-sm h-9" />
-                    </div>
-                    <div>
-                      <Label htmlFor="holiday-rate" className="text-xs sm:text-sm">Holiday Multiplier</Label>
-                      <Input id="holiday-rate" type="number" step="0.1" placeholder="2.5" className="text-sm h-9" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 border rounded-lg text-xs text-gray-600">No employees loaded.</div>
-                )}
-
-                <Button className="w-full text-sm h-9">Update Settings</Button>
-              </CardContent>
-            </Card>
-
-            {/* Bank Transfer Settings */}
             <Card className="lg:col-span-2">
               <CardHeader className="p-4 sm:p-6 pb-3">
                 <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
