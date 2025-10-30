@@ -1805,11 +1805,41 @@ export default function PayrollManagementPage() {
                   <Printer className="h-4 w-4 mr-2" />
                   Print
                 </Button>
-                <Button variant="outline" className="flex-1 bg-transparent text-sm h-9">
+                <Button variant="outline" className="flex-1 bg-transparent text-sm h-9"
+                  onClick={() => {
+                    if (!selectedPayslip?.payrollId) return alert('Payroll ID missing — cannot download payslip.')
+                    const url = `${getBaseUrl('/employee-payroll/download')}?payroll_id=${selectedPayslip.payrollId}`
+                    window.open(url, '_blank')
+                  }}
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
-                <Button variant="outline" className="flex-1 bg-transparent text-sm h-9">
+                <Button variant="outline" className="flex-1 bg-transparent text-sm h-9"
+                  onClick={async () => {
+                    if (!selectedPayslip?.payrollId || !selectedPayslip?.email) {
+                      alert('Email or payroll ID missing — cannot send payslip.');
+                      return;
+                    }
+                    const url = getBaseUrl('/employee-payroll/email')
+                    try {
+                      const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ payroll_id: selectedPayslip.payrollId, email: selectedPayslip.email })
+                      })
+                      const data = await res.json()
+                      if (data && data.success) {
+                        toast ? toast({ title: 'Payslip Sent', description: 'Payslip emailed successfully!' }) : alert('Payslip emailed successfully!')
+                      } else {
+                        throw new Error(data?.message || 'Failed to send payslip')
+                      }
+                    } catch(e: any) {
+                      toast ? toast({ title: 'Failed', description: e.message || 'Failed to send payslip', variant: 'destructive' }) : alert('Failed to send payslip')
+                    }
+                  }}
+                >
                   <Mail className="h-4 w-4 mr-2" />
                   Email
                 </Button>
