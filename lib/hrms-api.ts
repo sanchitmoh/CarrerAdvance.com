@@ -136,7 +136,7 @@ export interface CreatePerformanceReviewPayload {
 }
 
 export async function createPerformanceReview(payload: CreatePerformanceReviewPayload): Promise<{ success: boolean; data?: any; message?: string }> {
-  const url = getBaseUrl('/performance-reviews')
+  const url = getBaseUrl('/performance-reviews/create')
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
