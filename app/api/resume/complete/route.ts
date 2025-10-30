@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     }
 
     // Ensure no trailing slash issues
-    const url = `${base.replace(/\/$/, "")}/resume/complete_job_analysis`
+    const url = `${base.replace(/\/$/, "")}/api/resume/complete`
 
     const res = await fetch(url, {
       method: "POST",
