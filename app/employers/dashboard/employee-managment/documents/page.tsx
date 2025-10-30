@@ -359,7 +359,7 @@ export default function DocumentManagement() {
       form.append("file", uploadFile)
   
       const companyId = getEmployerId()
-      const url = `${API_BASE_URL}/documents${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
+      const url = `${API_BASE_URL}/documents/create${companyId ? `?company_id=${encodeURIComponent(companyId)}` : ""}`
       
       const res = await fetch(url, { 
         method: "POST", 
