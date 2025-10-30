@@ -109,6 +109,19 @@ export default function EmployerProfilePage() {
       if (data.success && data.data) {
         const { employer, company } = data.data
         
+        // Helper to normalize various backend date formats to YYYY-MM-DD or empty string
+        const normalizeDateString = (value: any) => {
+          if (!value) return ""
+          const str = String(value).trim()
+          // If it's already in YYYY-MM-DD, validate it
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            const d = new Date(str)
+            return isNaN(d.getTime()) ? "" : str
+          }
+          const d = new Date(str)
+          return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0]
+        }
+
         setProfileData({
           // User Info
           firstName: employer.firstname || "",
@@ -123,7 +136,7 @@ export default function EmployerProfilePage() {
           companyEmail: company?.company_email || "",
           companyPhone: company?.company_phone || "",
           website: company?.website || "",
-          foundedDate: company?.founded_date || "",
+          foundedDate: normalizeDateString(company?.founded_date),
           employees: company?.employees || "",
           description: company?.description || "",
 
@@ -608,7 +621,7 @@ export default function EmployerProfilePage() {
                  <Input
                  id="foundedDate"
                  type="date"
-                 value={profileData.foundedDate ? new Date(profileData.foundedDate).toISOString().split("T")[0] : ""}
+                 value={profileData.foundedDate || ""}
                  onChange={(e) => handleInputChange("foundedDate", e.target.value)}
                />
                
