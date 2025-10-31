@@ -13,10 +13,12 @@ export function middleware(request: NextRequest) {
       
       "/employers/forgot-password",
       "/employers/reset-password",
+      "/employers/verify-email",
       "/job-seekers/login",
       "/job-seekers/register",
       "/job-seekers/forgot-password",
       "/job-seekers/reset-password",
+      "/job-seekers/verify-email",
       "/companies/login",
       "/companies/register",
 
@@ -62,7 +64,8 @@ export function middleware(request: NextRequest) {
       pathname.startsWith("/employers") &&
       !pathname.startsWith("/employers/login") &&
       !pathname.startsWith("/employers/register") &&
-      !pathname.startsWith("/employers/forgot-password")
+      !pathname.startsWith("/employers/forgot-password") &&
+      !pathname.startsWith("/employers/verify-email")
     ) {
       if (!employerToken) {
         return NextResponse.redirect(new URL("/employers/login", request.url))
@@ -76,7 +79,8 @@ export function middleware(request: NextRequest) {
       !pathname.startsWith("/job-seekers/login") &&
       !pathname.startsWith("/job-seekers/register") &&
       !pathname.startsWith("/job-seekers/forgot-password") &&
-      !pathname.startsWith("/job-seekers/reset-password")
+      !pathname.startsWith("/job-seekers/reset-password") &&
+      !pathname.startsWith("/job-seekers/verify-email")
     ) {
       if (!jobseekerToken) {
         return NextResponse.redirect(new URL("/job-seekers/login", request.url))

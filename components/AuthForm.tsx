@@ -167,6 +167,8 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null)
+  const [emailChecking, setEmailChecking] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
 
@@ -176,6 +178,33 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
       [e.target.name]: e.target.value
     })
   }
+
+  // Debounced email availability check on register
+  useEffect(() => {
+    let cancel = false
+    let timer: any
+    const run = async () => {
+      if (type !== 'register') { setEmailAvailable(null); return }
+      const email = formData.email.trim()
+      if (!email) { setEmailAvailable(null); return }
+      setEmailChecking(true)
+      try {
+        const endpoint = role === 'Employers'
+          ? getApiUrl('employers/auth/check_email')
+          : getApiUrl('seeker/auth/check_email')
+        const body = new URLSearchParams()
+        body.append('email', email)
+        const res = await fetch(endpoint, { method: 'POST', body, credentials: 'include' })
+        const data = await res.json()
+        if (!cancel) setEmailAvailable(!!data?.available)
+      } catch {
+        if (!cancel) setEmailAvailable(null)
+      }
+      if (!cancel) setEmailChecking(false)
+    }
+    timer = setTimeout(run, 400)
+    return () => { cancel = true; clearTimeout(timer) }
+  }, [formData.email, role, type])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -200,6 +229,14 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
       })
       setIsLoading(false)
       return
+    }
+
+    if (type === 'register') {
+      if (emailAvailable === false) {
+        toast({ title: 'Email already registered', description: 'Try logging in or use another email.', variant: 'destructive' })
+        setIsLoading(false)
+        return
+      }
     }
 
     if (type === 'reset-password') {
@@ -299,10 +336,10 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
           if (type === 'register') {
             toast({ 
               title: '🎉 Registration Successful!', 
-              description: 'Welcome to CareerAdvance! Please log in to continue.',
+              description: 'Welcome to CareerAdvance! Please verify your email with the OTP code sent to your inbox.',
               duration: 5000
             })
-            router.push('/job-seekers/login')
+            router.push(`/job-seekers/verify-email?email=${encodeURIComponent(formData.email)}`)
             setIsLoading(false)
             return
           }
@@ -456,10 +493,10 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
           if (type === 'register') {
             toast({ 
               title: '🎉 Registration Successful!', 
-              description: 'Welcome to CareerAdvance! Please check your email to verify your account.',
+              description: 'Welcome to CareerAdvance! Please verify your email with the OTP code sent to your inbox.',
               duration: 5000
             })
-            router.push('/employers/login')
+            router.push(`/employers/verify-email?email=${encodeURIComponent(formData.email)}`)
             return
           }
           if (type === 'login' && data.token) {
@@ -716,10 +753,21 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
                       required
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="pl-10 h-12 border-2 border-gray-200 focus:border-emerald-500 rounded-xl"
+                      className={`pl-10 h-12 border-2 rounded-xl ${type==='register' && emailAvailable===false ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-emerald-500'}`}
                       placeholder="john@example.com"
                     />
                   </div>
+                  {type === 'register' && formData.email.trim() !== '' && (
+                    <div className="min-h-[20px] text-xs" aria-live="polite">
+                      {emailChecking && <span className="text-gray-500">Checking availability…</span>}
+                      {!emailChecking && emailAvailable === true && (
+                        <span className="text-emerald-600">Email is available</span>
+                      )}
+                      {!emailChecking && emailAvailable === false && (
+                        <span className="text-red-600">Email is already registered</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
