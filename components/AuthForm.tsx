@@ -17,6 +17,8 @@ interface AuthFormProps {
   title: string
   subtitle: string
   resetToken?: string
+  redirectUrl?: string
+  preservedParams?: Record<string, string>
 }
 
 const roleIcons: { [key: string]: string } = {
@@ -153,7 +155,7 @@ export function useStudentAuth() {
   return { isLoggedIn }
 }
 
-export default function AuthForm({ role, type, title, subtitle, resetToken }: AuthFormProps) {
+export default function AuthForm({ role, type, title, subtitle, resetToken, redirectUrl, preservedParams }: AuthFormProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -502,7 +504,7 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
           if (type === 'login' && data.token) {
             toast({ 
               title: '✅ Login Successful!', 
-              description: 'Welcome back! Redirecting to your employer dashboard...',
+              description: 'Welcome back! Redirecting...',
               duration: 3000
             })
             localStorage.setItem('employer_jwt', data.token)
@@ -514,7 +516,16 @@ export default function AuthForm({ role, type, title, subtitle, resetToken }: Au
               // Ensure server routes can read employer_id from cookies
               document.cookie = `employer_id=${data.user.id}; path=/; max-age=86400; SameSite=Lax`
             }
-            router.push('/employers/dashboard')
+            // Use redirect URL if provided, otherwise go to dashboard
+            const redirectPath = redirectUrl || '/employers/dashboard'
+            const queryParams: string[] = []
+            if (preservedParams) {
+              Object.entries(preservedParams).forEach(([key, value]) => {
+                queryParams.push(`${key}=${encodeURIComponent(value)}`)
+              })
+            }
+            const queryString = queryParams.length > 0 ? '?' + queryParams.join('&') : ''
+            router.push(redirectPath + queryString)
           } else {
             toast({ title: 'Success!', description: data.message || successMsg })
           }

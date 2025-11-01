@@ -68,7 +68,15 @@ export function middleware(request: NextRequest) {
       !pathname.startsWith("/employers/verify-email")
     ) {
       if (!employerToken) {
-        return NextResponse.redirect(new URL("/employers/login", request.url))
+        // Preserve query parameters and pathname for redirect after login
+        const loginUrl = new URL("/employers/login", request.url)
+        // Set redirect to the pathname (without query params)
+        loginUrl.searchParams.set("redirect", pathname)
+        // Preserve all existing query parameters (job_id, candidate_email, etc.)
+        request.nextUrl.searchParams.forEach((value, key) => {
+          loginUrl.searchParams.set(key, value)
+        })
+        return NextResponse.redirect(loginUrl)
       }
       return NextResponse.next()
     }
