@@ -24,6 +24,8 @@ export default function InterviewScheduler() {
   const employerEmailParam = searchParams.get("employer_email") || ""
   const authKey = searchParams.get("auth_key") || ""
   const [loginUrl, setLoginUrl] = useState("")
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null) // null = checking, true = auth, false = not auth
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const [formData, setFormData] = useState({
     title: "Interview with Candidate",
     description: "Interview scheduled via CareerAdvance",
@@ -37,6 +39,26 @@ export default function InterviewScheduler() {
     officeLocation: "",
     durationMinutes: "60",
   })
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(getMeetUrl('/check_auth'), {
+          method: 'GET',
+          credentials: 'include',
+        })
+        const data = await response.json()
+        setIsAuthenticated(data.authenticated === true)
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        setIsAuthenticated(false)
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+    checkAuth()
+  }, [])
 
   // Prefill form from query params
   useEffect(() => {
@@ -79,6 +101,24 @@ export default function InterviewScheduler() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check authentication before submitting
+    if (isAuthenticated === false) {
+      setResult({ error: 'Please connect your Google Calendar first to schedule interviews.' })
+      return
+    }
+    
+    // If still checking, wait a moment
+    if (checkingAuth || isAuthenticated === null) {
+      setResult({ error: 'Checking authentication status...' })
+      // Wait for auth check to complete
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (isAuthenticated === false) {
+        setResult({ error: 'Please connect your Google Calendar first to schedule interviews.' })
+        return
+      }
+    }
+    
     setIsLoading(true)
     try {
       const data = new FormData()
@@ -125,7 +165,15 @@ export default function InterviewScheduler() {
         console.log('Response text:', text);
         throw new Error(text || "Server error")
       })
-      if (!json.success) throw new Error(json.message || "Failed to create event")
+      if (!json.success) {
+        // If authentication is required, redirect to login
+        if (json.requires_auth && json.login_url) {
+          // Open login in new window/tab and redirect back after auth
+          window.open(json.login_url, '_blank')
+          throw new Error('Please authenticate with Google Calendar first, then try again.')
+        }
+        throw new Error(json.message || "Failed to create event")
+      }
       setIsLoading(false)
       setResult({ meetLink: json.meet_link, eventLink: json.event_link })
     } catch (err: any) {
@@ -412,15 +460,46 @@ export default function InterviewScheduler() {
               )}
             </form>
             {/* Login with Google (if needed) */}
-            <div className="mt-4 text-center">
-              <a
-                href={loginUrl || `${getMeetUrl("/login")}?job_id=${encodeURIComponent(jobId)}`}
-                target="_blank"
-                className="inline-block px-6 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700 transition"
-              >
-                Connect Google Calendar
-              </a>
-            </div>
+            {(isAuthenticated === false || checkingAuth) && (
+              <div className="mt-4 text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                {checkingAuth ? (
+                  <p className="text-gray-600 mb-3">Checking authentication status...</p>
+                ) : (
+                  <>
+                    <p className="text-gray-700 mb-3">
+                      {isAuthenticated === false 
+                        ? 'Please connect your Google Calendar to schedule interviews.' 
+                        : 'Connecting to Google Calendar...'}
+                    </p>
+                    <a
+                      href={loginUrl || `${getMeetUrl("/login")}?job_id=${encodeURIComponent(jobId)}`}
+                      target="_blank"
+                      className="inline-block px-6 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700 transition"
+                      onClick={() => {
+                        // After opening login, check auth status again after a delay
+                        setTimeout(async () => {
+                          try {
+                            const response = await fetch(getMeetUrl('/check_auth'), {
+                              method: 'GET',
+                              credentials: 'include',
+                            })
+                            const data = await response.json()
+                            setIsAuthenticated(data.authenticated === true)
+                            if (data.authenticated) {
+                              setResult(null) // Clear any error messages
+                            }
+                          } catch (error) {
+                            console.error('Auth check failed:', error)
+                          }
+                        }, 2000)
+                      }}
+                    >
+                      Connect Google Calendar
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Loading Spinner */}
             {isLoading && (
