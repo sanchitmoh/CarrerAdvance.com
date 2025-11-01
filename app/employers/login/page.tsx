@@ -1,9 +1,9 @@
 'use client'
 import AuthForm from '@/components/AuthForm'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function EmployersLoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -48,5 +48,20 @@ export default function EmployersLoginPage() {
       redirectUrl={redirect || undefined}
       preservedParams={Object.keys(preservedParams).length > 0 ? preservedParams : undefined}
     />
+  )
+}
+
+export default function EmployersLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }
