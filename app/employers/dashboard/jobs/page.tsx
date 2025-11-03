@@ -415,6 +415,7 @@ export default function JobsPage() {
     salaryMin: "",
     salaryMax: "",
     salaryPeriod: "monthly",
+    salaryDisplayMode: "range",
     skills: "",
     description: "",
     requirements: "",
@@ -740,15 +741,31 @@ export default function JobsPage() {
   const handleSubmitJob = async () => {
     try {
       // Prepare job data
-      const jobData: AddJobRequest = {
+      const payByLabelMap: Record<string, string> = {
+        'range': 'Range',
+        'starting': 'Starting amount',
+        'maximum': 'Maximum amount',
+        'exact': 'Exact amount'
+      }
+
+      const displayMode = (jobForm.salaryDisplayMode || '').toLowerCase()
+      const payByLabel = payByLabelMap[displayMode] || jobForm.salaryDisplayMode
+
+      const salaryMinNum = parseInt(jobForm.salaryMin) || 0
+      const salaryMaxNum = parseInt(jobForm.salaryMax) || 0
+      const exactAmountNum = displayMode === 'exact' 
+        ? (parseInt(jobForm.salaryMin) || parseInt(jobForm.salaryMax) || 0)
+        : 0
+
+      const jobData: AddJobRequest & any = {
         title: jobForm.title,
         location: jobForm.location,
         type: jobForm.type,
         description: jobForm.description,
         requirements: jobForm.requirements,
-        salary_min: parseInt(jobForm.salaryMin) || 0,
-        salary_max: parseInt(jobForm.salaryMax) || 0,
-        salary_period: jobForm.salaryPeriod,
+        salary_min: salaryMinNum,
+        salary_max: salaryMaxNum,
+        salary_period: jobForm.salaryPeriod, // Rate -> salary_period
         skills: jobForm.skills.split(',').map(skill => skill.trim()),
         country: jobForm.country,
         province: jobForm.province,
@@ -765,7 +782,14 @@ export default function JobsPage() {
         allow_calls: jobForm.allowCalls,
         phone_number: jobForm.phoneNumber,
         positions: parseInt(jobForm.positions) || 1,
-        experience_level: jobForm.experience
+        experience_level: jobForm.experience,
+
+        // Additional fields per requirement
+        salary_type: displayMode,               // store "range" / "starting" / "maximum" / "exact" in salary_type
+        pay_by: payByLabel,                     // Show pay by -> pay_by (human label)
+        starting_amount: displayMode === 'starting' ? salaryMinNum : 0, // Starting Amount -> starting_amount
+        max_salary: displayMode === 'maximum' || displayMode === 'range' ? salaryMaxNum : salaryMaxNum, // Maximum Amount -> max_salary
+        exact_amount: exactAmountNum            // Exact Amount -> exact_amount
       }
      
       if (editingJob) {
@@ -820,6 +844,7 @@ export default function JobsPage() {
       salaryMin: "",
       salaryMax: "",
       salaryPeriod: "monthly",
+      salaryDisplayMode: "range",
       skills: "",
       description: "",
       requirements: "",
@@ -907,6 +932,7 @@ export default function JobsPage() {
         salaryMin: jobDetail.salary_min?.toString() || salaryMin,
         salaryMax: jobDetail.salary_max?.toString() || salaryMax,
         salaryPeriod: jobDetail.salary_period || "monthly",
+        salaryDisplayMode: jobDetail.salary_display_mode || "range",
         skills: skillsString,
         description: jobDetail.description || "",
         requirements: jobDetail.requirements || "",
@@ -952,6 +978,7 @@ export default function JobsPage() {
         salaryMin: "",
         salaryMax: "",
         salaryPeriod: "monthly",
+        salaryDisplayMode: "range",
         skills: "",
         description: job.description || "",
         requirements: job.requirements || "",
@@ -1836,38 +1863,94 @@ export default function JobsPage() {
               {/* Salary and Benefits */}
               <div className="space-y-4">
                 <h3 className="text-base lg:text-lg font-semibold text-gray-900 border-b pb-2">Salary and Benefits</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="salaryMin" className="text-sm font-medium">
-                      Minimum Salary *
+                
+                {/* Show Pay By Dropdown */}
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-full sm:w-auto">
+                    <Label htmlFor="salaryDisplayMode" className="text-sm font-medium">
+                      Show pay by
                     </Label>
-                    <Input
-                      id="salaryMin"
-                      type="number"
-                      value={jobForm.salaryMin}
-                      onChange={(e) => handleInputChange("salaryMin", e.target.value)}
-                      placeholder="50000"
-                      className="mt-1"
-                      required
-                    />
+                    <Select
+                      value={jobForm.salaryDisplayMode}
+                      onValueChange={(value) => handleInputChange("salaryDisplayMode", value)}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="range">Range</SelectItem>
+                        <SelectItem value="starting">Starting amount</SelectItem>
+                        <SelectItem value="maximum">Maximum amount</SelectItem>
+                        <SelectItem value="exact">Exact amount</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="salaryMax" className="text-sm font-medium">
-                      Maximum Salary *
-                    </Label>
-                    <Input
-                      id="salaryMax"
-                      type="number"
-                      value={jobForm.salaryMax}
-                      onChange={(e) => handleInputChange("salaryMax", e.target.value)}
-                      placeholder="80000"
-                      className="mt-1"
-                      required
-                    />
+
+                  {/* Dynamic Salary Inputs based on display mode */}
+                  <div className="flex-1">
+                    {jobForm.salaryDisplayMode === "range" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="salaryMin" className="text-sm font-medium">
+                            Minimum *
+                          </Label>
+                          <Input
+                            id="salaryMin"
+                            type="number"
+                            value={jobForm.salaryMin}
+                            onChange={(e) => handleInputChange("salaryMin", e.target.value)}
+                            placeholder="13102.44"
+                            className="mt-1"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="salaryMax" className="text-sm font-medium">
+                            Maximum *
+                          </Label>
+                          <Input
+                            id="salaryMax"
+                            type="number"
+                            value={jobForm.salaryMax}
+                            onChange={(e) => handleInputChange("salaryMax", e.target.value)}
+                            placeholder="69216.22"
+                            className="mt-1"
+                            required
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {(jobForm.salaryDisplayMode === "starting" || jobForm.salaryDisplayMode === "maximum" || jobForm.salaryDisplayMode === "exact") && (
+                      <div>
+                        <Label htmlFor="salaryAmount" className="text-sm font-medium">
+                          {jobForm.salaryDisplayMode === "starting" ? "Starting Amount *" : jobForm.salaryDisplayMode === "maximum" ? "Maximum Amount *" : "Exact Amount *"}
+                        </Label>
+                        <Input
+                          id="salaryAmount"
+                          type="number"
+                          value={jobForm.salaryDisplayMode === "starting" ? jobForm.salaryMin : jobForm.salaryMax}
+                          onChange={(e) => {
+                            if (jobForm.salaryDisplayMode === "starting") {
+                              handleInputChange("salaryMin", e.target.value)
+                            } else if (jobForm.salaryDisplayMode === "maximum") {
+                              handleInputChange("salaryMax", e.target.value)
+                            } else {
+                              handleInputChange("salaryMin", e.target.value)
+                              handleInputChange("salaryMax", e.target.value)
+                            }
+                          }}
+                          placeholder="50000"
+                          className="mt-1"
+                          required
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div>
+
+                  {/* Salary Period */}
+                  <div className="w-full sm:w-auto">
                     <Label htmlFor="salaryPeriod" className="text-sm font-medium">
-                      Salary Period *
+                      Rate
                     </Label>
                     <Select
                       value={jobForm.salaryPeriod}
@@ -1877,11 +1960,11 @@ export default function JobsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="hourly">Hourly</SelectItem>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
+                        <SelectItem value="hourly">per hour</SelectItem>
+                        <SelectItem value="daily">per day</SelectItem>
+                        <SelectItem value="weekly">per week</SelectItem>
+                        <SelectItem value="monthly">per month</SelectItem>
+                        <SelectItem value="yearly">per year</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2260,6 +2343,7 @@ export default function JobsPage() {
                         salaryMin: "",
                         salaryMax: "",
                         salaryPeriod: "monthly",
+                        salaryDisplayMode: "range",
                         skills: "",
                         description: "",
                         requirements: "",

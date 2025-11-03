@@ -1,3 +1,5 @@
+import { getBackendUrl } from './api-config';
+
 export interface Job {
 	id: string;
 	title: string;
@@ -53,7 +55,9 @@ export interface CitiesResponse {
 }
 
 class JobsApiService {
-	private baseUrl = '/api/jobs';
+	private getBaseUrl() {
+		return getBackendUrl('/api/jobs');
+	}
 
 	async getJobs(params: {
 		page?: number;
@@ -75,32 +79,38 @@ class JobsApiService {
 				searchParams.append(key, String(value));
 			}
 		});
-		const res = await fetch(`${this.baseUrl}/list?${searchParams.toString()}`);
+		const baseUrl = this.getBaseUrl();
+		const res = await fetch(`${baseUrl}/list?${searchParams.toString()}`);
 		return res.json();
 	}
 
 	async getJobDetails(id: string): Promise<JobDetailsResponse> {
-		const res = await fetch(`${this.baseUrl}/${id}`);
+		const baseUrl = this.getBaseUrl();
+		const res = await fetch(`${baseUrl}/${id}`);
 		return res.json();
 	}
 
 	async getCategories(): Promise<CategoriesResponse> {
-		const res = await fetch(`${this.baseUrl}/categories`);
+		const baseUrl = this.getBaseUrl();
+		const res = await fetch(`${baseUrl}/categories`);
 		return res.json();
 	}
 
 	async getIndustries(): Promise<IndustriesResponse> {
-		const res = await fetch(`${this.baseUrl}/industries`);
+		const baseUrl = this.getBaseUrl();
+		const res = await fetch(`${baseUrl}/industries`);
 		return res.json();
 	}
 
 	async getCities(): Promise<CitiesResponse> {
-		const res = await fetch(`${this.baseUrl}/cities`);
+		const baseUrl = this.getBaseUrl();
+		const res = await fetch(`${baseUrl}/cities`);
 		return res.json();
 	}
 
 	async testConnection(): Promise<{ success: boolean; message: string }> {
-		const res = await fetch(`${this.baseUrl}/test`);
+		const baseUrl = this.getBaseUrl();
+		const res = await fetch(`${baseUrl}/test`);
 		return res.json();
 	}
 }

@@ -15,6 +15,7 @@ import {
   Shield,
   Settings,
   X,
+  Blocks,
 } from "lucide-react"
 
 export const sidebarItems = [
@@ -37,6 +38,11 @@ export const sidebarItems = [
     title: "Jobs",
     href: "/admin/jobs",
     icon: Briefcase,
+  },
+  {
+    title : "Blogs",
+    href : "/admin/blogs",
+    icon : Blocks
   },
   
   {

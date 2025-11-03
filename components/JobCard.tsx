@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Clock, DollarSign, Building, Star, Bookmark, Briefcase } from 'lucide-react'
+import { MapPin, Clock, DollarSign, Building, Star, Bookmark, Briefcase, Eye } from 'lucide-react'
+import Link from "next/link"
 
 interface Job {
   id: string
@@ -45,7 +46,7 @@ export default function JobCard({ job, onApply, onViewDetails }: JobCardProps) {
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 1) return '1 day ago';
+    if (diffDays === 1) return "1 day ago";
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
     return `${Math.ceil(diffDays / 30)} months ago`;
@@ -72,9 +73,12 @@ export default function JobCard({ job, onApply, onViewDetails }: JobCardProps) {
                 className="w-12 h-12 rounded-xl border border-gray-200"
               />
               <div>
-                <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">
-                  {job.title}
-                </h3>
+                <Link href={`/jobs/${job.id}`} className="hover:opacity-80 transition-opacity">
+                  <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition-colors flex items-center gap-2">
+                    {job.title}
+                    <Eye className="h-4 w-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </h3>
+                </Link>
                 <div className="flex items-center text-gray-600 mt-1">
                   <Building className="h-4 w-4 mr-1" />
                   <span className="font-medium">{job.company_name}</span>
@@ -123,9 +127,15 @@ export default function JobCard({ job, onApply, onViewDetails }: JobCardProps) {
             <Briefcase className="w-4 h-4 mr-2" />
             Apply Now
           </Button>
-          <Button type="button" onClick={onViewDetails} variant="outline" className="border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 font-medium rounded-xl"> {/* Changed to emerald */}
-            View Details
+          <Link href={`/jobs/${job.id}`}>
+            <Button
+              variant="outline"
+              className="w-full border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 font-medium rounded-xl bg-transparent flex items-center justify-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              View Details
           </Button>
+          </Link>
         </div>
       </div>
     </div>
