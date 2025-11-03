@@ -907,17 +907,35 @@ export default function JobsPage() {
       const jobDetail: any = await employerApiService.getJobById(job.id)
       setEditingJob(jobDetail)
      
-      // Parse salary range if available
-      let salaryMin = ""
-      let salaryMax = ""
-      if (jobDetail.salary) {
-        const salaryMatch = jobDetail.salary.match(/\$?(\d+[,\d]*)\s*-\s*\$?(\d+[,\d]*)/)
-        if (salaryMatch) {
-          salaryMin = salaryMatch[1].replace(/,/g, '')
-          salaryMax = salaryMatch[2].replace(/,/g, '')
-        }
-      }
-     
+      // Derive salary display mode from backend (salary_type or pay_by)
+      const salaryTypeRaw = (jobDetail.salary_type || jobDetail.pay_by || '').toString().toLowerCase()
+      const salaryType =
+        salaryTypeRaw.includes('starting') ? 'starting' :
+        salaryTypeRaw.includes('maximum') ? 'maximum' :
+        salaryTypeRaw.includes('exact') ? 'exact' :
+        salaryTypeRaw.includes('range') ? 'range' : 'range'
+
+      // Normalize salary values from backend
+      const minFromApi = (jobDetail.salary_min ?? jobDetail.min_salary ?? jobDetail.starting_amount ?? '').toString()
+      const maxFromApi = (jobDetail.salary_max ?? jobDetail.max_salary ?? '').toString()
+      const exactFromApi = (jobDetail.exact_amount ?? '').toString()
+
+      // Prefill fields per mode
+      const derivedSalaryMin = (
+        salaryType === 'range' ? (minFromApi || '') :
+        salaryType === 'starting' ? (jobDetail.starting_amount?.toString() || minFromApi || '') :
+        salaryType === 'maximum' ? '' :
+        salaryType === 'exact' ? (exactFromApi || '') :
+        ''
+      )
+      const derivedSalaryMax = (
+        salaryType === 'range' ? (maxFromApi || '') :
+        salaryType === 'maximum' ? (maxFromApi || jobDetail.max_salary?.toString() || '') :
+        salaryType === 'starting' ? '' :
+        salaryType === 'exact' ? (exactFromApi || '') :
+        ''
+      )
+
       // Convert skills array to comma-separated string if needed
       const skillsString = Array.isArray(jobDetail.skills)
         ? jobDetail.skills.join(', ')
@@ -929,10 +947,10 @@ export default function JobsPage() {
         type: jobDetail.type?.toLowerCase() || "full-time",
         positions: (jobDetail.total_positions != null ? String(jobDetail.total_positions) : (jobDetail.positions?.toString() || "1")),
         experience: jobDetail.experience || jobDetail.experience_level || "entry",
-        salaryMin: jobDetail.salary_min?.toString() || salaryMin,
-        salaryMax: jobDetail.salary_max?.toString() || salaryMax,
+        salaryMin: derivedSalaryMin,
+        salaryMax: derivedSalaryMax,
         salaryPeriod: jobDetail.salary_period || "monthly",
-        salaryDisplayMode: jobDetail.salary_display_mode || "range",
+        salaryDisplayMode: salaryType,
         skills: skillsString,
         description: jobDetail.description || "",
         requirements: jobDetail.requirements || "",
