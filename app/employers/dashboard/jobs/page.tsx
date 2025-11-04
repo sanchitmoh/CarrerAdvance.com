@@ -77,6 +77,9 @@ interface Candidate {
     institution: string
     year: string
   }[]
+
+
+  
       languages: {
         name: string
         proficiency: string

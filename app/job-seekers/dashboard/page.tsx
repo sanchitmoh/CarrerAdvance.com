@@ -59,7 +59,7 @@ export default function DashboardPage() {
   return (
     <>
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
-        <DialogContent className="w-full max-w-md mx-auto sm:mx-0 rounded-lg p-4">
+        <DialogContent className="w-[90vw] sm:w-auto max-w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl mx-auto sm:mx-0 rounded-lg p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader className="text-left">
             <DialogTitle className="text-xl sm:text-2xl font-bold text-emerald-700">
               Welcome to Your Profile

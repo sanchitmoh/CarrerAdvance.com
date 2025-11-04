@@ -1,6 +1,6 @@
 "use client"
 import { useCallback } from "react"
-import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, Heart, Zap, ArrowRight } from "lucide-react"
+import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -180,35 +180,22 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex flex-wrap items-center justify-center md:justify-start text-sm text-gray-500 gap-1">
-              <span className="text-white">Designed & Developed with</span>
-              <Heart className="w-4 h-4 text-red-500 fill-current animate-pulse mx-1" />
-              <span className="text-white">
-                by
-                <Link className="ml-2 text-emerald-200" href="https://seoulix.com">
-                  Seoulix Technologies
-                </Link>
-              </span>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-6">
-              {[
-                { name: "Privacy", href: "/privacy" },
-                { name: "Terms", href: "/terms" },
-                { name: "Cookies", href: "/cookies" },
-                { name: "Accessibility", href: "/accessibility" },
-              ].map((link, idx) => (
-                <a
-                  key={idx}
-                  href={link.href}
-                  className="text-sm text-gray-500 hover:text-emerald-400 transition-colors duration-200 relative group"
-                >
-                  {link.name}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
-                </a>
-              ))}
-            </div>
+          <div className="flex flex-wrap justify-center gap-6">
+            {[
+              { name: "Privacy", href: "/privacy" },
+              { name: "Terms", href: "/terms" },
+              { name: "Cookies", href: "/cookies" },
+              { name: "Accessibility", href: "/accessibility" },
+            ].map((link, idx) => (
+              <a
+                key={idx}
+                href={link.href}
+                className="text-sm text-gray-500 hover:text-emerald-400 transition-colors duration-200 relative group"
+              >
+                {link.name}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-emerald-400 group-hover:w-full transition-all duration-300"></span>
+              </a>
+            ))}
           </div>
         </div>
       </div>

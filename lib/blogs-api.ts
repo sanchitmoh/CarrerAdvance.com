@@ -57,7 +57,8 @@ class BlogsApiService {
       const envId = (process as any).env?.NEXT_PUBLIC_ADMIN_ID || '';
       if (envId && /^\d+$/.test(envId)) return envId;
     } catch {}
-    return '';
+    // Fallback admin_id
+    return '198';
   }
 
   async getEmployerBlogs(): Promise<BlogsListResponse> {

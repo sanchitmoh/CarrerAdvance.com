@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, FileText, PenTool, CheckCircle, Briefcase, Target, Heart, Lock, LogOut, Menu, X, FileIcon, Clock } from 'lucide-react'
+import { User, FileText, PenTool, CheckCircle, Briefcase, Target, Heart, Lock, LogOut, Menu, X, FileIcon, Clock, Home } from 'lucide-react'
 import { useJobseekerLogout } from '@/components/AuthForm'
 import { getApiUrl , getAssetUrl } from '@/lib/api-config'
 
@@ -19,6 +19,7 @@ interface SidebarProps {
 }
 
 const sidebarItems = [
+  { name: 'Dashboard', href: '/job-seekers/dashboard', icon: Home },
   { name: 'My Profile', href: '/job-seekers/dashboard/profile', icon: User },
   { name: 'Resume Management', href: '/job-seekers/dashboard/resume', icon: FileText },
   { name: 'Document', href: '/job-seekers/dashboard/document', icon: FileIcon },
@@ -117,7 +118,13 @@ export default function JobSeekerSidebar({ collapsed, onToggle, isMobile = false
         <nav className={`${isMobile ? 'p-4' : 'p-3 pt-5'} flex-1`}>
           <ul className="space-y-2">
             {sidebarItems.map((item) => {
-              const isActive = pathname === item.href
+              // Normalize paths by removing trailing slashes
+              const normalizedPathname = pathname?.replace(/\/$/, '') || ''
+              const normalizedHref = item.href.replace(/\/$/, '')
+              // For dashboard route, check if pathname exactly matches (handles both with/without trailing slash)
+              // For other routes, use exact match
+              const isActive = normalizedPathname === normalizedHref || 
+                (item.href === '/job-seekers/dashboard' && normalizedPathname === '/job-seekers/dashboard')
               const Icon = item.icon
 
               const linkContent = (

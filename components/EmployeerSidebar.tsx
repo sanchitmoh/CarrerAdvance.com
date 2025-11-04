@@ -93,7 +93,13 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
         <nav className="flex-1 flex flex-col space-y-6 my-32">
           {menuItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            // Normalize paths by removing trailing slashes
+            const normalizedPathname = pathname?.replace(/\/$/, '') || ''
+            const normalizedHref = item.href.replace(/\/$/, '')
+            // For dashboard route, check if pathname exactly matches (handles both with/without trailing slash)
+            // For other routes, use exact match
+            const isActive = normalizedPathname === normalizedHref || 
+              (item.href === '/employers/dashboard/' && normalizedPathname === '/employers/dashboard')
             return (
               <Link
                 key={item.href}
@@ -136,7 +142,13 @@ export default function EmployerSidebar({ onToggle, open, isMobileMenuOpen, onCl
         <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100%-64px)]">
           {menuItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            // Normalize paths by removing trailing slashes
+            const normalizedPathname = pathname?.replace(/\/$/, '') || ''
+            const normalizedHref = item.href.replace(/\/$/, '')
+            // For dashboard route, check if pathname exactly matches (handles both with/without trailing slash)
+            // For other routes, use exact match
+            const isActive = normalizedPathname === normalizedHref || 
+              (item.href === '/employers/dashboard/' && normalizedPathname === '/employers/dashboard')
             return (
               <Link
                 key={item.href}

@@ -77,9 +77,10 @@ export default function AdminBlogPage() {
         if (idFromQuery && /^\d+$/.test(idFromQuery)) resolved = idFromQuery
         else if (idFromCookie && /^\d+$/.test(idFromCookie)) resolved = idFromCookie
         else if (idFromLS && /^\d+$/.test(idFromLS)) resolved = idFromLS
+        else resolved = '198' // Fallback admin_id
 
-        const numericId = resolved ? Number(resolved) : null
-        setAdminId(!isNaN(numericId as any) && numericId ? numericId : null)
+        const numericId = resolved ? Number(resolved) : 198 // Fallback to 198
+        setAdminId(!isNaN(numericId as any) && numericId ? numericId : 198)
 
         // Persist for future loads if obtained from query
         if (numericId && (!idFromCookie || idFromCookie !== String(numericId))) {
