@@ -34,6 +34,32 @@ import { getApiUrl } from './api-config';
 class BlogsApiService {
   private baseUrl = getApiUrl('/blogs');
 
+  private resolveAdminId(): string {
+    try {
+      if (typeof window !== 'undefined') {
+        // Prefer URL param so callers can force it
+        const params = new URLSearchParams(window.location.search);
+        const fromQuery = params.get('admin_id') || params.get('adminId') || '';
+        if (fromQuery && /^\d+$/.test(fromQuery)) return fromQuery;
+
+        // LocalStorage (frontend domain)
+        const fromLS = localStorage.getItem('admin_id') || localStorage.getItem('adminId') || '';
+        if (fromLS && /^\d+$/.test(fromLS)) return fromLS;
+
+        // Cookie (frontend domain)
+        const cookieMatch = document.cookie.match(/(?:^|; )admin_id=([^;]+)/);
+        const fromCookie = cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
+        if (fromCookie && /^\d+$/.test(fromCookie)) return fromCookie;
+      }
+    } catch {}
+    // Env fallback for static deployments
+    try {
+      const envId = (process as any).env?.NEXT_PUBLIC_ADMIN_ID || '';
+      if (envId && /^\d+$/.test(envId)) return envId;
+    } catch {}
+    return '';
+  }
+
   async getEmployerBlogs(): Promise<BlogsListResponse> {
     const res = await fetch(`${this.baseUrl}/employer`, { cache: 'no-store', credentials: 'include' });
     return res.json();
@@ -77,16 +103,11 @@ class BlogsApiService {
     form.append('status', payload.status);
     if (payload.tags) form.append('tags', payload.tags);
     if (payload.imageFile) form.append('image', payload.imageFile);
-    if (typeof payload.admin_id === 'number') form.append('admin_id', String(payload.admin_id));
-    else {
-      // Auto-include admin_id from cookie/localStorage for cross-site cases
-      try {
-        if (typeof window !== 'undefined') {
-          const cookieAdmin = document.cookie.match(/(?:^|; )admin_id=([^;]+)/);
-          const adminId = cookieAdmin ? decodeURIComponent(cookieAdmin[1]) : (localStorage.getItem('admin_id') || '');
-          if (adminId) form.append('admin_id', adminId);
-        }
-      } catch {}
+    if (typeof payload.admin_id === 'number') {
+      form.append('admin_id', String(payload.admin_id));
+    } else {
+      const adminId = this.resolveAdminId();
+      if (adminId) form.append('admin_id', adminId);
     }
 
     const res = await fetch(`${this.baseUrl}`, { method: 'POST', body: form, credentials: 'include' });
@@ -133,13 +154,8 @@ class BlogsApiService {
       if (employerId) form.append('employer_id', employerId);
       if (typeof (payload as any).admin_id === 'number') form.append('admin_id', String((payload as any).admin_id));
       else {
-        try {
-          if (typeof window !== 'undefined') {
-            const cookieAdmin = document.cookie.match(/(?:^|; )admin_id=([^;]+)/);
-            const adminId = cookieAdmin ? decodeURIComponent(cookieAdmin[1]) : (localStorage.getItem('admin_id') || '');
-            if (adminId) form.append('admin_id', adminId);
-          }
-        } catch {}
+        const adminId = this.resolveAdminId();
+        if (adminId) form.append('admin_id', adminId);
       }
       if ((payload as any).imageFile) form.append('image', (payload as any).imageFile as File);
       // Use POST for multipart so CodeIgniter can parse fields via $this->input->post
@@ -149,13 +165,8 @@ class BlogsApiService {
       const payloadWithEmployerId = { ...payload, employer_id: employerId } as any;
       if (typeof (payload as any).admin_id === 'number') payloadWithEmployerId.admin_id = (payload as any).admin_id;
       else {
-        try {
-          if (typeof window !== 'undefined') {
-            const cookieAdmin = document.cookie.match(/(?:^|; )admin_id=([^;]+)/);
-            const adminId = cookieAdmin ? decodeURIComponent(cookieAdmin[1]) : (localStorage.getItem('admin_id') || '');
-            if (adminId) payloadWithEmployerId.admin_id = adminId;
-          }
-        } catch {}
+        const adminId = this.resolveAdminId();
+        if (adminId) payloadWithEmployerId.admin_id = adminId;
       }
       const res = await fetch(`${this.baseUrl}/${id}/update`, {
         method: 'PUT',
