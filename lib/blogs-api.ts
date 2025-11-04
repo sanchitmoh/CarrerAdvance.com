@@ -39,6 +39,17 @@ class BlogsApiService {
     return res.json();
   }
 
+  async getBlogs(): Promise<BlogsListResponse> {
+    const res = await fetch(`${this.baseUrl}`, { cache: 'no-store', credentials: 'include' });
+    return res.json();
+  }
+
+  async getAdminBlogs(adminId: number): Promise<BlogsListResponse> {
+    const url = `${this.baseUrl}?admin_id=${encodeURIComponent(String(adminId))}`;
+    const res = await fetch(url, { cache: 'no-store', credentials: 'include' });
+    return res.json();
+  }
+
   async getCategories(): Promise<CategoriesResponse> {
     const res = await fetch(`${this.baseUrl}/categories`, { credentials: 'include' });
     return res.json();
@@ -54,6 +65,7 @@ class BlogsApiService {
     status: 'draft' | 'published';
     tags?: string; // comma-separated
     imageFile?: File | null;
+    admin_id?: number;
   }): Promise<{ success: boolean; message?: string; post_id?: number }> {
     const form = new FormData();
     form.append('title', payload.title);
@@ -65,6 +77,7 @@ class BlogsApiService {
     form.append('status', payload.status);
     if (payload.tags) form.append('tags', payload.tags);
     if (payload.imageFile) form.append('image', payload.imageFile);
+    if (typeof payload.admin_id === 'number') form.append('admin_id', String(payload.admin_id));
 
     const res = await fetch(`${this.baseUrl}`, { method: 'POST', body: form, credentials: 'include' });
     return res.json();
@@ -83,6 +96,7 @@ class BlogsApiService {
           status: 'draft' | 'published' | 'archived';
           tags?: string; // comma-separated
           imageFile?: File | null;
+          admin_id?: number;
         }
   ): Promise<{ success: boolean; message?: string }> {
     const hasFile = !!(payload as any).imageFile;
@@ -107,12 +121,14 @@ class BlogsApiService {
       form.append('status', payload.status);
       if (payload.tags) form.append('tags', payload.tags);
       if (employerId) form.append('employer_id', employerId);
+      if (typeof (payload as any).admin_id === 'number') form.append('admin_id', String((payload as any).admin_id));
       if ((payload as any).imageFile) form.append('image', (payload as any).imageFile as File);
       // Use POST for multipart so CodeIgniter can parse fields via $this->input->post
       const res = await fetch(`${this.baseUrl}/${id}/update`, { method: 'POST', body: form, credentials: 'include' });
       return res.json();
     } else {
-      const payloadWithEmployerId = { ...payload, employer_id: employerId };
+      const payloadWithEmployerId = { ...payload, employer_id: employerId } as any;
+      if (typeof (payload as any).admin_id === 'number') payloadWithEmployerId.admin_id = (payload as any).admin_id;
       const res = await fetch(`${this.baseUrl}/${id}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -139,6 +155,10 @@ class BlogsApiService {
         const cookieMatch = document.cookie.match(/(?:^|; )employer_id=([^;]+)/);
         const employerId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : (localStorage.getItem('employer_id') || '');
         if (employerId) form.append('employer_id', employerId);
+        // Also include admin_id for admin blogs
+        const cookieAdmin = document.cookie.match(/(?:^|; )admin_id=([^;]+)/);
+        const adminId = cookieAdmin ? decodeURIComponent(cookieAdmin[1]) : (localStorage.getItem('admin_id') || '');
+        if (adminId) form.append('admin_id', adminId);
       }
     } catch {}
     const res = await fetch(`${this.baseUrl}/ai-generate`, { method: 'POST', body: form, credentials: 'include' });

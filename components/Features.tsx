@@ -1,59 +1,120 @@
 "use client"
 
-import { Brain, Rocket, Target, Users, BarChart3, Zap, Lightbulb } from "lucide-react"
+import {
+  Brain,
+  BarChart3,
+  Lightbulb,
+  User,
+  Search,
+  MousePointerClick,
+  Bell,
+  Clock,
+  Calendar,
+  FileText,
+  MessageSquare,
+  TrendingUp,
+} from "lucide-react"
 import { useRef, useEffect, useState } from "react"
 
 const employerFeatures = [
   {
-    icon: Users,
-    title: "Smart Talent Acquisition",
+    icon: FileText,
+    title: "Job Posting and Templates",
     description:
-      "Find and hire top talent with our AI-powered candidate matching system. Access a pool of pre-vetted professionals aligned with your company's needs and culture.",
+      "Create postings fast with reusable templates and screening questions. Streamline your hiring process with customizable job templates.",
     color: "from-emerald-500 to-green-500",
     delay: 0,
   },
   {
-    icon: BarChart3,
-    title: "Streamlined Hiring Workflow",
+    icon: Search,
+    title: "Candidate Search",
     description:
-      "Manage the entire recruitment process from job posting to hiring. Track applications, conduct interviews, and collaborate with your team all in one platform.",
+      "Filter by skills, experience, location; view detailed profiles and resumes. Find the perfect candidate with advanced search capabilities.",
     color: "from-green-500 to-teal-500",
+    delay: 0.1,
+  },
+  {
+    icon: BarChart3,
+    title: "Applicant Tracking (ATS)",
+    description:
+      "Pipeline stages, bulk actions, notes, tags, and status updates. Manage your entire recruitment pipeline efficiently in one place.",
+    color: "from-teal-500 to-lime-500",
     delay: 0.2,
   },
   {
-    icon: Zap,
-    title: "Employee Management Suite",
+    icon: Clock,
+    title: "Time Tracking",
     description:
-      "Manage attendance, payroll, performance, and documents seamlessly. Keep all employee information organized and accessible with our comprehensive management tools.",
-    color: "from-teal-500 to-lime-500",
+      "Track employee hours, projects, and billable time with approvals and detailed reports.",
+    color: "from-lime-500 to-emerald-500",
+    delay: 0.3,
+  },
+  {
+    icon: Calendar,
+    title: "Interview Management",
+    description:
+      "Schedule interviews, panel coordination, calendar sync, automated reminders. Simplify interview scheduling with smart automation.",
+    color: "from-emerald-500 to-green-500",
     delay: 0.4,
+  },
+  {
+    icon: TrendingUp,
+    title: "Analytics and Branding",
+    description:
+      "Insights on applicants/response rates and a branded company page. Track hiring metrics and showcase your employer brand.",
+    color: "from-green-500 to-teal-500",
+    delay: 0.5,
   },
 ]
 
 const jobSeekerFeatures = [
   {
-    icon: Brain,
-    title: "AI-Powered Job Matching",
+    icon: User,
+    title: "Rich Profile and Resume",
     description:
-      "Our advanced AI analyzes your skills, experience, and preferences to match you with perfect opportunities, saving you time and effort.",
+      "Create/edit profile, upload or build resumes, showcase skills. Build a comprehensive professional profile that stands out to employers.",
     color: "from-emerald-500 to-green-500",
     delay: 0,
   },
   {
-    icon: Rocket,
-    title: "Career Acceleration Paths",
+    icon: Search,
+    title: "Advanced Job Search",
     description:
-      "Fast-track your career with personalized learning paths, skill development recommendations, and expert-led courses tailored to your goals.",
+      "Filter by role, location, salary, experience, and keywords. Find your perfect job with powerful search and filtering options.",
     color: "from-green-500 to-teal-500",
+    delay: 0.1,
+  },
+  {
+    icon: MousePointerClick,
+    title: "One-Click Apply and Tracking",
+    description:
+      "Apply quickly and track application status in a dashboard. Streamline your job applications and monitor progress in real-time.",
+    color: "from-teal-500 to-lime-500",
     delay: 0.2,
   },
   {
-    icon: Target,
-    title: "Precision Job Targeting",
+    icon: Bell,
+    title: "Saved Jobs and Alerts",
     description:
-      "Connect with the right employers and opportunities that align precisely with your career goals, values, and aspirations, not just keywords.",
-    color: "from-teal-500 to-lime-500",
+      "Bookmark roles and get email/push alerts for matching jobs. Never miss an opportunity with personalized job notifications.",
+    color: "from-lime-500 to-emerald-500",
+    delay: 0.3,
+  },
+  {
+    icon: Calendar,
+    title: "Interview Scheduling",
+    description:
+      "Manage interview slots, reminders, and calendar sync. Stay organized with integrated interview management and reminders.",
+    color: "from-emerald-500 to-green-500",
     delay: 0.4,
+  },
+  {
+    icon: Brain,
+    title: "Skill Assessments and Recommendations",
+    description:
+      "Take tests and receive personalized job suggestions. Get matched with opportunities based on your verified skills and preferences.",
+    color: "from-green-500 to-teal-500",
+    delay: 0.5,
   },
 ]
 

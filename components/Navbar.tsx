@@ -120,7 +120,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-20 relative">
           {/* Logo */}
-          <Link href="/" className="flex items-center group transition-transform duration-300 hover:scale-105 active:scale-95 lg:-ml-2 xl:-ml-4">
+          <Link href="/" className="flex items-center group transition-transform duration-300 hover:scale-105 active:scale-95 -ml-3 sm:-ml-4 md:-ml-6 lg:-ml-10 xl:-ml-14 -translate-x-2 sm:-translate-x-3 md:-translate-x-4 lg:-translate-x-6 xl:-translate-x-8">
             <div className="relative">
               <Image 
                 src="/carreradb1.png" 

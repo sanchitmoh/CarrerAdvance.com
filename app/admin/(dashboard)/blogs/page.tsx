@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import BackButton from "@/components/back-button"
-import { Plus, Search, FileText, Eye, PenSquare, Wand2, Trash2 } from "lucide-react"
+import { Plus, Search, FileText, Eye, PenSquare, Wand2, Trash2, Loader2 } from "lucide-react"
+import { blogsApiService, type EmployerBlogPost } from "@/lib/blogs-api"
 import Image from "next/image"
 
 interface BlogFormData {
@@ -27,7 +28,11 @@ interface BlogFormData {
 export default function AdminBlogPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
-  const [blogs, setBlogs] = useState<any[]>([])
+  const [blogs, setBlogs] = useState<EmployerBlogPost[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([])
+  const [adminId, setAdminId] = useState<number | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [viewBlog, setViewBlog] = useState<any>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
@@ -47,13 +52,90 @@ export default function AdminBlogPage() {
   const draftsCount = blogs.filter((b) => b.status === "draft").length
 
   const filteredBlogs = blogs.filter((blog) => {
-    const matchesSearch = blog.title.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (blog.title || "").toLowerCase().includes(searchTerm.toLowerCase())
+    const status = String(blog.status)
     const matchesTab =
       activeTab === "all" ||
-      (activeTab === "published" && blog.status === "published") ||
-      (activeTab === "draft" && blog.status === "draft")
+      (activeTab === "published" && status === "published") ||
+      (activeTab === "draft" && status === "draft")
     return matchesSearch && matchesTab
   })
+
+  // Resolve admin id from cookies/localStorage once
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        // Try multiple sources: cookie, localStorage, URL query
+        const cookieMatch1 = document.cookie.match(/(?:^|; )admin_id=([^;]+)/i)
+        const cookieMatch2 = document.cookie.match(/(?:^|; )adminId=([^;]+)/i)
+        const idFromCookie = cookieMatch1 ? decodeURIComponent(cookieMatch1[1]) : (cookieMatch2 ? decodeURIComponent(cookieMatch2[1]) : '')
+        const idFromLS = localStorage.getItem('admin_id') || localStorage.getItem('adminId') || ''
+        const params = new URLSearchParams(window.location.search)
+        const idFromQuery = params.get('admin_id') || params.get('adminId') || ''
+
+        let resolved = ''
+        if (idFromQuery && /^\d+$/.test(idFromQuery)) resolved = idFromQuery
+        else if (idFromCookie && /^\d+$/.test(idFromCookie)) resolved = idFromCookie
+        else if (idFromLS && /^\d+$/.test(idFromLS)) resolved = idFromLS
+
+        const numericId = resolved ? Number(resolved) : null
+        setAdminId(!isNaN(numericId as any) && numericId ? numericId : null)
+
+        // Persist for future loads if obtained from query
+        if (numericId && (!idFromCookie || idFromCookie !== String(numericId))) {
+          try {
+            document.cookie = `admin_id=${numericId}; path=/`;
+          } catch {}
+        }
+        if (numericId) {
+          try {
+            localStorage.setItem('admin_id', String(numericId))
+          } catch {}
+        }
+      }
+    } catch {
+      setAdminId(null)
+    }
+  }, [])
+
+  // Load categories once
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const catsRes = await blogsApiService.getCategories().catch(() => ({ success: false, data: [] as any[] }))
+        if (catsRes?.success) setCategories(catsRes.data)
+      } catch {}
+    }
+    loadCategories()
+  }, [])
+
+  // Helper to fetch blogs (admin auto or explicit id)
+  const fetchBlogs = async (id: number | null) => {
+    try {
+      setLoading(true)
+      setError("")
+      const blogsRes = id !== null
+        ? await (blogsApiService as any).getAdminBlogs(id)
+        : await blogsApiService.getBlogs()
+      if (blogsRes?.success) {
+        setBlogs(blogsRes.data || [])
+      } else {
+        setBlogs([])
+      }
+    } catch (e: any) {
+      setError(e?.message || "Failed to load blogs")
+      setBlogs([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load blogs for admin when adminId is resolved
+  useEffect(() => {
+    fetchBlogs(adminId)
+  }, [adminId])
+
+  // Removed manual admin id input; relying on cookie/session/URL
 
   const handleFormChange = (field: keyof BlogFormData, value: string) => {
     setFormData((prev) => ({
@@ -73,44 +155,60 @@ export default function AdminBlogPage() {
     }
   }
 
-  const handlePublishPost = () => {
-    const imageUrl = formData.featuredImage ? URL.createObjectURL(formData.featuredImage) : null
-
-    const newBlog = {
-      id: Date.now(),
+  const handlePublishPost = async () => {
+    try {
+      setLoading(true)
+      const payload = {
       title: formData.title,
+        content: formData.content,
       excerpt: formData.excerpt,
-      content: formData.content,
-      category: formData.category,
-      tags: formData.tags.split(",").map((tag) => tag.trim()),
-      status: "published",
-      author: "Admin",
-      date: new Date().toLocaleDateString(),
-      imageUrl, // Store image URL
-    }
-    setBlogs((prev) => [newBlog, ...prev])
+        summary: formData.excerpt,
+        keywords: formData.tags,
+        category_id: categories.find((c) => c.slug === formData.category || c.name === formData.category)?.id,
+        status: 'published' as const,
+        tags: formData.tags,
+        imageFile: formData.featuredImage,
+        admin_id: adminId ?? undefined,
+      }
+      const res = await blogsApiService.createBlog(payload)
+      if (!res?.success) throw new Error(res?.message || 'Failed to publish')
+      const blogsRes = adminId ? await (blogsApiService as any).getAdminBlogs(adminId) : { success: true, data: [] as any[] }
+      if (blogsRes?.success) setBlogs(blogsRes.data || [])
     resetForm()
     setIsDialogOpen(false)
+    } catch (e: any) {
+      setError(e?.message || 'Failed to publish blog')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleSaveDraft = () => {
-    const imageUrl = formData.featuredImage ? URL.createObjectURL(formData.featuredImage) : null
-
-    const newBlog = {
-      id: Date.now(),
-      title: formData.title || "Untitled Draft",
+  const handleSaveDraft = async () => {
+    try {
+      setLoading(true)
+      const payload = {
+        title: formData.title || 'Untitled Draft',
+        content: formData.content,
       excerpt: formData.excerpt,
-      content: formData.content,
-      category: formData.category,
-      tags: formData.tags.split(",").map((tag) => tag.trim()),
-      status: "draft",
-      author: "Admin",
-      date: new Date().toLocaleDateString(),
-      imageUrl, // Store image URL
-    }
-    setBlogs((prev) => [newBlog, ...prev])
+        summary: formData.excerpt,
+        keywords: formData.tags,
+        category_id: categories.find((c) => c.slug === formData.category || c.name === formData.category)?.id,
+        status: 'draft' as const,
+        tags: formData.tags,
+        imageFile: formData.featuredImage,
+        admin_id: adminId ?? undefined,
+      }
+      const res = await blogsApiService.createBlog(payload)
+      if (!res?.success) throw new Error(res?.message || 'Failed to save draft')
+      const blogsRes = adminId ? await (blogsApiService as any).getAdminBlogs(adminId) : { success: true, data: [] as any[] }
+      if (blogsRes?.success) setBlogs(blogsRes.data || [])
     resetForm()
     setIsDialogOpen(false)
+    } catch (e: any) {
+      setError(e?.message || 'Failed to save draft')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const resetForm = () => {
@@ -130,9 +228,17 @@ export default function AdminBlogPage() {
     setIsDialogOpen(false)
   }
 
-  const handleDeleteBlog = (id: number) => {
-    if (confirm("Are you sure you want to delete this blog post?")) {
+  const handleDeleteBlog = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this blog post?")) return
+    try {
+      setLoading(true)
+      const res = await blogsApiService.deleteBlog(id)
+      if (!res?.success) throw new Error(res?.message || 'Failed to delete')
       setBlogs((prev) => prev.filter((blog) => blog.id !== id))
+    } catch (e: any) {
+      setError(e?.message || 'Failed to delete blog')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -148,59 +254,72 @@ export default function AdminBlogPage() {
       title: blog.title,
       excerpt: blog.excerpt,
       category: blog.category,
-      tags: blog.tags.join(", "),
-      content: blog.content,
+      tags: Array.isArray(blog?.tags)
+        ? blog.tags.join(", ")
+        : (typeof blog?.tags === "string" ? blog.tags : ""),
+      content: blog.content || "",
       featuredImage: null,
     })
     setFileName("")
     setIsEditDialogOpen(true)
   }
 
-  const handleUpdatePost = () => {
-    const imageUrl = formData.featuredImage ? URL.createObjectURL(formData.featuredImage) : editingBlog.imageUrl
-
-    setBlogs((prev) =>
-      prev.map((blog) =>
-        blog.id === editingBlog.id
-          ? {
-              ...blog,
+  const handleUpdatePost = async () => {
+    try {
+      setLoading(true)
+      const payload: any = {
               title: formData.title,
+        content: formData.content,
               excerpt: formData.excerpt,
-              content: formData.content,
-              category: formData.category,
-              tags: formData.tags.split(",").map((tag) => tag.trim()),
-              imageUrl, // Update image URL
-            }
-          : blog,
-      ),
-    )
+        summary: formData.excerpt,
+        keywords: formData.tags,
+        category_id: categories.find((c) => c.slug === formData.category || c.name === formData.category)?.id,
+        status: (editingBlog?.status || 'draft') as 'draft' | 'published' | 'archived',
+        tags: formData.tags,
+        admin_id: adminId ?? undefined,
+      }
+      if (formData.featuredImage) (payload as any).imageFile = formData.featuredImage
+      const res = await blogsApiService.updateBlog(Number(formData.id || editingBlog.id), payload)
+      if (!res?.success) throw new Error(res?.message || 'Failed to update')
+      const blogsRes = adminId ? await (blogsApiService as any).getAdminBlogs(adminId) : { success: true, data: [] as any[] }
+      if (blogsRes?.success) setBlogs(blogsRes.data || [])
     resetForm()
     setIsEditDialogOpen(false)
     setEditingBlog(null)
+    } catch (e: any) {
+      setError(e?.message || 'Failed to update blog')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handlePublishDraft = () => {
-    const imageUrl = formData.featuredImage ? URL.createObjectURL(formData.featuredImage) : editingBlog.imageUrl
-
-    setBlogs((prev) =>
-      prev.map((blog) =>
-        blog.id === editingBlog.id
-          ? {
-              ...blog,
+  const handlePublishDraft = async () => {
+    try {
+      setLoading(true)
+      const payload: any = {
               title: formData.title,
+        content: formData.content,
               excerpt: formData.excerpt,
-              content: formData.content,
-              category: formData.category,
-              tags: formData.tags.split(",").map((tag) => tag.trim()),
-              status: "published",
-              imageUrl, // Update image URL
-            }
-          : blog,
-      ),
-    )
+        summary: formData.excerpt,
+        keywords: formData.tags,
+        category_id: categories.find((c) => c.slug === formData.category || c.name === formData.category)?.id,
+        status: 'published' as const,
+        tags: formData.tags,
+        admin_id: adminId ?? undefined,
+      }
+      if (formData.featuredImage) (payload as any).imageFile = formData.featuredImage
+      const res = await blogsApiService.updateBlog(Number(formData.id || editingBlog.id), payload)
+      if (!res?.success) throw new Error(res?.message || 'Failed to publish draft')
+      const blogsRes = adminId ? await (blogsApiService as any).getAdminBlogs(adminId) : { success: true, data: [] as any[] }
+      if (blogsRes?.success) setBlogs(blogsRes.data || [])
     resetForm()
     setIsEditDialogOpen(false)
     setEditingBlog(null)
+    } catch (e: any) {
+      setError(e?.message || 'Failed to publish draft')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancelEdit = () => {
@@ -279,9 +398,9 @@ export default function AdminBlogPage() {
           <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
             {filteredBlogs.map((blog) => (
               <Card key={blog.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
-                {blog.imageUrl && (
+                {(blog as any).image_url && (
                   <div className="relative w-full h-48 bg-gray-200">
-                    <Image src={blog.imageUrl || "/placeholder.svg"} alt={blog.title} fill className="object-cover" />
+                    <Image src={(blog as any).image_url || "/placeholder.svg"} alt={blog.title} fill className="object-cover" />
                   </div>
                 )}
 
@@ -298,24 +417,24 @@ export default function AdminBlogPage() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-2 mb-3">{blog.excerpt}</p>
-                    {blog.tags && blog.tags.length > 0 && (
+                    {(blog as any).tags && (blog as any).tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-3">
-                        {blog.tags.slice(0, 2).map((tag: string, idx: number) => (
+                        {(blog as any).tags.slice(0, 2).map((tag: string, idx: number) => (
                           <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
                             {tag}
                           </span>
                         ))}
-                        {blog.tags.length > 2 && (
-                          <span className="text-xs text-gray-500 px-2 py-1">+{blog.tags.length - 2} more</span>
+                        {(blog as any).tags.length > 2 && (
+                          <span className="text-xs text-gray-500 px-2 py-1">+{(blog as any).tags.length - 2} more</span>
                         )}
                       </div>
                     )}
                   </div>
 
                   <div className="text-xs text-gray-500 mb-4 mt-auto">
-                    <span>By {blog.author}</span>
+                    <span>By {blog.author_name || "—"}</span>
                     <span className="mx-2">•</span>
-                    <span>{blog.date}</span>
+                    <span>{(blog.published_at || blog.created_at || "").toString().split("T")[0]}</span>
                   </div>
 
                   {/* View, Edit, and Delete buttons */}
@@ -461,11 +580,13 @@ export default function AdminBlogPage() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="technology">Technology</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="career">Career</SelectItem>
-                    <SelectItem value="tips">Tips & Tricks</SelectItem>
-                    <SelectItem value="news">News</SelectItem>
+                    {categories.length > 0 ? (
+                      categories.map((c) => (
+                        <SelectItem key={c.id} value={c.slug || c.name}>{c.name}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="general">General</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -474,6 +595,17 @@ export default function AdminBlogPage() {
                   type="button"
                   variant="outline"
                   className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 gap-2 bg-transparent"
+                  onClick={async () => {
+                    try {
+                      setLoading(true)
+                      const res = await blogsApiService.aiGenerateContent({ title: formData.title || 'Blog Post', category: formData.category || 'general' })
+                      if (res?.success) {
+                        const d: any = (res as any).data || {}
+                        setFormData((prev) => ({ ...prev, content: d.content || prev.content, excerpt: d.excerpt || prev.excerpt }))
+                      }
+                    } catch {}
+                    finally { setLoading(false) }
+                  }}
                 >
                   <Wand2 className="w-4 h-4" />
                   Generate with AI
@@ -587,11 +719,13 @@ export default function AdminBlogPage() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="technology">Technology</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="career">Career</SelectItem>
-                    <SelectItem value="tips">Tips & Tricks</SelectItem>
-                    <SelectItem value="news">News</SelectItem>
+                    {categories.length > 0 ? (
+                      categories.map((c) => (
+                        <SelectItem key={c.id} value={c.slug || c.name}>{c.name}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="general">General</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -647,13 +781,8 @@ export default function AdminBlogPage() {
 
             {/* Action Buttons */}
             <div className="space-y-3 pt-4">
-              {editingBlog?.status === "draft" && (
-                <Button onClick={handlePublishDraft} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                  Publish Post
-                </Button>
-              )}
-              <Button onClick={handleUpdatePost} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                Update Post
+              <Button onClick={handlePublishDraft} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                Publish Post
               </Button>
               <Button onClick={handleCancelEdit} variant="ghost" className="w-full">
                 Cancel

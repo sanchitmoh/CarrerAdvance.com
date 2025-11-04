@@ -120,7 +120,7 @@ function AdminSidebar({ isMobileMenuOpen = false, onClose }: AdminSidebarProps) 
             </div>
             <span className="text-lg font-semibold text-gray-900">CareerAdvance Admin</span>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Close menu">
             <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>

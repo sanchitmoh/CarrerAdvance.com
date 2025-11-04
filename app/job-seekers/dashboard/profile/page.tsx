@@ -10,6 +10,7 @@ import { User, FileText, GraduationCap, Briefcase, Globe, Upload, Edit, CheckCir
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 import PersonalInformation from '@/components/Jobseeker-profile/PersonalInformation'
 import Experience from '@/components/Jobseeker-profile/Experience'
@@ -31,6 +32,8 @@ export default function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [showSetupDialog, setShowSetupDialog] = useState(false)
+  const [showUploadInline, setShowUploadInline] = useState(true)
 
   // Load profile completion on component mount
   useEffect(() => {
@@ -71,6 +74,19 @@ export default function ProfilePage() {
 
     loadProfileCompletion();
   }, []);
+
+  // Show setup dialog for new users or incomplete profiles
+  useEffect(() => {
+    if (loading) return
+    try {
+      const prompted = localStorage.getItem('jobSeekerProfileSetup')
+      const shouldPrompt = !prompted || Number(profileCompletion) < 60
+      if (shouldPrompt) {
+        setShowSetupDialog(true)
+        localStorage.setItem('jobSeekerProfileSetup', 'true')
+      }
+    } catch {}
+  }, [loading, profileCompletion])
 
   // Function to refresh profile completion
   const refreshProfileCompletion = async () => {
@@ -209,6 +225,69 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
+        <DialogContent className="w-full max-w-2xl mx-auto sm:mx-0 rounded-lg p-4 sm:p-6">
+          <DialogHeader className="text-left">
+            <DialogTitle className="text-2xl sm:text-3xl font-bold text-emerald-700">
+              Set up your profile
+            </DialogTitle>
+            <DialogDescription className="text-base text-gray-600 mt-2">
+              {showUploadInline ? 'Upload your resume to auto-fill your profile' : "Choose how you'd like to set up your profile"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {showUploadInline ? (
+            <div className="mt-4">
+              <ResumeUpload />
+              <div className="mt-4 flex gap-3">
+                <Button
+                  variant="outline"
+                  className="border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                  onClick={() => setShowUploadInline(false)}
+                >
+                  <Edit className="w-4 h-4 mr-2" /> Switch to Manual Entry
+                </Button>
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => setShowSetupDialog(false)}
+                >
+                  Start Editing Profile
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-4">
+                <button
+                  onClick={() => setShowUploadInline(true)}
+                  className="group flex flex-col items-center justify-center p-6 sm:p-8 border-2 border-emerald-200 rounded-lg hover:bg-emerald-50 transition-all duration-300 hover:border-emerald-500"
+                >
+                  <div className="mb-4 p-3 sm:p-4 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors">
+                    <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Upload Resume</h3>
+                  <p className="text-sm sm:text-base text-gray-600 text-center">
+                    Upload your resume and we'll extract your information automatically
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setShowSetupDialog(false)}
+                  className="group flex flex-col items-center justify-center p-6 sm:p-8 border-2 border-emerald-200 rounded-lg hover:bg-emerald-50 transition-all duration-300 hover:border-emerald-500"
+                >
+                  <div className="mb-4 p-3 sm:p-4 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors">
+                    <Edit className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Add Personal Information Manually</h3>
+                  <p className="text-sm sm:text-base text-gray-600 text-center">
+                    Manually enter your information step by step
+                  </p>
+                </button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
       {isSaving && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-lg p-6 flex items-center space-x-3">

@@ -87,6 +87,25 @@ export default function ResumeUpload() {
         ])
         setUploadProgress(100)
         try { (window as any).ProfileSave?.success('Resume uploaded.') } catch {}
+
+        // Parse and auto-populate profile in background
+        try {
+          const parseForm = new FormData()
+          parseForm.append('file', file)
+          parseForm.append('jobseeker_id', String(userId))
+          parseForm.append('apply', '1')
+          const parseRes = await fetch('/api/seeker/profile/parse_resume', { method: 'POST', body: parseForm })
+          const parseJson = await parseRes.json().catch(() => ({}))
+          if (parseJson?.success) {
+            try { (window as any).ProfileSave?.success('Profile updated from resume.') } catch {}
+            // Refresh profile data: simplest approach reloads the page
+            setTimeout(() => { try { window.location.reload() } catch {} }, 300)
+          } else {
+            try { (window as any).ProfileSave?.error(parseJson?.message || 'Failed to parse resume.') } catch {}
+          }
+        } catch (e) {
+          try { (window as any).ProfileSave?.error('Resume parsing failed.') } catch {}
+        }
       }
     } finally {
       clearInterval(ticker)

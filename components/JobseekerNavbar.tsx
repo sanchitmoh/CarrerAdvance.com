@@ -107,13 +107,15 @@ export default function JobSeekerNavbar({ onMenuToggle }: JobSeekerNavbarProps) 
               <Menu className="h-5 w-5" />
             </Button>
           </div>
-
+      <Link href={"/job-seekers/dashboard/profile"}>
          <Image
           src="/logo1.png"
           alt="CareerAdvance"
           width={160}
           height={180}
-         />
+          className="transition-transform duration-200 hover:scale-105 cursor-pointer"
+          />
+          </Link>
 
           {/* Mobile Menu Button */}
           

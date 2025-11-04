@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { useEmployerLogout } from "@/components/AuthForm"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
+import Link from "next/link"
 
 interface EmployerNavbarProps {
   onMobileMenuToggle: () => void
@@ -38,36 +39,36 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
   // Fetch user details for avatar/name
   useEffect(() => {
     const employerId = typeof window !== 'undefined' ? localStorage.getItem('employer_id') : null
-  
+
     if (!employerId) return
-    ;(async () => {
-      try {
-        // Use backend employer profile API to fetch profile data
-        
-        const res = await fetch(getBackendUrl(`/index.php/api/employer/profile/get_profile?employer_id=${employerId}`), {
-          credentials: 'include',
-        })
-       
-        const data = await res.json()
-        console.log('Navbar API Response:', data) // Debug log
-        if (data?.success && data?.data?.employer) {
-          const p = data.data.employer
-          const firstName = p.firstname || ''
-          const lastName = p.lastname || ''
-          const name = `${firstName} ${lastName}`.trim() || 'Employer'
-          const email = p.email || ''
-          // Use profile_picture or company_logo with proper URL construction
-          const avatarPath = p.profile_picture || p.company_logo || ''
-          const avatar = avatarPath ? getBackendUrl(`/${avatarPath}`) : ''
-          console.log('Avatar construction - Path:', avatarPath, 'Full URL:', avatar)
-          setUser({ name, email, avatar })
-          console.log('User state set:', { name, email, avatar })
+      ; (async () => {
+        try {
+          // Use backend employer profile API to fetch profile data
+
+          const res = await fetch(getBackendUrl(`/index.php/api/employer/profile/get_profile?employer_id=${employerId}`), {
+            credentials: 'include',
+          })
+
+          const data = await res.json()
+          console.log('Navbar API Response:', data) // Debug log
+          if (data?.success && data?.data?.employer) {
+            const p = data.data.employer
+            const firstName = p.firstname || ''
+            const lastName = p.lastname || ''
+            const name = `${firstName} ${lastName}`.trim() || 'Employer'
+            const email = p.email || ''
+            // Use profile_picture or company_logo with proper URL construction
+            const avatarPath = p.profile_picture || p.company_logo || ''
+            const avatar = avatarPath ? getBackendUrl(`/${avatarPath}`) : ''
+            console.log('Avatar construction - Path:', avatarPath, 'Full URL:', avatar)
+            setUser({ name, email, avatar })
+            console.log('User state set:', { name, email, avatar })
+          }
+        } catch (_e) {
+          // ignore
+          console.error('Navbar fetch error:', _e)
         }
-      } catch (_e) {
-        // ignore
-        console.error('Navbar fetch error:', _e)
-      }
-    })()
+      })()
   }, [])
 
   const handleLogout = () => {
@@ -81,9 +82,9 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
   }
 
   console.log('Navbar render - user state:', user) // Debug log
-  
+
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-3 lg:px-6 z-100 shadow-sm">
+    <header className="bg-white border-b border-gray-200 px-3 py-2 lg:px-6 z-100 shadow-sm">
       <div className="flex items-center justify-between">
         {/* Left side */}
         <div className="flex items-center space-x-4">
@@ -93,14 +94,18 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
           </Button>
 
           {/* Logo/Title */}
-          <div className="flex items-center  ">
+          <div className="flex items-center ">
+           <Link href={"/employers/dashboard"}>
             <Image
-            src={"/logo1.png"}
-            height={200}
-            width={200}
-            
-            alt="CareerAdvance"
-            />
+              src={"/logo1.png"}
+              height={160}
+              width={180}
+              className="transition-transform duration-200 hover:scale-105 cursor-pointer"
+              
+              
+              alt="CareerAdvance"
+              />
+              </Link>
           </div>
         </div>
 
@@ -110,30 +115,30 @@ export default function EmployerNavbar({ onMobileMenuToggle, isMobileMenuOpen }:
         {/* Right side */}
         <div className="flex items-center space-x-4">
           {/* Notifications */}
-        
+
           {/* User menu */}
           <DropdownMenu>
-                         <DropdownMenuTrigger asChild>
-               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                 <Avatar className="h-12 w-12">
-                   {user.avatar ? (
-                     <AvatarImage 
-                       src={user.avatar} 
-                       alt={user.name}
-                       onError={() => {
-                         console.log('Avatar image failed to load:', user.avatar)
-                       }}
-                     />
-                   ) : null}
-                   <AvatarFallback className="bg-emerald-500 text-white">
-                     {user.name && user.name !== 'Employer' 
-                       ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                       : 'EM'
-                     }
-                   </AvatarFallback>
-                 </Avatar>
-               </Button>
-             </DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-12 w-12">
+                  {user.avatar ? (
+                    <AvatarImage
+                      src={user.avatar}
+                      alt={user.name}
+                      onError={() => {
+                        console.log('Avatar image failed to load:', user.avatar)
+                      }}
+                    />
+                  ) : null}
+                  <AvatarFallback className="bg-emerald-500 text-white">
+                    {user.name && user.name !== 'Employer'
+                      ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                      : 'EM'
+                    }
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
