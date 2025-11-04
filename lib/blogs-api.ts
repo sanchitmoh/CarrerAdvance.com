@@ -78,6 +78,16 @@ class BlogsApiService {
     if (payload.tags) form.append('tags', payload.tags);
     if (payload.imageFile) form.append('image', payload.imageFile);
     if (typeof payload.admin_id === 'number') form.append('admin_id', String(payload.admin_id));
+    else {
+      // Auto-include admin_id from cookie/localStorage for cross-site cases
+      try {
+        if (typeof window !== 'undefined') {
+          const cookieAdmin = document.cookie.match(/(?:^|; )admin_id=([^;]+)/);
+          const adminId = cookieAdmin ? decodeURIComponent(cookieAdmin[1]) : (localStorage.getItem('admin_id') || '');
+          if (adminId) form.append('admin_id', adminId);
+        }
+      } catch {}
+    }
 
     const res = await fetch(`${this.baseUrl}`, { method: 'POST', body: form, credentials: 'include' });
     return res.json();
@@ -122,6 +132,15 @@ class BlogsApiService {
       if (payload.tags) form.append('tags', payload.tags);
       if (employerId) form.append('employer_id', employerId);
       if (typeof (payload as any).admin_id === 'number') form.append('admin_id', String((payload as any).admin_id));
+      else {
+        try {
+          if (typeof window !== 'undefined') {
+            const cookieAdmin = document.cookie.match(/(?:^|; )admin_id=([^;]+)/);
+            const adminId = cookieAdmin ? decodeURIComponent(cookieAdmin[1]) : (localStorage.getItem('admin_id') || '');
+            if (adminId) form.append('admin_id', adminId);
+          }
+        } catch {}
+      }
       if ((payload as any).imageFile) form.append('image', (payload as any).imageFile as File);
       // Use POST for multipart so CodeIgniter can parse fields via $this->input->post
       const res = await fetch(`${this.baseUrl}/${id}/update`, { method: 'POST', body: form, credentials: 'include' });
@@ -129,6 +148,15 @@ class BlogsApiService {
     } else {
       const payloadWithEmployerId = { ...payload, employer_id: employerId } as any;
       if (typeof (payload as any).admin_id === 'number') payloadWithEmployerId.admin_id = (payload as any).admin_id;
+      else {
+        try {
+          if (typeof window !== 'undefined') {
+            const cookieAdmin = document.cookie.match(/(?:^|; )admin_id=([^;]+)/);
+            const adminId = cookieAdmin ? decodeURIComponent(cookieAdmin[1]) : (localStorage.getItem('admin_id') || '');
+            if (adminId) payloadWithEmployerId.admin_id = adminId;
+          }
+        } catch {}
+      }
       const res = await fetch(`${this.baseUrl}/${id}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
